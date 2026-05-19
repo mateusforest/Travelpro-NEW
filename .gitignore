@@ -1,0 +1,48 @@
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+.env.development
+.env*.local
+*.pem
+*.key
+*.p12
+*.crt
+service-role*
+supabase-service-role*
+
+# Build and package output
+node_modules
+.next/
+out/
+dist/
+build/
+coverage/
+.vercel/
+
+# Logs and temp files
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+
+# Database dumps and sensitive SQL/data
+*.dump
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.db
+
+# OS files
+.DS_Store
+Thumbs.db

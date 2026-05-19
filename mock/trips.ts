@@ -1,0 +1,32 @@
+export const trips = [
+  {
+    id: "TR-9001",
+    client: "Ana Martins",
+    destination: "Cancún",
+    status: "Confirmada",
+    dates: "15 mai - 22 mai",
+    documents: "5 arquivos",
+    finance: "Saldo ok",
+    itinerary: "Roteiro final",
+  },
+  {
+    id: "TR-9002",
+    client: "João Ribeiro",
+    destination: "Orlando",
+    status: "Em andamento",
+    dates: "18 mai - 27 mai",
+    documents: "3 arquivos",
+    finance: "A receber",
+    itinerary: "Roteiro premium",
+  },
+  {
+    id: "TR-9003",
+    client: "Marina Costa",
+    destination: "Maldivas",
+    status: "Planejamento",
+    dates: "10 jun - 18 jun",
+    documents: "2 arquivos",
+    finance: "Entrada paga",
+    itinerary: "Template romântico",
+  },
+]

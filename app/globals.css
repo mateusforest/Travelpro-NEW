@@ -1,0 +1,160 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #111111;
+  --card-foreground: #fafafa;
+  --popover: #111111;
+  --popover-foreground: #fafafa;
+  --primary: #f97316;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #fafafa;
+  --muted: #171717;
+  --muted-foreground: #a1a1a1;
+  --accent: #f97316;
+  --accent-foreground: #0a0a0a;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+  --border: #262626;
+  --input: #262626;
+  --ring: #f97316;
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --font-sans: 'Inter', 'Geist', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* Glow effects */
+.glow-orange {
+  box-shadow: 0 0 60px rgba(249, 115, 22, 0.15);
+}
+
+.glow-orange-subtle {
+  box-shadow: 0 0 40px rgba(249, 115, 22, 0.08);
+}
+
+.text-glow-orange {
+  text-shadow: 0 0 30px rgba(249, 115, 22, 0.5);
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(17, 17, 17, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.glass-card {
+  background: rgba(26, 26, 26, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Animated gradient line */
+@keyframes flowLine {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.flow-line {
+  stroke-dasharray: 1000;
+  animation: flowLine 3s ease-in-out infinite;
+}
+
+/* Pulse animation */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Float animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 50%, #fdba74 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

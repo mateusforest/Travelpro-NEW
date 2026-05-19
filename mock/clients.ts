@@ -1,0 +1,38 @@
+export const clients = [
+  {
+    id: "CL-1001",
+    name: "Ana Martins",
+    tag: "Premium",
+    status: "Ativo",
+    destination: "Cancún",
+    email: "ana.martins@email.com",
+    phone: "(11) 99999-0001",
+  },
+  {
+    id: "CL-1002",
+    name: "João Ribeiro",
+    tag: "Família",
+    status: "Em viagem",
+    destination: "Orlando",
+    email: "joao.ribeiro@email.com",
+    phone: "(21) 98888-0102",
+  },
+  {
+    id: "CL-1003",
+    name: "Marina Costa",
+    tag: "Lua de mel",
+    status: "Ativo",
+    destination: "Maldivas",
+    email: "marina.costa@email.com",
+    phone: "(31) 97777-0193",
+  },
+  {
+    id: "CL-1004",
+    name: "Pedro Santos",
+    tag: "Corporativo",
+    status: "Pendente",
+    destination: "Lisboa",
+    email: "pedro.santos@email.com",
+    phone: "(51) 96666-0304",
+  },
+]
