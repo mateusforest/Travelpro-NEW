@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
+import type { Database } from "@/types/database"
 
 function getAdminSupabaseEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -14,7 +15,7 @@ function getAdminSupabaseEnv() {
 export function getSupabaseAdminClient() {
   const { url, serviceRoleKey } = getAdminSupabaseEnv()
 
-  return createClient(url, serviceRoleKey, {
+  return createClient<Database>(url, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

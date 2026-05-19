@@ -2,8 +2,9 @@
 
 import { createBrowserClient } from "@supabase/ssr"
 import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@/types/database"
 
-let browserClient: SupabaseClient | null = null
+let browserClient: SupabaseClient<Database> | null = null
 
 function getPublicSupabaseEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -20,6 +21,6 @@ export function getSupabaseBrowserClient() {
   if (browserClient) return browserClient
 
   const { url, anonKey } = getPublicSupabaseEnv()
-  browserClient = createBrowserClient(url, anonKey)
+  browserClient = createBrowserClient<Database>(url, anonKey)
   return browserClient
 }
