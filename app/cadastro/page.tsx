@@ -8,7 +8,7 @@ import { Eye, EyeOff, ArrowRight, Plane, MapPin, BarChart3, Bell, Users } from "
 import { TravelProLogo } from "@/components/branding/travelpro-logo"
 import { toast } from "@/components/ui/use-toast"
 import { AUTH_ROLES } from "@/lib/permissions/roles"
-import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { getSupabaseBrowserClient, getSupabasePublicEnvStatus } from "@/lib/supabase/client"
 
 const rotatingPhrases = [
   "Sua agência conectada em tempo real.",
@@ -16,6 +16,17 @@ const rotatingPhrases = [
   "Transformando operações em experiências.",
   "O futuro operacional das agências.",
 ]
+
+function getSafeAuthRedirectUrl() {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+  if (!appUrl) return undefined
+
+  try {
+    return new URL("/login", appUrl).toString()
+  } catch {
+    throw new Error("NEXT_PUBLIC_APP_URL está inválida. Use a URL base completa, por exemplo https://app.exemplo.com.")
+  }
+}
 
 export default function CadastroPage() {
   const router = useRouter()
@@ -29,12 +40,25 @@ export default function CadastroPage() {
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [envError, setEnvError] = useState<string | null>(null)
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentPhraseIndex((prev) => (prev + 1) % rotatingPhrases.length)
     }, 3000)
     return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    const envStatus = getSupabasePublicEnvStatus()
+    if (!envStatus.ok) {
+      setEnvError(envStatus.message)
+      console.error("[signup] supabase env invalid", {
+        hasPublicUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+        hasAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+        message: envStatus.message,
+      })
+    }
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,8 +76,21 @@ export default function CadastroPage() {
     }
 
     try {
+      const envStatus = getSupabasePublicEnvStatus()
+      if (!envStatus.ok) {
+        setEnvError(envStatus.message)
+        throw new Error(envStatus.message)
+      }
+
       const supabase = getSupabaseBrowserClient()
-      const emailRedirectTo = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/login` : undefined
+      const emailRedirectTo = getSafeAuthRedirectUrl()
+
+      console.info("[signup] attempting signUp", {
+        email,
+        role: AUTH_ROLES.AGENCY_ADMIN,
+        hasAgencyName: Boolean(agencyName),
+        hasRedirectTo: Boolean(emailRedirectTo),
+      })
 
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -73,6 +110,12 @@ export default function CadastroPage() {
       if (!data.user) {
         throw new Error("O Supabase não retornou o usuário criado. Revise as configurações de Auth.")
       }
+
+      console.info("[signup] signUp result", {
+        hasUser: Boolean(data.user),
+        hasSession: Boolean(data.session),
+        userId: data.user.id,
+      })
 
       if (data.session) {
         const bootstrapResponse = await fetch("/api/auth/bootstrap", {
@@ -307,6 +350,8 @@ export default function CadastroPage() {
             <p className="text-muted-foreground mb-8">
               Deixe sua interface pronta para começar a operar com mais velocidade.
             </p>
+
+            {envError ? <p className="mb-6 text-sm text-destructive">{envError}</p> : null}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
