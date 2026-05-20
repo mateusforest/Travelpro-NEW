@@ -14,54 +14,6 @@ begin
 end;
 $$;
 
-create or replace function public.current_profile_id()
-returns uuid
-language sql
-stable
-as $$
-  select id from public.profiles where user_id = auth.uid() limit 1
-$$;
-
-create or replace function public.current_profile_role()
-returns text
-language sql
-stable
-as $$
-  select role from public.profiles where user_id = auth.uid() limit 1
-$$;
-
-create or replace function public.current_agency_id()
-returns uuid
-language sql
-stable
-as $$
-  select agency_id from public.profiles where user_id = auth.uid() limit 1
-$$;
-
-create or replace function public.is_master()
-returns boolean
-language sql
-stable
-as $$
-  select public.current_profile_role() = 'master'
-$$;
-
-create or replace function public.is_agency_member()
-returns boolean
-language sql
-stable
-as $$
-  select public.current_profile_role() in ('agency_admin', 'agency_user')
-$$;
-
-create or replace function public.is_client()
-returns boolean
-language sql
-stable
-as $$
-  select public.current_profile_role() = 'client'
-$$;
-
 create table if not exists public.agencies (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -343,6 +295,54 @@ create index if not exists tasks_agency_id_idx on public.tasks(agency_id);
 create index if not exists reports_agency_id_idx on public.reports(agency_id);
 create index if not exists audit_logs_agency_id_idx on public.audit_logs(agency_id);
 create index if not exists audit_logs_entity_idx on public.audit_logs(entity, entity_id);
+
+create or replace function public.current_profile_id()
+returns uuid
+language sql
+stable
+as $$
+  select id from public.profiles where user_id = auth.uid() limit 1
+$$;
+
+create or replace function public.current_profile_role()
+returns text
+language sql
+stable
+as $$
+  select role from public.profiles where user_id = auth.uid() limit 1
+$$;
+
+create or replace function public.current_agency_id()
+returns uuid
+language sql
+stable
+as $$
+  select agency_id from public.profiles where user_id = auth.uid() limit 1
+$$;
+
+create or replace function public.is_master()
+returns boolean
+language sql
+stable
+as $$
+  select public.current_profile_role() = 'master'
+$$;
+
+create or replace function public.is_agency_member()
+returns boolean
+language sql
+stable
+as $$
+  select public.current_profile_role() in ('agency_admin', 'agency_user')
+$$;
+
+create or replace function public.is_client()
+returns boolean
+language sql
+stable
+as $$
+  select public.current_profile_role() = 'client'
+$$;
 
 create or replace function public.handle_new_user()
 returns trigger

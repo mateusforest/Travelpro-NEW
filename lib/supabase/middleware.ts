@@ -6,7 +6,7 @@ function getPublicSupabaseEnv() {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!url || !anonKey) {
-    throw new Error("Supabase public environment variables are not configured.")
+    return null
   }
 
   return { url, anonKey }
@@ -17,7 +17,13 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
-  const { url, anonKey } = getPublicSupabaseEnv()
+  const env = getPublicSupabaseEnv()
+
+  if (!env) {
+    return { response, supabase: null, user: null }
+  }
+
+  const { url, anonKey } = env
 
   const supabase = createServerClient(url, anonKey, {
     cookies: {

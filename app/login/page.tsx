@@ -34,6 +34,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+
     try {
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.signInWithPassword({
@@ -48,11 +49,12 @@ export default function LoginPage() {
         credentials: "include",
       })
 
+      const authPayload = (await response.json().catch(() => null)) as { redirectTo?: string; error?: string } | null
+
       if (!response.ok) {
-        throw new Error("Não foi possível carregar a sessão atual.")
+        throw new Error(authPayload?.error || "Não foi possível carregar a sessão atual.")
       }
 
-      const authPayload = (await response.json()) as { redirectTo?: string }
       const nextPath =
         typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : null
 
@@ -61,9 +63,13 @@ export default function LoginPage() {
         description: "Sua sessão foi iniciada com sucesso.",
       })
 
-      router.push(nextPath && nextPath.startsWith("/") ? nextPath : authPayload.redirectTo || "/login")
+      router.push(nextPath && nextPath.startsWith("/") ? nextPath : authPayload?.redirectTo || "/login")
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Falha ao entrar."
+      console.error("[login] failed", {
+        email,
+        message,
+      })
       toast({
         title: "Não foi possível entrar",
         description: message,

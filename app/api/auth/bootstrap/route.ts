@@ -43,6 +43,12 @@ export async function POST(request: Request) {
     return NextResponse.json(result)
   } catch (bootstrapError) {
     const message = bootstrapError instanceof Error ? bootstrapError.message : "Unable to bootstrap account"
+    console.error("[auth/bootstrap] failed", {
+      userId: user.id,
+      role,
+      hasAgencyName: Boolean(payload.data.agencyName),
+      message,
+    })
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

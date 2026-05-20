@@ -27,7 +27,7 @@ export async function proxy(request: NextRequest) {
 
   let role = normalizeRole(user?.user_metadata?.role ?? user?.app_metadata?.role)
 
-  if (user && !role) {
+  if (user && !role && supabase) {
     const { data: profile } = await supabase.from("profiles").select("role").eq("user_id", user.id).maybeSingle()
     role = normalizeRole(profile?.role)
   }

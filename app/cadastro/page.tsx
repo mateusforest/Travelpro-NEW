@@ -70,6 +70,9 @@ export default function CadastroPage() {
       })
 
       if (error) throw error
+      if (!data.user) {
+        throw new Error("O Supabase não retornou o usuário criado. Revise as configurações de Auth.")
+      }
 
       if (data.session) {
         const bootstrapResponse = await fetch("/api/auth/bootstrap", {
@@ -84,16 +87,31 @@ export default function CadastroPage() {
           }),
         })
 
+        const bootstrapPayload = (await bootstrapResponse.json().catch(() => null)) as
+          | { error?: string }
+          | { bootstrapped?: boolean }
+          | null
+
         if (!bootstrapResponse.ok) {
-          const bootstrapPayload = (await bootstrapResponse.json().catch(() => null)) as { error?: string } | null
-          throw new Error(bootstrapPayload?.error || "Não foi possível preparar a conta inicial.")
+          throw new Error(bootstrapPayload && "error" in bootstrapPayload ? bootstrapPayload.error || "Não foi possível preparar a conta inicial." : "Não foi possível preparar a conta inicial.")
+        }
+
+        const meResponse = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include",
+        })
+
+        const mePayload = (await meResponse.json().catch(() => null)) as { redirectTo?: string; error?: string } | null
+
+        if (!meResponse.ok) {
+          throw new Error(mePayload?.error || "A conta foi criada, mas o perfil ainda não ficou disponível.")
         }
 
         toast({
           title: "Conta criada",
           description: "Sua agência foi preparada e a sessão já está ativa.",
         })
-        router.push("/app")
+        router.push(mePayload?.redirectTo || "/app")
         return
       }
 
@@ -104,6 +122,11 @@ export default function CadastroPage() {
       router.push("/login")
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Falha ao criar conta."
+      console.error("[signup] failed", {
+        email,
+        hasAgencyName: Boolean(agencyName),
+        message,
+      })
       toast({
         title: "Não foi possível criar a conta",
         description: message,

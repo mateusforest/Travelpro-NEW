@@ -15,15 +15,23 @@ type BootstrapUserInput = {
 export async function bootstrapUserAccount(input: BootstrapUserInput) {
   const supabase = getSupabaseAdminClient()
   const existingProfile = await getProfileByUserId(input.userId)
-
-  if (existingProfile) {
-    return { profile: existingProfile, agency: null, bootstrapped: false }
-  }
+  const isAgencyRole = input.role === AUTH_ROLES.AGENCY_ADMIN || input.role === AUTH_ROLES.AGENCY_USER
 
   let agency: { id: string; name: string; slug: string } | null = null
-  let agencyId: string | null = null
+  let agencyId: string | null = existingProfile?.agency_id ?? null
 
-  if (input.role === AUTH_ROLES.AGENCY_ADMIN || input.role === AUTH_ROLES.AGENCY_USER) {
+  if (!agencyId && isAgencyRole) {
+    const { data: member, error: memberLookupError } = await supabase
+      .from("agency_members")
+      .select("agency_id")
+      .eq("user_id", input.userId)
+      .maybeSingle()
+
+    if (memberLookupError) throw memberLookupError
+    agencyId = member?.agency_id ?? null
+  }
+
+  if (!agencyId && isAgencyRole) {
     agency = await createAgencyForUser({
       agencyName: input.agencyName || `${input.fullName} Agência`,
       ownerName: input.fullName,
@@ -31,15 +39,6 @@ export async function bootstrapUserAccount(input: BootstrapUserInput) {
       phone: input.phone ?? null,
     })
     agencyId = agency.id
-
-    const { error: memberError } = await supabase.from("agency_members").insert({
-      agency_id: agency.id,
-      user_id: input.userId,
-      role: input.role,
-      status: "active",
-    })
-
-    if (memberError) throw memberError
   }
 
   const profile = await upsertProfile({
@@ -51,17 +50,42 @@ export async function bootstrapUserAccount(input: BootstrapUserInput) {
     agencyId,
   })
 
-  if (input.role === AUTH_ROLES.CLIENT) {
-    const { error: clientError } = await supabase.from("clients").insert({
-      profile_id: profile.id,
-      agency_id: null,
-      name: input.fullName,
-      email: input.email,
-      phone: input.phone ?? null,
-      status: "active",
-    })
+  if (isAgencyRole && agencyId) {
+    const { error: memberError } = await supabase.from("agency_members").upsert(
+      {
+        agency_id: agencyId,
+        user_id: input.userId,
+        profile_id: profile.id,
+        role: input.role,
+        status: "active",
+      },
+      { onConflict: "agency_id,user_id" },
+    )
 
-    if (clientError) throw clientError
+    if (memberError) throw memberError
+  }
+
+  if (input.role === AUTH_ROLES.CLIENT && agencyId) {
+    const { data: existingClient, error: clientLookupError } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("profile_id", profile.id)
+      .maybeSingle()
+
+    if (clientLookupError) throw clientLookupError
+
+    if (!existingClient) {
+      const { error: clientError } = await supabase.from("clients").insert({
+        profile_id: profile.id,
+        agency_id: agencyId,
+        name: input.fullName,
+        email: input.email,
+        phone: input.phone ?? null,
+        status: "active",
+      })
+
+      if (clientError) throw clientError
+    }
   }
 
   const { error: authUpdateError } = await supabase.auth.admin.updateUserById(input.userId, {
@@ -76,5 +100,5 @@ export async function bootstrapUserAccount(input: BootstrapUserInput) {
 
   if (authUpdateError) throw authUpdateError
 
-  return { profile, agency, bootstrapped: true }
+  return { profile, agency, bootstrapped: !existingProfile }
 }
