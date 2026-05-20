@@ -43,10 +43,10 @@ function NotificationTrigger({ unreadCount }: { unreadCount: number }) {
   return (
     <button
       type="button"
-      className="relative rounded-full border border-white/10 bg-white/[0.03] p-3 text-foreground transition-all hover:border-primary/20 hover:bg-white/[0.06]"
+      className="relative rounded-full border border-white/10 bg-white/[0.03] p-2.5 text-foreground transition-all hover:border-primary/20 hover:bg-white/[0.06]"
     >
-      <Bell className="h-4 w-4" />
-      <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+      <Bell className="h-3.5 w-3.5" />
+      <span className="absolute -right-1 -top-1 inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-semibold text-primary-foreground">
         {unreadCount}
       </span>
     </button>

@@ -76,7 +76,6 @@ export function MobileNav({ portal, title }: MobileNavProps) {
                     <item.icon className={cn("h-4 w-4", isGroupActive || isActive ? "text-primary" : "text-muted-foreground")} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{item.title}</p>
-                      {item.description ? <p className="truncate text-xs text-muted-foreground">{item.description}</p> : null}
                     </div>
                     <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isExpanded ? "rotate-180" : "")} />
                   </button>
@@ -99,7 +98,6 @@ export function MobileNav({ portal, title }: MobileNavProps) {
                             <child.icon className={cn("h-4 w-4", childActive ? "text-primary" : "text-muted-foreground")} />
                             <div className="min-w-0 flex-1">
                               <p className="truncate font-medium">{child.title}</p>
-                              {child.description ? <p className="truncate text-xs text-muted-foreground">{child.description}</p> : null}
                             </div>
                           </Link>
                         ) : null
@@ -122,7 +120,6 @@ export function MobileNav({ portal, title }: MobileNavProps) {
                 <item.icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{item.title}</p>
-                  {item.description ? <p className="truncate text-xs text-muted-foreground">{item.description}</p> : null}
                 </div>
               </Link>
             ) : null

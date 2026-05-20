@@ -1,13 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { Plus, Sparkles } from "lucide-react"
+import { Plus } from "lucide-react"
 import type { PortalKey, UserProfile } from "@/lib/services/portal-types"
 import { MobileNav } from "@/components/system/mobile-nav"
 import { CommandPalette } from "@/components/system/command-palette"
 import { NotificationPanel, type NotificationItem } from "@/components/system/notification-panel"
 import { ProfileMenu } from "@/components/system/profile-menu"
-import { Breadcrumbs } from "@/components/system/breadcrumbs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 type PortalHeaderProps = {
@@ -43,40 +42,45 @@ const clientNotifications: NotificationItem[] = [
   { id: "c-6", title: "Voucher enviado", description: "O voucher do transfer foi anexado à sua viagem.", time: "hoje", tone: "success", href: "/cliente/documentos" },
 ]
 
+function getWelcomeTitle(portal: PortalKey, profile: UserProfile) {
+  if (portal === "master") return "Bem-vindo, Master"
+  if (portal === "agency") return "Bem-vindo"
+  if (portal === "client") return "Bem-vindo"
+  return profile.name ? `Bem-vindo, ${profile.name}` : "Bem-vindo"
+}
+
 export function PortalHeader({ portal, title, profile }: PortalHeaderProps) {
   const isClientPortal = portal === "client"
   const isMasterPortal = portal === "master"
   const notificationItems = isClientPortal ? clientNotifications : isMasterPortal ? masterNotifications : agencyNotifications
+  const welcomeTitle = getWelcomeTitle(portal, profile)
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/6 bg-background/78 backdrop-blur-xl">
-      <div className="flex flex-col gap-2 px-3 py-2 md:px-3.5 md:py-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-1.5">
+      <div className="flex flex-col gap-1.5 px-3 py-1.5 md:px-3.5 md:py-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
             <MobileNav portal={portal} title={title} />
             <div className="min-w-0">
-              <Breadcrumbs portal={portal} />
-              <div className="mt-0.5 flex items-center gap-1">
-                <h2 className="truncate text-base font-semibold text-foreground md:text-lg">{title}</h2>
-                <span className="hidden rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary md:inline-flex">
-                  <Sparkles className="mr-1 h-3 w-3" />
-                  {isClientPortal ? "Sua viagem" : isMasterPortal ? "Centro executivo" : "Sistema vivo"}
-                </span>
-              </div>
+              <h2 className="truncate text-base font-semibold text-foreground md:text-lg">{welcomeTitle}</h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            <div className="hidden min-w-[210px] max-w-[248px] xl:block">
+          <div className="hidden min-w-0 flex-1 justify-center xl:flex">
+            <div className="w-full max-w-[320px]">
               <CommandPalette portal={portal} />
             </div>
+          </div>
 
+          <div className="flex items-center gap-2.5">
             {!isClientPortal ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="hidden h-8 rounded-full border border-white/10 bg-white/[0.025] px-2.5 text-sm text-foreground transition-all hover:border-primary/20 hover:bg-white/[0.05] md:inline-flex md:items-center">
-                    <Plus className="mr-1 h-3.5 w-3.5 text-primary" />
-                    Ações rápidas
+                  <button
+                    aria-label="Ações rápidas"
+                    className="hidden h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.025] text-foreground transition-all hover:border-primary/20 hover:bg-white/[0.05] md:inline-flex"
+                  >
+                    <Plus className="h-3.5 w-3.5 text-primary" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent

@@ -56,7 +56,6 @@ function SidebarItem({
         <>
           <div className="min-w-0 flex-1">
             <span className="block truncate text-[12px] font-medium">{item.title}</span>
-            {item.description ? <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{item.description}</span> : null}
           </div>
           {hasChildren ? <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", isExpanded ? "rotate-180" : "rotate-0")} /> : null}
           {!hasChildren && item.badge ? (
@@ -177,7 +176,7 @@ export function Sidebar({ portal }: SidebarProps) {
     <aside
       className={cn(
         "hidden shrink-0 flex-col border-r border-white/7 bg-[linear-gradient(180deg,rgba(15,15,18,0.97),rgba(10,10,12,0.94))] px-2.5 py-2.5 shadow-[inset_-1px_0_0_rgba(255,255,255,0.04),16px_0_36px_rgba(0,0,0,0.14)] transition-[width,padding] duration-300 lg:flex",
-        collapsed ? "w-[78px]" : "w-[212px]",
+        collapsed ? "w-[78px]" : "w-[193px]",
       )}
     >
       <div className={cn("mb-2.5 flex items-center", collapsed ? "justify-center" : "justify-between gap-1.5")}>

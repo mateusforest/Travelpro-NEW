@@ -72,11 +72,11 @@ export function CommandPalette({ portal }: { portal: PortalKey }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="hidden h-9 min-w-[220px] items-center justify-between rounded-full border border-white/10 bg-white/[0.025] px-3 text-sm text-muted-foreground transition-all hover:border-primary/20 hover:bg-white/[0.05] md:flex"
+        className="hidden h-8 min-w-[240px] items-center justify-between rounded-full border border-white/10 bg-white/[0.025] px-3 text-sm text-muted-foreground transition-all hover:border-primary/20 hover:bg-white/[0.05] md:flex"
       >
         <span className="inline-flex items-center gap-2">
           <Search className="h-3.5 w-3.5" />
-          Buscar páginas e ações
+          Buscar no portal
         </span>
         <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] tracking-[0.16em]">Ctrl K</span>
       </button>
@@ -88,7 +88,7 @@ export function CommandPalette({ portal }: { portal: PortalKey }) {
         description="Busque páginas e atalhos rápidos do sistema."
         className="max-w-2xl rounded-[28px] border border-white/10 bg-black/88 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl"
       >
-        <CommandInput placeholder="Buscar páginas, clientes ou ações rápidas..." />
+        <CommandInput placeholder="Buscar páginas ou ações..." />
         <CommandList className="max-h-[420px]">
           <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
           <CommandGroup heading="Navegação">
