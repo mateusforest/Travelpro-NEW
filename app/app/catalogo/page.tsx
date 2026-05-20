@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Copy, ExternalLink, MessageSquareText, MoreHorizontal, Palette, Save, Trash2, Eye, FilePenLine } from "lucide-react"
 import { DashboardCard } from "@/components/system/dashboard-card"
@@ -63,7 +64,6 @@ function mapCatalogRow(item: CatalogItemRow, index: number) {
 
 export default function AgencyCatalogPage() {
   const [items, setItems] = useState(packages)
-  const [createOpen, setCreateOpen] = useState(false)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
   const fire = (title: string, description: string) => toast({ title, description })
 
@@ -78,6 +78,7 @@ export default function AgencyCatalogPage() {
         if (!active) return
         setItems([])
       })
+
     return () => {
       active = false
     }
@@ -166,8 +167,8 @@ export default function AgencyCatalogPage() {
 
       <DashboardCard title="Pacotes publicados" description="Resumo rápido dos pacotes já preparados para a vitrine pública.">
         <div className="mb-4">
-          <Button className="rounded-full" onClick={() => setCreateOpen(true)}>
-            Criar pacote
+          <Button asChild className="rounded-full">
+            <Link href="/app/catalogo/pacotes/novo">Criar pacote</Link>
           </Button>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
@@ -192,23 +193,11 @@ export default function AgencyCatalogPage() {
                       <Eye className="h-4 w-4" />
                       Visualizar
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="rounded-2xl px-3 py-2.5"
-                      onSelect={async () => {
-                        try {
-                          const updated = await requestJson<CatalogItemRow>(`/api/catalog/${item.id}`, {
-                            method: "PATCH",
-                            body: JSON.stringify({ status: item.status === "Publicado" ? "Rascunho" : "Publicado" }),
-                          })
-                          setItems((current) => current.map((entry, index) => (entry.id === item.id ? mapCatalogRow(updated, index) : entry)))
-                          fire("Pacote atualizado", `${item.title} foi sincronizado com o Supabase.`)
-                        } catch (error) {
-                          fire("Falha ao atualizar", error instanceof Error ? error.message : "Não foi possível atualizar o pacote.")
-                        }
-                      }}
-                    >
-                      <FilePenLine className="h-4 w-4" />
-                      Editar
+                    <DropdownMenuItem className="rounded-2xl px-3 py-2.5" asChild>
+                      <Link href="/app/catalogo/pacotes/novo">
+                        <FilePenLine className="h-4 w-4" />
+                        Editar
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="rounded-2xl px-3 py-2.5 text-red-200 focus:text-red-200"
@@ -239,50 +228,6 @@ export default function AgencyCatalogPage() {
           ))}
         </div>
       </DashboardCard>
-
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-2xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-          <DialogHeader className="border-b border-white/8 px-6 py-5">
-            <DialogTitle>Criar pacote</DialogTitle>
-            <DialogDescription>Cadastre um novo pacote para o catálogo público da agência.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
-            <CatalogField label="Nome do pacote" value="Lisboa Premium Escape" />
-            <CatalogField label="Status inicial" value="Rascunho" />
-            <CatalogField label="Destino" value="Lisboa" />
-            <CatalogField label="Preço base" value="R$ 14.800" />
-          </div>
-          <DialogFooter className="border-t border-white/8 px-6 py-5">
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setCreateOpen(false)}>
-              Fechar
-            </Button>
-            <Button
-              className="rounded-full"
-              onClick={async () => {
-                try {
-                  const created = await requestJson<CatalogItemRow>("/api/catalog", {
-                    method: "POST",
-                    body: JSON.stringify({
-                      title: "Lisboa Premium Escape",
-                      description: "Pacote premium com curadoria e suporte próximo.",
-                      status: "Rascunho",
-                      price: 14800,
-                      match_enabled: false,
-                    }),
-                  })
-                  setItems((current) => [mapCatalogRow(created, current.length), ...current])
-                  setCreateOpen(false)
-                  fire("Pacote criado", "O novo pacote foi salvo no Supabase.")
-                } catch (error) {
-                  fire("Falha ao criar", error instanceof Error ? error.message : "Não foi possível criar o pacote.")
-                }
-              }}
-            >
-              Salvar pacote
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={Boolean(confirmAction)} onOpenChange={(open) => !open && setConfirmAction(null)}>
         <DialogContent className="max-w-lg rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
