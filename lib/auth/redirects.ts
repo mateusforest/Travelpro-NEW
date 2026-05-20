@@ -14,6 +14,10 @@ export function getDefaultRouteForRole(role: AuthRole | null | undefined) {
   }
 }
 
+export function getDashboardPathByRole(role: AuthRole | null | undefined) {
+  return getDefaultRouteForRole(role)
+}
+
 export function getSafeRedirectForRole(role: AuthRole | null | undefined, fallback = "/login") {
   return role ? getDefaultRouteForRole(role) : fallback
 }

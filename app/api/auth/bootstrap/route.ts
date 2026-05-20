@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { AUTH_ROLES, normalizeRole } from "@/lib/permissions/roles"
+import { getProfileByUserId } from "@/lib/services/profile-service"
 import { bootstrapUserAccount } from "@/lib/services/user-service"
 
 const bootstrapSchema = z.object({
@@ -27,8 +28,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid payload", details: payload.error.flatten() }, { status: 400 })
   }
 
-  const normalizedRole = normalizeRole(payload.data.role ?? String(user.user_metadata?.role ?? AUTH_ROLES.AGENCY_ADMIN))
+  const existingProfile = await getProfileByUserId(user.id).catch(() => null)
+  const existingRole = normalizeRole(existingProfile?.role)
+  const normalizedRole = normalizeRole(
+    existingRole ?? payload.data.role ?? String(user.user_metadata?.role ?? AUTH_ROLES.AGENCY_ADMIN),
+  )
   const role = normalizedRole ?? AUTH_ROLES.AGENCY_ADMIN
+
+  console.info("[auth/bootstrap] start", {
+    userId: user.id,
+    email: user.email ?? null,
+    existingProfile: Boolean(existingProfile),
+    existingRole,
+    requestedRole: payload.data.role ?? null,
+    effectiveRole: role,
+  })
 
   try {
     const result = await bootstrapUserAccount({
@@ -38,6 +52,15 @@ export async function POST(request: Request) {
       phone: payload.data.phone ?? null,
       agencyName: payload.data.agencyName ?? null,
       role,
+    })
+
+    console.info("[auth/bootstrap] done", {
+      userId: user.id,
+      email: user.email ?? null,
+      effectiveRole: role,
+      profileRole: result.profile?.role ?? null,
+      agencyId: result.profile?.agency_id ?? null,
+      bootstrapped: result.bootstrapped,
     })
 
     return NextResponse.json(result)

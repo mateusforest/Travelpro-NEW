@@ -33,7 +33,9 @@ export async function getCurrentUser() {
     .eq("user_id", user.id)
     .maybeSingle()
 
-  const role = normalizeRole(profile?.role ?? user.user_metadata?.role ?? user.app_metadata?.role)
+  const profileRole = normalizeRole(profile?.role)
+  const metadataRole = normalizeRole(user.user_metadata?.role ?? user.app_metadata?.role)
+  const role = profileRole ?? metadataRole
 
   return {
     user,

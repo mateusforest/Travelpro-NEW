@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth/get-current-user"
+import { getDefaultRouteForRole } from "@/lib/auth/redirects"
 import { normalizeRole } from "@/lib/permissions/roles"
 import { bootstrapUserAccount } from "@/lib/services/user-service"
 
@@ -18,28 +19,55 @@ export async function GET() {
     )
   }
 
-  if (!current.profile) {
-    const role = normalizeRole(current.user.user_metadata?.role ?? current.user.app_metadata?.role)
+  console.info("[auth/me] session", {
+    userId: current.user.id,
+    email: current.user.email ?? null,
+    profileFound: Boolean(current.profile),
+    profileRole: current.profile?.role ?? null,
+    agencyId: current.profile?.agency_id ?? null,
+    resolvedRole: current.role,
+    redirectTo: current.redirectTo,
+  })
 
-    if (role) {
+  if (!current.profile) {
+    const metadataRole = normalizeRole(current.user.user_metadata?.role ?? current.user.app_metadata?.role)
+
+    if (metadataRole) {
       try {
+        console.info("[auth/me] bootstrap:start", {
+          userId: current.user.id,
+          email: current.user.email ?? null,
+          metadataRole,
+        })
+
         await bootstrapUserAccount({
           userId: current.user.id,
           email: current.user.email ?? "",
           fullName:
             String(current.user.user_metadata?.full_name ?? current.user.user_metadata?.name ?? "").trim() ||
             current.user.email?.split("@")[0] ||
-            "Usuário TravelPro",
+            "TravelPro User",
           phone: (current.user.user_metadata?.phone as string | undefined) ?? null,
           agencyName: (current.user.user_metadata?.agency_name as string | undefined) ?? null,
-          role,
+          role: metadataRole,
         })
+
+        await wait(250)
         current = await getCurrentUser()
+
+        console.info("[auth/me] bootstrap:done", {
+          userId: current.user?.id ?? null,
+          profileFound: Boolean(current.profile),
+          profileRole: current.profile?.role ?? null,
+          agencyId: current.profile?.agency_id ?? null,
+          redirectTo: current.redirectTo,
+        })
       } catch (bootstrapError) {
         const message = bootstrapError instanceof Error ? bootstrapError.message : "Unable to bootstrap session"
-        console.error("[auth/me] bootstrap retry failed", {
+        console.error("[auth/me] bootstrap failed", {
           userId: current.user.id,
-          role,
+          email: current.user.email ?? null,
+          metadataRole,
           message,
         })
       }
@@ -49,7 +77,7 @@ export async function GET() {
   if (!current.profile) {
     return NextResponse.json(
       {
-        error: "Perfil não encontrado após o login. Tente novamente ou conclua o cadastro.",
+        error: "Profile not available yet. Please try again in a moment.",
         user: current.user,
         profile: null,
         role: current.role,
@@ -59,5 +87,25 @@ export async function GET() {
     )
   }
 
-  return NextResponse.json(current)
+  const resolvedRole = normalizeRole(current.profile.role ?? current.role)
+  const redirectTo = getDefaultRouteForRole(resolvedRole)
+
+  console.info("[auth/me] resolved", {
+    userId: current.user.id,
+    email: current.user.email ?? null,
+    profileRole: current.profile.role ?? null,
+    agencyId: current.profile.agency_id ?? null,
+    resolvedRole,
+    redirectTo,
+  })
+
+  return NextResponse.json({
+    ...current,
+    role: resolvedRole,
+    redirectTo,
+  })
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }

@@ -15,7 +15,9 @@ type BootstrapUserInput = {
 export async function bootstrapUserAccount(input: BootstrapUserInput) {
   const supabase = getSupabaseAdminClient()
   const existingProfile = await getProfileByUserId(input.userId)
-  const isAgencyRole = input.role === AUTH_ROLES.AGENCY_ADMIN || input.role === AUTH_ROLES.AGENCY_USER
+  const existingRole = normalizeExistingRole(existingProfile?.role)
+  const effectiveRole = existingRole ?? input.role
+  const isAgencyRole = effectiveRole === AUTH_ROLES.AGENCY_ADMIN || effectiveRole === AUTH_ROLES.AGENCY_USER
 
   let agency: { id: string; name: string; slug: string } | null = null
   let agencyId: string | null = existingProfile?.agency_id ?? null
@@ -33,7 +35,7 @@ export async function bootstrapUserAccount(input: BootstrapUserInput) {
 
   if (!agencyId && isAgencyRole) {
     agency = await createAgencyForUser({
-      agencyName: input.agencyName || `${input.fullName} Agência`,
+      agencyName: input.agencyName || `${input.fullName} Agencia`,
       ownerName: input.fullName,
       ownerEmail: input.email,
       phone: input.phone ?? null,
@@ -46,7 +48,7 @@ export async function bootstrapUserAccount(input: BootstrapUserInput) {
     email: input.email,
     fullName: input.fullName,
     phone: input.phone ?? null,
-    role: input.role,
+    role: effectiveRole,
     agencyId,
   })
 
@@ -56,7 +58,7 @@ export async function bootstrapUserAccount(input: BootstrapUserInput) {
         agency_id: agencyId,
         user_id: input.userId,
         profile_id: profile.id,
-        role: input.role,
+        role: effectiveRole,
         status: "active",
       },
       { onConflict: "agency_id,user_id" },
@@ -65,7 +67,7 @@ export async function bootstrapUserAccount(input: BootstrapUserInput) {
     if (memberError) throw memberError
   }
 
-  if (input.role === AUTH_ROLES.CLIENT && agencyId) {
+  if (effectiveRole === AUTH_ROLES.CLIENT && agencyId) {
     const { data: existingClient, error: clientLookupError } = await supabase
       .from("clients")
       .select("id")
@@ -90,7 +92,7 @@ export async function bootstrapUserAccount(input: BootstrapUserInput) {
 
   const { error: authUpdateError } = await supabase.auth.admin.updateUserById(input.userId, {
     user_metadata: {
-      role: input.role,
+      role: effectiveRole,
       full_name: input.fullName,
       agency_name: input.agencyName ?? null,
       agency_id: agencyId,
@@ -101,4 +103,12 @@ export async function bootstrapUserAccount(input: BootstrapUserInput) {
   if (authUpdateError) throw authUpdateError
 
   return { profile, agency, bootstrapped: !existingProfile }
+}
+
+function normalizeExistingRole(role: unknown): AuthRole | null {
+  if (role === AUTH_ROLES.MASTER) return AUTH_ROLES.MASTER
+  if (role === AUTH_ROLES.AGENCY_ADMIN) return AUTH_ROLES.AGENCY_ADMIN
+  if (role === AUTH_ROLES.AGENCY_USER) return AUTH_ROLES.AGENCY_USER
+  if (role === AUTH_ROLES.CLIENT) return AUTH_ROLES.CLIENT
+  return null
 }
