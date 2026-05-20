@@ -13,6 +13,7 @@ async function resolveAuthSession() {
   const response = await fetch("/api/auth/me", {
     method: "GET",
     credentials: "include",
+    cache: "no-store",
   })
 
   const authPayload = (await response.json().catch(() => null)) as { redirectTo?: string; error?: string } | null
@@ -23,6 +24,7 @@ async function resolveAuthSession() {
     const retryResponse = await fetch("/api/auth/me", {
       method: "GET",
       credentials: "include",
+      cache: "no-store",
     })
 
     const retryPayload = (await retryResponse.json().catch(() => null)) as { redirectTo?: string; error?: string } | null
@@ -69,23 +71,45 @@ export default function LoginPage() {
 
     try {
       const supabase = getSupabaseBrowserClient()
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) throw error
 
+      if (!data.session) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+
+        if (sessionError) throw sessionError
+        if (!sessionData.session) {
+          throw new Error("A sessão foi criada, mas ainda não ficou disponível. Tente novamente.")
+        }
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 150))
+
       const authPayload = await resolveAuthSession()
       const nextPath =
         typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : null
+      const redirectTo =
+        nextPath && nextPath.startsWith("/")
+          ? nextPath
+          : authPayload?.redirectTo && authPayload.redirectTo !== "/login"
+            ? authPayload.redirectTo
+            : null
+
+      if (!redirectTo) {
+        throw new Error("A sessão foi iniciada, mas o destino do usuário não foi resolvido.")
+      }
 
       toast({
         title: "Login concluído",
         description: "Sua sessão foi iniciada com sucesso.",
       })
 
-      router.push(nextPath && nextPath.startsWith("/") ? nextPath : authPayload?.redirectTo || "/login")
+      router.replace(redirectTo)
+      router.refresh()
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Falha ao entrar."
       console.error("[login] failed", {
