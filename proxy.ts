@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { getSafeRedirectForRole } from "@/lib/auth/redirects"
 import { normalizeRole } from "@/lib/permissions/roles"
+import { getProfileByUserId } from "@/lib/services/profile-service"
 import { updateSession } from "@/lib/supabase/middleware"
 
 const authPages = new Set(["/login", "/cadastro", "/recuperar-senha"])
@@ -21,16 +22,25 @@ function isRoleAllowedForPortal(portal: ReturnType<typeof getProtectedPortal>, r
 }
 
 export async function proxy(request: NextRequest) {
-  const { response, supabase, user } = await updateSession(request)
+  const { response, user } = await updateSession(request)
   const pathname = request.nextUrl.pathname
   const portal = getProtectedPortal(pathname)
 
   let role = normalizeRole(user?.user_metadata?.role ?? user?.app_metadata?.role)
 
-  if (user && supabase) {
-    const { data: profile } = await supabase.from("profiles").select("role").eq("user_id", user.id).maybeSingle()
-    const profileRole = normalizeRole(profile?.role)
-    role = profileRole ?? role
+  if (user) {
+    try {
+      const profile = await getProfileByUserId(user.id)
+      const profileRole = normalizeRole(profile?.role)
+      role = profileRole ?? role
+    } catch (profileError) {
+      const message = profileError instanceof Error ? profileError.message : "Unable to read profile"
+      console.error("[proxy] profile lookup failed", {
+        userId: user.id,
+        email: user.email ?? null,
+        message,
+      })
+    }
   }
 
   if (authPages.has(pathname) && user) {
