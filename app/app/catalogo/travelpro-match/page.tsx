@@ -2,10 +2,12 @@
 
 import { BarChart3, MessageSquareText, Sparkles, Target, TrendingUp, Users, ExternalLink } from "lucide-react"
 import { DashboardCard } from "@/components/system/dashboard-card"
+import { FeatureExplanationCard } from "@/components/system/feature-explanation-card"
 import { PageShell } from "@/components/system/page-shell"
 import { PrimaryButton } from "@/components/system/primary-button"
 import { SecondaryButton } from "@/components/system/secondary-button"
 import { SectionHeader } from "@/components/system/section-header"
+import { SmartActionButton } from "@/components/system/smart-action-button"
 import { toast } from "@/components/ui/use-toast"
 
 export default function AgencyCatalogMatchPage() {
@@ -18,6 +20,7 @@ export default function AgencyCatalogMatchPage() {
         description="Marketplace inteligente para divulgar pacotes e receber leads qualificados."
         actions={
           <>
+            <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir score, distribuição e melhorias para os pacotes do Match." />
             <SecondaryButton onClick={() => fire("Desempenho preparado", "A leitura de desempenho do Match foi aberta em modo mockado.")}>
               <BarChart3 className="h-4 w-4" />
               Ver desempenho
@@ -36,6 +39,15 @@ export default function AgencyCatalogMatchPage() {
             </PrimaryButton>
           </>
         }
+      />
+
+      <FeatureExplanationCard
+        title="Como o Match se conecta ao ecossistema"
+        description="O Match não é só vitrine: ele funciona como base de distribuição, score e geração de leads qualificados."
+        items={[
+          { title: "Marketplace inteligente", body: "Recebe pacotes do catálogo, distribui visibilidade e gera leads com prioridade comercial." },
+          { title: "Base para IA e performance", body: "Os dados daqui orientam score, destaque, distribuição e futuras sugestões automáticas." },
+        ]}
       />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

@@ -404,7 +404,7 @@ export function MasterAgenciesPage() {
       <SectionHeader
         title="Agências"
         description="Controle completo da base com filtros, ranking, ações administrativas e visão 360 da conta."
-        actions={<MasterHeaderActions primary={<Button className="rounded-full" onClick={() => setCreateOpen(true)}>Nova agência</Button>} secondary={<Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Base exportada", "A exportação mockada da base foi preparada.")}>Exportar base</Button>} />}
+        actions={<MasterHeaderActions primary={<Button asChild className="rounded-full"><Link href="/master/agencias/nova">Nova agência</Link></Button>} secondary={<Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Base exportada", "A exportação mockada da base foi preparada.")}>Exportar base</Button>} />}
       />
 
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -1128,7 +1128,7 @@ export function MasterTemplatesPage() {
 
   return (
     <PageShell>
-      <SectionHeader title="Templates" description="Biblioteca premium para roteiros, contratos, cotações, vouchers e documentos operacionais." actions={<Button className="rounded-full" onClick={() => setCreateOpen(true)}>Novo template</Button>} />
+      <SectionHeader title="Templates" description="Biblioteca premium para roteiros, contratos, cotações, vouchers e documentos operacionais." actions={<Button asChild className="rounded-full"><Link href="/master/templates/novo">Novo template</Link></Button>} />
       <DashboardCard title="Biblioteca ativa" description="Templates com ações rápidas e contexto de uso por plano.">
         <div className="space-y-3">
           {records.map((item) => (

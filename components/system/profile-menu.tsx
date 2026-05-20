@@ -82,11 +82,6 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
 
   const closePanel = () => setActivePanel(null)
 
-  const openSubscriptionPanel = (tab: SubscriptionTab) => {
-    setSubscriptionTab(tab)
-    setActivePanel("subscription")
-  }
-
   const fireMockFeedback = (title: string, description = "Fluxo mockado preparado com sucesso.") => {
     toast({ title, description })
   }
@@ -163,11 +158,11 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                   <Settings2 className="h-4 w-4" />
                   Preferências
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => openSubscriptionPanel("current-plan")} className="rounded-2xl px-3 py-2.5">
+                <DropdownMenuItem onSelect={() => router.push("/app/planos")} className="rounded-2xl px-3 py-2.5">
                   <Shield className="h-4 w-4" />
                   Plano atual
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => openSubscriptionPanel("billing")} className="rounded-2xl px-3 py-2.5">
+                <DropdownMenuItem onSelect={() => router.push("/app/planos")} className="rounded-2xl px-3 py-2.5">
                   <Wallet className="h-4 w-4" />
                   Cobrança
                 </DropdownMenuItem>

@@ -50,8 +50,11 @@ import { PageShell } from "@/components/system/page-shell"
 import { SectionHeader } from "@/components/system/section-header"
 import { MetricCard } from "@/components/system/metric-card"
 import { DashboardCard } from "@/components/system/dashboard-card"
+import { FeatureExplanationCard } from "@/components/system/feature-explanation-card"
 import { SearchInput } from "@/components/system/search-input"
 import { FilterTabs } from "@/components/system/filter-tabs"
+import { SetupStatusCard } from "@/components/system/setup-status-card"
+import { SmartActionButton } from "@/components/system/smart-action-button"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -609,8 +612,8 @@ export function AgencyClientsPage() {
         title="Clientes"
         description="Base ativa da agência com detalhes completos, histórico e perfil de viagem."
         actions={
-          <Button className="rounded-full" onClick={() => setCreateOpen(true)}>
-            Novo cliente
+          <Button asChild className="rounded-full">
+            <Link href="/app/clientes/novo">Novo cliente</Link>
           </Button>
         }
       />
@@ -829,8 +832,8 @@ export function AgencyTripsPage() {
         title="Viagens"
         description="Controle da jornada completa com visão operacional, timeline, checklist e mensagens."
         actions={
-          <Button className="rounded-full" onClick={() => setCreateOpen(true)}>
-            Nova viagem
+          <Button asChild className="rounded-full">
+            <Link href="/app/viagens/nova">Nova viagem</Link>
           </Button>
         }
       />
@@ -1086,27 +1089,8 @@ function DocumentHub({ title, description, records, createLabel }: { title: stri
         title={title}
         description={description}
         actions={
-          <Button
-            className="rounded-full"
-            onClick={async () => {
-              try {
-                const created = await requestJson<DocumentRow>("/api/documents", {
-                  method: "POST",
-                  body: JSON.stringify({
-                    title: createLabel,
-                    type: filterType ?? "Documento",
-                    status: "Rascunho",
-                  }),
-                })
-                const mapped = mapDocumentRowToRecord(created, documentList.length)
-                setDocumentList((current) => [mapped, ...current])
-                fire(createLabel, "Documento salvo no Supabase.")
-              } catch (error) {
-                fire("Falha ao criar", error instanceof Error ? error.message : "Não foi possível criar o documento.")
-              }
-            }}
-          >
-            {createLabel}
+          <Button asChild className="rounded-full">
+            <Link href="/app/documentos/novo">{createLabel}</Link>
           </Button>
         }
       />
@@ -1212,8 +1196,8 @@ export function AgencyRoteirosPage() {
         title="Roteiros"
         description="Roteiros por dia com ações de edição, salvamento, PDF e envio ao cliente."
         actions={
-          <Button className="rounded-full" onClick={() => setCreateOpen(true)}>
-            Novo roteiro
+          <Button asChild className="rounded-full">
+            <Link href="/app/viagens/roteiros/novo">Novo roteiro</Link>
           </Button>
         }
       />
@@ -1316,8 +1300,8 @@ export function AgencyCotacoesPage() {
         title="Cotações"
         description="Propostas com detalhe comercial, histórico e conversão em viagem."
         actions={
-          <Button className="rounded-full" onClick={() => setCreateOpen(true)}>
-            Nova cotação
+          <Button asChild className="rounded-full">
+            <Link href="/app/viagens/cotacoes/nova">Nova cotação</Link>
           </Button>
         }
       />
@@ -1420,8 +1404,8 @@ export function AgencyTasksPage() {
         description="Fila operacional com ações rápidas para concluir, adiar, editar e criar novas tarefas."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button className="rounded-full" onClick={() => setCreateOpen(true)}>
-              Nova tarefa
+            <Button asChild className="rounded-full">
+              <Link href="/app/central-operacional/tarefas/nova">Nova tarefa</Link>
             </Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Rota rápida preparada", "O atalho operacional foi preparado em modo mockado.")}>
               Adicionar rota rápida
@@ -1508,7 +1492,9 @@ export function AgencyReportsPage() {
         description="Central mais limpa para gerar, acompanhar e exportar relatórios da operação."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button className="rounded-full" onClick={() => fire("Relatório gerado", "O relatório executivo foi preparado em modo mockado.")}>Gerar relatório</Button>
+            <Button asChild className="rounded-full">
+              <Link href="/app/central-operacional/relatorios/novo">Gerar relatório</Link>
+            </Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("PDF preparado", "A exportação em PDF foi preparada.")}>Exportar PDF</Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("CSV preparado", "A exportação em CSV foi preparada.")}>Exportar CSV</Button>
           </div>
@@ -1634,8 +1620,12 @@ export function AgencyFinancePage() {
         description="Receitas, despesas, comissões, lucro, margem e exportações com leitura por período."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button className="rounded-full" onClick={() => setModal("receita")}>Nova receita</Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setModal("despesa")}>Nova despesa</Button>
+            <Button asChild className="rounded-full">
+              <Link href="/app/financeiro/lancamentos/novo">Novo lançamento</Link>
+            </Button>
+            <Button variant="outline" asChild className="rounded-full border-white/10 bg-white/[0.03]">
+              <Link href="/app/financeiro/lancamentos/novo">Analisar com IA</Link>
+            </Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Exportação preparada", `O relatório financeiro em ${period} foi preparado.`)}>Exportar relatório</Button>
           </div>
         }
@@ -1758,8 +1748,8 @@ export function AgencyTeamPage() {
         title="Equipe"
         description="Funcionários, módulos acessíveis, permissões e histórico de acesso."
         actions={
-          <Button className="rounded-full" onClick={() => setCreateOpen(true)}>
-            Adicionar
+          <Button asChild className="rounded-full">
+            <Link href="/app/equipe/novo">Adicionar</Link>
           </Button>
         }
       />
@@ -1951,7 +1941,11 @@ export function AgencyTemplatesPage() {
       <SectionHeader
         title="Templates"
         description="Modelos prontos para contratos, vouchers, roteiros e documentos da operação."
-        actions={<Button className="rounded-full" onClick={() => setCreateOpen(true)}>Novo template</Button>}
+        actions={
+          <Button asChild className="rounded-full">
+            <Link href="/app/documentos/novo">Novo template</Link>
+          </Button>
+        }
       />
       <DashboardCard title="Biblioteca de templates" description="Ações rápidas para revisar, baixar, enviar ou remover modelos.">
         <div className="space-y-3">
@@ -2065,7 +2059,16 @@ export function AgencyLeadsPage() {
       <SectionHeader
         title="Leads"
         description="Acompanhe intenção, origem, temperatura e próximos passos de cada oportunidade."
-        actions={<Button className="rounded-full" onClick={() => setCreateOpen(true)}>Novo lead</Button>}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild className="rounded-full border-white/10 bg-white/[0.03]">
+              <Link href="/app/leads/qualificar">Qualificar com IA</Link>
+            </Button>
+            <Button asChild className="rounded-full">
+              <Link href="/app/leads/novo">Novo lead</Link>
+            </Button>
+          </div>
+        }
       />
       <DashboardCard title="Oportunidades ativas" description="Clique em um lead para abrir detalhes e ações rápidas.">
         <div className="space-y-3">
@@ -2204,11 +2207,27 @@ export function AgencyTravelProGoPage() {
         description="WhatsApp operacional com governança, histórico e ações rápidas da rotina."
         actions={
           <div className="flex flex-wrap gap-2">
+            <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir regras, permissões e comandos úteis para o TravelPro Go." />
             <Button className="rounded-full" onClick={() => fire("TravelPro Go atualizado", "O número foi ativado ou pausado em modo mockado.")}>Ativar / pausar</Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem aberta", "O histórico completo do TravelPro Go foi preparado.")}>Abrir origem</Button>
           </div>
         }
       />
+      <div className="grid gap-5 xl:grid-cols-2">
+        <FeatureExplanationCard
+          title="Como o TravelPro Go funciona"
+          description="É o assessor interno da agência via WhatsApp, conectado à operação."
+          items={[
+            { title: "Assessor operacional", body: "Recebe comandos internos para criar clientes, cotações, roteiros, documentos e notificações." },
+            { title: "Governança do sistema", body: "Opera com permissões definidas e serve como extensão do time no dia a dia." },
+          ]}
+        />
+        <SetupStatusCard
+          title="Configuração atual"
+          description="Leitura rápida da maturidade do módulo."
+          badges={["Número oficial ativo", "Criação de clientes pronta", "Consultas operacionais liberadas", "Distribuição interna ativa"]}
+        />
+      </div>
       <DashboardCard title="Execuções recentes" description="Comandos recentes com origem e detalhe operacional.">
         <div className="space-y-3">
           {entries.map((entry) => (
@@ -2242,11 +2261,27 @@ export function AgencyAgentPage() {
         description="Leads atendidos, qualificação, follow-ups e estilo de atendimento com ações por item."
         actions={
           <div className="flex flex-wrap gap-2">
+            <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir estilo de atendimento, regras e escalonamento para o Agent." />
             <Button className="rounded-full" onClick={() => fire("Agent atualizado", "O Agent foi ativado ou pausado em modo mockado.")}>Pausar / ativar</Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setStyleOpen(true)}>Editar estilo de atendimento</Button>
           </div>
         }
       />
+      <div className="grid gap-5 xl:grid-cols-2">
+        <FeatureExplanationCard
+          title="Como o TravelPro Agent funciona"
+          description="É o atendente externo da agência para leads e clientes em qualificação."
+          items={[
+            { title: "Atendente comercial", body: "Qualifica leads, faz follow-up, cria oportunidades e notifica a agência quando precisa de humano." },
+            { title: "Escalonamento inteligente", body: "Quando a conversa exige contexto maior, o Agent prepara a transferência para o time." },
+          ]}
+        />
+        <SetupStatusCard
+          title="Estado atual do Agent"
+          description="Leitura rápida do módulo externo de atendimento."
+          badges={["Follow-up ativo", "Qualificação assistida", "Escalonamento configurado", "Estilo consultivo premium"]}
+        />
+      </div>
       <DashboardCard title="Conversas acompanhadas" description="Ações rápidas por atendimento sem poluir a operação.">
         <div className="space-y-3">
           {items.map((item) => (
@@ -2316,10 +2351,21 @@ export function AgencyMarketingPage() {
         description="Campanhas, calendário e ações promocionais com fluxo leve e organizado."
         actions={
           <div className="flex flex-wrap gap-2">
+            <SmartActionButton label="Criar campanha com IA" description="A IA poderá gerar campanhas, calendário e CTA com base no pacote e público." />
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Calendário aberto", "O calendário promocional foi preparado em modo mockado.")}>Abrir calendário</Button>
-            <Button className="rounded-full" onClick={() => setCreateOpen(true)}>Nova campanha</Button>
+            <Button asChild className="rounded-full">
+              <Link href="/app/marketing/campanhas/nova">Nova campanha</Link>
+            </Button>
           </div>
         }
+      />
+      <FeatureExplanationCard
+        title="Marketing IA na operação"
+        description="O módulo deixa de ser só um calendário e passa a ser base de distribuição comercial."
+        items={[
+          { title: "Campanhas orientadas por pacote", body: "Relaciona catálogo, público, CTA e canal em um só fluxo." },
+          { title: "Base para IA futura", body: "Pronto para gerar criativos, mensagens e versões por segmento." },
+        ]}
       />
       <DashboardCard title="Campanhas" description="Acompanhe campanhas ativas e ações de manutenção.">
         <div className="space-y-3">
@@ -2389,10 +2435,19 @@ export function AgencyAtlasAdvisorPage() {
         description="Consultoria operacional inteligente para comercial, crises e escala da agência."
         actions={
           <div className="flex flex-wrap gap-2">
+            <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir roteiros de objeção, suporte e ações de escala para a equipe." />
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Histórico aberto", "O histórico completo do Atlas Advisor foi preparado.")}>Ver histórico</Button>
             <Button className="rounded-full" onClick={() => setCreateOpen(true)}>Nova consulta</Button>
           </div>
         }
+      />
+      <FeatureExplanationCard
+        title="Para que serve o Atlas Advisor"
+        description="Consultoria operacional para momentos em que o time precisa de apoio contextual."
+        items={[
+          { title: "Comercial", body: "Sugere scripts, respostas e próximos passos para leads e clientes." },
+          { title: "Operação", body: "Ajuda em crise, objeções, replanejamento e escala da agência." },
+        ]}
       />
       <DashboardCard title="Consultas recentes" description="Abra contexto, origem e detalhes da orientação recebida.">
         <div className="space-y-3">
@@ -2448,10 +2503,16 @@ export function AgencyAutomationsPage() {
         description="Fluxos, follow-ups, alertas e tarefas automáticas com histórico de execução."
         actions={
           <div className="flex flex-wrap gap-2">
+            <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir fluxos, regras e gatilhos para automações premium." />
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Histórico aberto", "O histórico das automações foi preparado em modo mockado.")}>Ver histórico</Button>
             <Button className="rounded-full" onClick={() => setCreateOpen(true)}>Novo fluxo</Button>
           </div>
         }
+      />
+      <SetupStatusCard
+        title="Automações em operação"
+        description="A visão agora é de módulo configurável, não só uma lista de fluxos."
+        badges={["Follow-up ativo", "Checklist pré-embarque", "Reativação pronta", "Tarefas automáticas configuradas"]}
       />
       <DashboardCard title="Fluxos ativos" description="Acompanhe, ajuste e remova automações sem perder contexto.">
         <div className="space-y-3">
