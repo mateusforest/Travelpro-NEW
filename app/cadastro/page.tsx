@@ -10,6 +10,38 @@ import { toast } from "@/components/ui/use-toast"
 import { AUTH_ROLES } from "@/lib/permissions/roles"
 import { getSupabaseBrowserClient, getSupabasePublicEnvStatus } from "@/lib/supabase/client"
 
+async function resolveAuthSession() {
+  const response = await fetch("/api/auth/me", {
+    method: "GET",
+    credentials: "include",
+  })
+
+  const mePayload = (await response.json().catch(() => null)) as { redirectTo?: string; error?: string } | null
+
+  if (response.status === 409) {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    const retryResponse = await fetch("/api/auth/me", {
+      method: "GET",
+      credentials: "include",
+    })
+
+    const retryPayload = (await retryResponse.json().catch(() => null)) as { redirectTo?: string; error?: string } | null
+
+    if (!retryResponse.ok) {
+      throw new Error(retryPayload?.error || "A conta foi criada, mas o perfil ainda não ficou disponível.")
+    }
+
+    return retryPayload
+  }
+
+  if (!response.ok) {
+    throw new Error(mePayload?.error || "A conta foi criada, mas o perfil ainda não ficou disponível.")
+  }
+
+  return mePayload
+}
+
 const rotatingPhrases = [
   "Sua agência conectada em tempo real.",
   "Tudo sincronizado. Tudo organizado.",
@@ -136,19 +168,14 @@ export default function CadastroPage() {
           | null
 
         if (!bootstrapResponse.ok) {
-          throw new Error(bootstrapPayload && "error" in bootstrapPayload ? bootstrapPayload.error || "Não foi possível preparar a conta inicial." : "Não foi possível preparar a conta inicial.")
+          throw new Error(
+            bootstrapPayload && "error" in bootstrapPayload
+              ? bootstrapPayload.error || "Não foi possível preparar a conta inicial."
+              : "Não foi possível preparar a conta inicial.",
+          )
         }
 
-        const meResponse = await fetch("/api/auth/me", {
-          method: "GET",
-          credentials: "include",
-        })
-
-        const mePayload = (await meResponse.json().catch(() => null)) as { redirectTo?: string; error?: string } | null
-
-        if (!meResponse.ok) {
-          throw new Error(mePayload?.error || "A conta foi criada, mas o perfil ainda não ficou disponível.")
-        }
+        const mePayload = await resolveAuthSession()
 
         toast({
           title: "Conta criada",

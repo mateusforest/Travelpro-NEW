@@ -9,6 +9,38 @@ import { TravelProLogo } from "@/components/branding/travelpro-logo"
 import { toast } from "@/components/ui/use-toast"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
+async function resolveAuthSession() {
+  const response = await fetch("/api/auth/me", {
+    method: "GET",
+    credentials: "include",
+  })
+
+  const authPayload = (await response.json().catch(() => null)) as { redirectTo?: string; error?: string } | null
+
+  if (response.status === 409) {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    const retryResponse = await fetch("/api/auth/me", {
+      method: "GET",
+      credentials: "include",
+    })
+
+    const retryPayload = (await retryResponse.json().catch(() => null)) as { redirectTo?: string; error?: string } | null
+
+    if (!retryResponse.ok) {
+      throw new Error(retryPayload?.error || "Não foi possível carregar a sessão atual.")
+    }
+
+    return retryPayload
+  }
+
+  if (!response.ok) {
+    throw new Error(authPayload?.error || "Não foi possível carregar a sessão atual.")
+  }
+
+  return authPayload
+}
+
 const rotatingPhrases = [
   "Sua agência conectada em tempo real.",
   "Tudo sincronizado. Tudo organizado.",
@@ -44,17 +76,7 @@ export default function LoginPage() {
 
       if (error) throw error
 
-      const response = await fetch("/api/auth/me", {
-        method: "GET",
-        credentials: "include",
-      })
-
-      const authPayload = (await response.json().catch(() => null)) as { redirectTo?: string; error?: string } | null
-
-      if (!response.ok) {
-        throw new Error(authPayload?.error || "Não foi possível carregar a sessão atual.")
-      }
-
+      const authPayload = await resolveAuthSession()
       const nextPath =
         typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : null
 
