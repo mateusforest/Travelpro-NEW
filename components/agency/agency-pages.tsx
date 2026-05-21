@@ -2619,10 +2619,12 @@ export function AgencyReportsPage() {
   const [overview, setOverview] = useState<ReportsOverviewData | null>(null)
   const [selectedReport, setSelectedReport] = useState<ReportRow | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isExporting, setIsExporting] = useState<"pdf" | "csv" | null>(null)
+  const [isDownloadingId, setIsDownloadingId] = useState<string | null>(null)
+  const [isRegeneratingId, setIsRegeneratingId] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const router = useRouter()
   const fire = (title: string, description: string) => toast({ title, description })
+  const openPdfExport = (reportId: string) => window.open(`/app/relatorios/${reportId}?print=1`, "_blank", "noopener,noreferrer")
 
   useEffect(() => {
     let active = true
@@ -2649,23 +2651,54 @@ export function AgencyReportsPage() {
     }
   }, [])
 
-  const registerExport = async (format: "pdf" | "csv") => {
-    setIsExporting(format)
+  const reloadOverview = async () => {
+    try {
+      const data = await requestJson<ReportsOverviewData>("/api/reports/overview")
+      setOverview(data)
+    } catch (error) {
+      fire("Falha ao atualizar", error instanceof Error ? error.message : "Nao foi possivel recarregar os relatórios.")
+    }
+  }
+
+  const downloadReport = async (report: ReportRow) => {
+    setIsDownloadingId(report.id)
     try {
       await requestJson("/api/credit-transactions", {
         method: "POST",
         body: JSON.stringify({
           type: "consumo",
-          amount: format === "pdf" ? 4 : 3,
+          amount: 3,
           feature: "Relatórios operacionais",
-          source: format === "pdf" ? "Exportação PDF" : "Exportação CSV",
+          source: "Download HTML",
         }),
       })
-      fire("Exportação registrada", `O consumo operacional da exportação ${format.toUpperCase()} foi registrado. O download real continua como próxima etapa.`)
+      window.location.href = `/api/reports/${report.id}/download`
     } catch (error) {
-      fire("Falha ao exportar", error instanceof Error ? error.message : "Nao foi possivel registrar a exportacao.")
+      fire("Falha no download", error instanceof Error ? error.message : "Nao foi possivel baixar o relatório.")
     } finally {
-      setIsExporting(null)
+      setIsDownloadingId(null)
+    }
+  }
+
+  const regenerateReport = async (report: ReportRow) => {
+    setIsRegeneratingId(report.id)
+    try {
+      await requestJson(`/api/reports/${report.id}/regenerate`, { method: "POST" })
+      await requestJson("/api/credit-transactions", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "consumo",
+          amount: 6,
+          feature: "Relatórios operacionais",
+          source: "Regeneração de relatório",
+        }),
+      })
+      await reloadOverview()
+      fire("Relatório regenerado", `${report.name} foi atualizado com os dados reais mais recentes.`)
+    } catch (error) {
+      fire("Falha ao regenerar", error instanceof Error ? error.message : "Nao foi possivel regenerar o relatório.")
+    } finally {
+      setIsRegeneratingId(null)
     }
   }
 
@@ -2683,22 +2716,11 @@ export function AgencyReportsPage() {
             <Button asChild className="rounded-full">
               <Link href="/app/central-operacional/relatorios/novo">Gerar relatório</Link>
             </Button>
-            <Button
-              variant="outline"
-              className="rounded-full border-white/10 bg-white/[0.03]"
-              onClick={() => void registerExport("pdf")}
-              disabled={isExporting !== null}
-            >
-              {isExporting === "pdf" ? "Registrando..." : "Exportar PDF"}
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-full border-white/10 bg-white/[0.03]"
-              onClick={() => void registerExport("csv")}
-              disabled={isExporting !== null}
-            >
-              {isExporting === "csv" ? "Registrando..." : "Exportar CSV"}
-            </Button>
+            {overview?.recent_reports?.[0] ? (
+              <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push(`/app/relatorios/${overview.recent_reports[0].id}`)}>
+                Abrir último relatório
+              </Button>
+            ) : null}
           </div>
         }
       />
@@ -2758,15 +2780,31 @@ export function AgencyReportsPage() {
                 </div>
               ) : null}
               {(overview?.recent_reports ?? []).map((report) => (
-                <button key={report.id} type="button" onClick={() => setSelectedReport(report)} className="w-full rounded-[24px] border border-white/8 bg-white/[0.03] p-4 text-left">
+                <div key={report.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-medium text-foreground">{report.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{report.type} • {formatDateTimeLabel(report.created_at)}</p>
+                      <button type="button" onClick={() => setSelectedReport(report)} className="text-left">
+                        <p className="text-sm font-medium text-foreground">{report.name}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{report.type} • {formatDateTimeLabel(report.created_at)}</p>
+                      </button>
                     </div>
                     <StatusPill label={report.status} />
                   </div>
-                </button>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push(`/app/relatorios/${report.id}`)}>
+                      Abrir relatório
+                    </Button>
+                    <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => void downloadReport(report)} disabled={isDownloadingId === report.id}>
+                      {isDownloadingId === report.id ? "Baixando..." : "Baixar HTML"}
+                    </Button>
+                    <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openPdfExport(report.id)}>
+                      Exportar PDF
+                    </Button>
+                    <Button className="rounded-full" onClick={() => void regenerateReport(report)} disabled={isRegeneratingId === report.id}>
+                      {isRegeneratingId === report.id ? "Regenerando..." : "Gerar novamente"}
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
           </DashboardCard>
@@ -2809,6 +2847,20 @@ export function AgencyReportsPage() {
                       <p key={line} className="text-sm text-muted-foreground">{line}</p>
                     )) || <p className="text-sm text-muted-foreground">Nenhum snapshot adicional foi salvo para este relatório.</p>}
                   </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button className="rounded-full" onClick={() => router.push(`/app/relatorios/${selectedReport.id}`)}>
+                    Abrir relatório
+                  </Button>
+                  <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openPdfExport(selectedReport.id)}>
+                    Exportar PDF
+                  </Button>
+                  <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => void downloadReport(selectedReport)} disabled={isDownloadingId === selectedReport.id}>
+                    {isDownloadingId === selectedReport.id ? "Baixando..." : "Baixar HTML"}
+                  </Button>
+                  <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => void regenerateReport(selectedReport)} disabled={isRegeneratingId === selectedReport.id}>
+                    {isRegeneratingId === selectedReport.id ? "Regenerando..." : "Gerar novamente"}
+                  </Button>
                 </div>
               </div>
             </>

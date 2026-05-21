@@ -33,11 +33,11 @@ function parseFilters(value: ReportRow["filters"]) {
 function buildReportValues(report?: ReportRow): Record<string, string> {
   const filters = report ? parseFilters(report.filters) : {}
   return {
-    name: report?.name ?? "Resumo operacional",
-    type: report?.type ?? "Resumo operacional",
+    name: report?.name ?? "Operação geral",
+    type: report?.type ?? "Operação geral",
     period: typeof filters.period === "string" ? filters.period : "Últimos 30 dias",
     modules: typeof filters.modules === "string" ? filters.modules : "Clientes, leads, viagens, documentos, financeiro, créditos",
-    export: typeof filters.export === "string" ? filters.export : "PDF",
+    export: typeof filters.export === "string" ? filters.export : "PDF + HTML",
     filters: typeof filters.notes === "string" ? filters.notes : "",
   }
 }
@@ -63,7 +63,7 @@ function ReportWorkspaceInner() {
         setReport(reportData)
       } catch (error) {
         if (!active) return
-        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar o relatório.")
+        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar o relatorio.")
       } finally {
         if (active) setIsLoading(false)
       }
@@ -79,10 +79,10 @@ function ReportWorkspaceInner() {
     () => [
       {
         title: "Configuração do relatório",
-        description: "Escolha um recorte leve, operacional e baseado nas tabelas reais da agência.",
+        description: "Escolha um recorte operacional real com base nas tabelas já integradas da agência.",
         fields: [
           { key: "name", label: "Nome do relatório" },
-          { key: "type", label: "Tipo de relatório", type: "select", options: ["Resumo operacional", "Crescimento de leads", "Viagens criadas", "Documentos emitidos", "Receitas e despesas", "Consumo de créditos", "Próximos embarques"] },
+          { key: "type", label: "Tipo de relatório", type: "select", options: ["Operação geral", "Clientes", "Leads", "Viagens", "Documentos", "Financeiro", "Créditos"] },
           { key: "period", label: "Período" },
           { key: "modules", label: "Módulos" },
           { key: "export", label: "Exportação" },
@@ -110,7 +110,7 @@ function ReportWorkspaceInner() {
     return (
       <PageShell>
         <DashboardCard title="Nao foi possivel abrir o relatório" description={loadError}>
-          <Button className="rounded-full" onClick={() => router.replace("/app/central-operacional/relatorios")}>
+          <Button className="rounded-full" onClick={() => router.replace("/app/relatorios")}>
             Voltar para relatórios
           </Button>
         </DashboardCard>
@@ -122,7 +122,7 @@ function ReportWorkspaceInner() {
     <DedicatedActionWorkspace
       title={isEditing ? "Editar relatório" : "Novo relatório"}
       description="Monte um relatório operacional real com base nos módulos já integrados ao Supabase."
-      backHref="/app/central-operacional/relatorios"
+      backHref="/app/relatorios"
       backLabel="Voltar para relatórios"
       aiActionLabel="Gerar com IA"
       aiActionDescription="A sugestão automática de recortes com IA ainda será integrada a este módulo."
@@ -143,11 +143,11 @@ function ReportWorkspaceInner() {
       )}
       sidebarInfo={{
         title: "Leitura analítica",
-        description: "O relatório é salvo na base real e pode gerar consumo operacional de créditos.",
+        description: "O relatório é salvo na base real e pode ser aberto, baixado, exportado e regenerado.",
         items: [
-          { label: "Tipo", value: (values) => values.type || "Resumo operacional" },
+          { label: "Tipo", value: (values) => values.type || "Operação geral" },
           { label: "Período", value: (values) => values.period || "Últimos 30 dias" },
-          { label: "Exportação", value: (values) => values.export || "PDF" },
+          { label: "Exportação", value: (values) => values.export || "PDF + HTML" },
         ],
       }}
       onPrimaryAction={async (values) => {
@@ -155,20 +155,23 @@ function ReportWorkspaceInner() {
           throw new Error("Informe um nome válido para o relatório.")
         }
 
-        const overview = await fetchJson<{ title: string; lines: string[] }>(`/api/reports/overview-snapshot?type=${encodeURIComponent(values.type || "Resumo operacional")}&period=${encodeURIComponent(values.period || "Últimos 30 dias")}`)
+        const composed = await fetchJson<{ title: string; lines: string[]; payload: unknown }>(
+          `/api/reports/compose?type=${encodeURIComponent(values.type || "Operação geral")}&period=${encodeURIComponent(values.period || "Últimos 30 dias")}`,
+        )
 
-        await fetchJson<ReportRow>(isEditing ? `/api/reports/${reportId}` : "/api/reports", {
+        const saved = await fetchJson<ReportRow>(isEditing ? `/api/reports/${reportId}` : "/api/reports", {
           method: isEditing ? "PATCH" : "POST",
           body: JSON.stringify({
             name: values.name.trim(),
-            type: values.type || "Resumo operacional",
+            type: values.type || "Operação geral",
             status: "Pronto",
             filters: {
               period: values.period.trim() || "Últimos 30 dias",
               modules: values.modules.trim(),
               export: values.export.trim(),
               notes: values.filters.trim(),
-              preview: overview,
+              preview: { title: composed.title, lines: composed.lines },
+              payload: composed.payload,
             },
           }),
         })
@@ -185,10 +188,12 @@ function ReportWorkspaceInner() {
 
         toast({
           title: isEditing ? "Relatório atualizado" : "Relatório gerado",
-          description: isEditing ? "O relatório foi atualizado e o consumo operacional foi registrado." : "O relatório foi salvo na base real e o consumo operacional foi registrado.",
+          description: isEditing
+            ? "O relatório foi atualizado, salvo e está pronto para exportação."
+            : "O relatório foi salvo na base real e já pode ser aberto, baixado e exportado.",
         })
 
-        router.replace("/app/central-operacional/relatorios")
+        router.replace(`/app/relatorios/${saved.id}`)
         router.refresh()
       }}
     />
