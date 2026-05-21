@@ -1109,10 +1109,11 @@ export function AgencyDashboardPage() {
                 Ainda não há eventos reais recentes. Crie clientes, leads, viagens, documentos ou lançamentos para alimentar este feed.
               </div>
             ) : null}
-            {(dashboard?.operational_feed ?? []).map((item) => {
+            {(dashboard?.operational_feed ?? []).map((item, index) => {
               const Icon = feedIconForHref(item.href)
+              const stableKey = item.id || `${item.href}-${item.time}-${item.title}-${index}`
               return (
-              <div key={item.title} className="flex items-start gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3.5">
+              <div key={stableKey} className="flex items-start gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3.5">
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-2.5">
                   <Icon className="h-4 w-4 text-primary" />
                 </div>
@@ -1130,8 +1131,8 @@ export function AgencyDashboardPage() {
 
         <DashboardCard title="Hoje na operação" description="Prioridades que merecem sua atenção antes do próximo ciclo do dia.">
           <div className="space-y-3">
-            {(dashboard?.priorities ?? []).map((item) => (
-              <Link key={item.label} href={item.href} className="block rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 transition-all hover:border-primary/15 hover:bg-white/[0.05]">
+            {(dashboard?.priorities ?? []).map((item, index) => (
+              <Link key={item.id || `${item.href}-${item.label}-${item.value}-${index}`} href={item.href} className="block rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 transition-all hover:border-primary/15 hover:bg-white/[0.05]">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium text-foreground">{item.label}</p>
                   <span className="text-sm font-semibold text-primary">{item.value}</span>
@@ -1173,11 +1174,11 @@ export function AgencyDashboardPage() {
 
           <DashboardCard title="Advisor recomenda" description="Sugestões discretas com maior impacto operacional e comercial.">
             <div className="space-y-3">
-              {(dashboard?.advisor_recommendations ?? []).map((item) => (
-                <div key={item} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-muted-foreground">
-                  {item}
-                </div>
-              ))}
+            {(dashboard?.advisor_recommendations ?? []).map((item, index) => (
+              <div key={`${item}-${index}`} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-muted-foreground">
+                {item}
+              </div>
+            ))}
             </div>
           </DashboardCard>
 
