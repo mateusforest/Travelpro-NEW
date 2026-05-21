@@ -2017,7 +2017,23 @@ export function AgencyTripsPage() {
   )
 }
 
-function DocumentHub({ title, description, createLabel, records: _records }: { title: string; description: string; records: DocumentRecord[]; createLabel: string }) {
+function DocumentHub({
+  title,
+  description,
+  createLabel,
+  typeFilter,
+  createHref = "/app/documentos/novo",
+  editHref,
+  mode = "document",
+}: {
+  title: string
+  description: string
+  createLabel: string
+  typeFilter?: string | null
+  createHref?: string
+  editHref?: (record: DocumentRecord) => string
+  mode?: "document" | "roteiro" | "cotacao" | "template"
+}) {
   const router = useRouter()
   const [documentRows, setDocumentRows] = useState<DocumentRow[]>([])
   const [clients, setClients] = useState<ClientRow[]>([])
@@ -2030,7 +2046,8 @@ function DocumentHub({ title, description, createLabel, records: _records }: { t
   const [loadError, setLoadError] = useState<string | null>(null)
   const fire = (titleText: string, body: string) => toast({ title: titleText, description: body })
   const filterType =
-    title === "Contratos"
+    typeFilter ??
+    (title === "Contratos"
       ? "Contrato"
       : title === "Vouchers"
         ? "Voucher"
@@ -2038,7 +2055,28 @@ function DocumentHub({ title, description, createLabel, records: _records }: { t
           ? "Recibo"
           : title === "Passagens"
             ? "Passagem"
-            : null
+            : null)
+
+  const downloadSummary = (record: DocumentRecord) => {
+    const metadata = parseDocumentMetadata(record.metadata)
+    const lines = [
+      `${record.type}: ${record.name}`,
+      `Status: ${record.status}`,
+      `Cliente: ${record.client}`,
+      `Viagem: ${record.trip}`,
+      "",
+      typeof metadata.variables === "string" && metadata.variables.trim() ? metadata.variables.trim() : record.preview,
+      "",
+      typeof metadata.attachments === "string" && metadata.attachments.trim() ? metadata.attachments.trim() : "Sem observacoes adicionais.",
+    ]
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" })
+    const href = URL.createObjectURL(blob)
+    const anchor = document.createElement("a")
+    anchor.href = href
+    anchor.download = `${record.name.toLowerCase().replace(/[^a-z0-9]+/gi, "-") || "registro"}.txt`
+    anchor.click()
+    URL.revokeObjectURL(href)
+  }
 
   useEffect(() => {
     let active = true
@@ -2131,7 +2169,7 @@ function DocumentHub({ title, description, createLabel, records: _records }: { t
         description={description}
         actions={
           <Button asChild className="rounded-full">
-            <Link href="/app/documentos/novo">{createLabel}</Link>
+            <Link href={createHref}>{createLabel}</Link>
           </Button>
         }
       />
@@ -2172,9 +2210,17 @@ function DocumentHub({ title, description, createLabel, records: _records }: { t
           ) : filteredDocuments.length === 0 ? (
             <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center">
               <p className="text-sm font-medium text-foreground">Nenhum documento encontrado.</p>
-              <p className="mt-2 text-sm text-muted-foreground">Crie o primeiro documento real da agencia ou ajuste a busca e os filtros atuais.</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {mode === "roteiro"
+                  ? "Crie o primeiro roteiro real da agência para começar a operação manual."
+                  : mode === "cotacao"
+                    ? "Crie a primeira cotação real da agência para acompanhar proposta, status e histórico."
+                    : mode === "template"
+                      ? "Crie o primeiro template operacional da agência para reutilizar em documentos e roteiros."
+                      : "Crie o primeiro documento real da agencia ou ajuste a busca e os filtros atuais."}
+              </p>
               <Button asChild className="mt-4 rounded-full">
-                <Link href="/app/documentos/novo">Criar documento agora</Link>
+                <Link href={createHref}>{createLabel}</Link>
               </Button>
             </div>
           ) : (
@@ -2192,26 +2238,65 @@ function DocumentHub({ title, description, createLabel, records: _records }: { t
                 <ActionMenu
                   items={[
                     { label: "Visualizar", icon: Eye, onClick: () => setSelected(doc) },
-                    { label: "Editar", icon: FilePenLine, onClick: () => router.push(`/app/documentos/novo?id=${doc.id}`) },
-                    { label: "Gerar com IA", icon: Sparkles, onClick: () => fire("IA em breve", "A geracao automatica com IA ainda sera conectada ao modulo de documentos.") },
-                    { label: "Usar template", icon: Copy, onClick: () => fire("Templates em breve", "O uso guiado de templates ainda sera conectado ao modulo de documentos.") },
-                    { label: "Enviar documento", icon: Send, onClick: () => fire("Envio em breve", "O envio automatizado de documentos ainda sera conectado a este modulo.") },
+                    { label: "Editar", icon: FilePenLine, onClick: () => router.push(editHref ? editHref(doc) : `/app/documentos/novo?id=${doc.id}`) },
+                    ...(mode === "template"
+                      ? [
+                          {
+                            label: doc.status === "Ativo" ? "Desativar" : "Ativar",
+                            icon: ArrowRightLeft,
+                            onClick: async () => {
+                              try {
+                                const updated = await requestJson<DocumentRow>(`/api/documents/${doc.id}`, {
+                                  method: "PATCH",
+                                  body: JSON.stringify({ status: doc.status === "Ativo" ? "Inativo" : "Ativo" }),
+                                })
+                                setDocumentRows((current) => current.map((item) => (item.id === doc.id ? updated : item)))
+                                fire("Template atualizado", `${doc.name} foi ${doc.status === "Ativo" ? "desativado" : "ativado"} com sucesso.`)
+                              } catch (error) {
+                                fire("Falha ao atualizar", error instanceof Error ? error.message : "Nao foi possivel atualizar o template.")
+                              }
+                            },
+                          },
+                          {
+                            label: "Usar como base",
+                            icon: Copy,
+                            onClick: () => router.push(`/app/documentos/novo?template=${encodeURIComponent(doc.name)}`),
+                          },
+                        ]
+                      : mode === "roteiro"
+                        ? [
+                            { label: "Baixar resumo", icon: Download, onClick: () => downloadSummary(doc) },
+                            { label: "Enviar para cliente", icon: Send, onClick: () => fire("Envio em breve", "O envio automatizado do roteiro será conectado em uma próxima etapa.") },
+                          ]
+                        : mode === "cotacao"
+                          ? [
+                              { label: "Baixar proposta simples", icon: Download, onClick: () => downloadSummary(doc) },
+                              { label: "Registrar follow-up", icon: BellRing, onClick: () => fire("Follow-up registrado", `A cotação ${doc.name} já pode seguir para a rotina comercial da agência.`) },
+                            ]
+                          : [
+                              { label: "Gerar com IA", icon: Sparkles, onClick: () => fire("IA em breve", "A geracao automatica com IA ainda sera conectada ao modulo de documentos.") },
+                              { label: "Usar template", icon: Copy, onClick: () => fire("Templates em breve", "O uso guiado de templates ainda sera conectado ao modulo de documentos.") },
+                              { label: "Enviar documento", icon: Send, onClick: () => fire("Envio em breve", "O envio automatizado de documentos ainda sera conectado a este modulo.") },
+                            ]),
                     {
                       label: "Excluir",
                       icon: Trash2,
                       onClick: () =>
                         setConfirmAction({
-                          title: "Excluir documento",
+                          title: mode === "roteiro" ? "Excluir roteiro" : mode === "cotacao" ? "Excluir cotação" : mode === "template" ? "Excluir template" : "Excluir documento",
                           description: `Deseja confirmar a exclusao de ${doc.name}? Esta acao remove o registro real do Supabase.`,
-                          confirmLabel: "Excluir documento",
+                          confirmLabel: mode === "roteiro" ? "Excluir roteiro" : mode === "cotacao" ? "Excluir cotação" : mode === "template" ? "Excluir template" : "Excluir documento",
                           onConfirm: async () => {
                             try {
                               await requestJson(`/api/documents/${doc.id}`, { method: "DELETE" })
                               setDocumentRows((current) => current.filter((item) => item.id !== doc.id))
                               setSelected((current) => (current?.id === doc.id ? null : current))
-                              fire("Documento excluido", `${doc.name} foi removido do Supabase.`)
+                              fire(
+                                mode === "roteiro" ? "Roteiro excluido" : mode === "cotacao" ? "Cotação excluída" : mode === "template" ? "Template excluído" : "Documento excluido",
+                                `${doc.name} foi removido do Supabase.`,
+                              )
                             } catch (error) {
-                              fire("Falha ao excluir", error instanceof Error ? error.message : "Nao foi possivel excluir o documento.")
+                              fire("Falha ao excluir", error instanceof Error ? error.message : "Nao foi possivel excluir o registro.")
                             }
                           },
                         }),
@@ -2261,207 +2346,30 @@ function DocumentHub({ title, description, createLabel, records: _records }: { t
 }
 
 export function AgencyRoteirosPage() {
-  const roteiroTemplates = templates.filter((item) => item.type === "Roteiro")
-  const [selected, setSelected] = useState<(typeof roteiroTemplates)[number] | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
-  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
-  const fire = (title: string, description: string) => toast({ title, description })
-
   return (
-    <PageShell>
-      <SectionHeader
-        title="Roteiros"
-        description="Roteiros por dia com ações de edição, salvamento, PDF e envio ao cliente."
-        actions={
-          <Button asChild className="rounded-full">
-            <Link href="/app/viagens/roteiros/novo">Novo roteiro</Link>
-          </Button>
-        }
-      />
-      <DashboardCard title="Biblioteca de roteiros" description="Cada roteiro pode ser visualizado e preparado para compartilhar.">
-        <div className="space-y-3">
-          {roteiroTemplates.map((item) => (
-            <div key={item.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <button type="button" onClick={() => setSelected(item)} className="min-w-0 text-left">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{item.name}</p>
-                  <StatusPill label={item.status} />
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">{item.category}</p>
-              </button>
-              <ActionMenu
-                items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => setSelected(item) },
-                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Roteiro em edição", `${item.name} foi aberto para edição mockada.`) },
-                  { label: "Salvar", icon: Save, onClick: () => fire("Roteiro salvo", `${item.name} foi salvo em modo mockado.`) },
-                  { label: "Baixar PDF", icon: Download, onClick: () => fire("PDF preparado", `O PDF de ${item.name} foi preparado.`) },
-                  { label: "Enviar para cliente", icon: Send, onClick: () => fire("Envio preparado", `${item.name} ficou pronto para envio ao cliente.`) },
-                  {
-                    label: "Excluir",
-                    icon: Trash2,
-                    onClick: () =>
-                      setConfirmAction({
-                        title: "Excluir roteiro",
-                        description: `Deseja confirmar a exclusão mockada de ${item.name}?`,
-                        confirmLabel: "Excluir roteiro",
-                        onConfirm: () => fire("Roteiro excluído", `${item.name} foi removido em modo mockado.`),
-                      }),
-                    danger: true,
-                  },
-                ]}
-              />
-            </div>
-          ))}
-        </div>
-      </DashboardCard>
-
-      <MockFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="Novo roteiro"
-        description="Monte um novo roteiro com cliente, destino e ritmo inicial."
-        fields={[
-          { label: "Cliente", value: "Ana Martins" },
-          { label: "Destino", value: "Cancún" },
-          { label: "Modelo", value: "Premium família" },
-          { label: "Dias", value: "7 dias" },
-        ]}
-        confirmLabel="Salvar roteiro"
-        onConfirm={() => fire("Roteiro criado", "O novo roteiro foi preparado em modo mockado.")}
-      />
-      <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
-
-      <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent className="max-w-4xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-          {selected ? (
-            <>
-              <DialogHeader className="border-b border-white/8 px-6 py-5">
-                <DialogTitle>{selected.name}</DialogTitle>
-                <DialogDescription>Roteiro organizado por dia, com atividades, horários, observações e status.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 px-6 py-5 md:grid-cols-3">
-                {[
-                  { day: "Dia 1", activity: "Check-in e noite livre", time: "14:00", note: "Transfer incluído" },
-                  { day: "Dia 2", activity: "Passeio principal", time: "09:00", note: "Levar documento" },
-                  { day: "Dia 3", activity: "Experiência gastronômica", time: "20:00", note: "Reserva confirmada" },
-                ].map((item) => (
-                  <div key={item.day} className="rounded-[26px] border border-white/8 bg-white/[0.03] p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-primary/75">{item.day}</p>
-                    <p className="mt-3 text-sm font-medium text-foreground">{item.activity}</p>
-                    <p className="mt-2 text-sm text-primary">{item.time}</p>
-                    <p className="mt-3 text-sm text-muted-foreground">{item.note}</p>
-                  </div>
-                ))}
-              </div>
-              <DialogFooter className="border-t border-white/8 px-6 py-5">
-                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Roteiro em edição", `${selected.name} foi aberto para edição mockada.`)}>Editar</Button>
-                <Button className="rounded-full" onClick={() => fire("Roteiro salvo", `${selected.name} foi salvo em modo mockado.`)}>Salvar</Button>
-              </DialogFooter>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-    </PageShell>
+    <DocumentHub
+      title="Roteiros"
+      description="Roteiros manuais reais com vínculo a cliente, viagem, status e conteúdo operacional."
+      createLabel="Novo roteiro"
+      typeFilter="Roteiro"
+      createHref="/app/viagens/roteiros/novo"
+      editHref={(record) => `/app/viagens/roteiros/novo?id=${record.id}`}
+      mode="roteiro"
+    />
   )
 }
 
 export function AgencyCotacoesPage() {
-  const [selected, setSelected] = useState<QuoteRecord | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
-  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
-  const fire = (title: string, description: string) => toast({ title, description })
-
   return (
-    <PageShell>
-      <SectionHeader
-        title="Cotações"
-        description="Propostas com detalhe comercial, histórico e conversão em viagem."
-        actions={
-          <Button asChild className="rounded-full">
-            <Link href="/app/viagens/cotacoes/nova">Nova cotação</Link>
-          </Button>
-        }
-      />
-      <DashboardCard title="Pipeline de cotações" description="Ações rápidas para visualizar, salvar, enviar e converter.">
-        <div className="space-y-3">
-          {quoteRecords.map((item) => (
-            <div key={item.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <button type="button" onClick={() => setSelected(item)} className="min-w-0 text-left">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{item.client} • {item.destination}</p>
-                  <StatusPill label={item.status} />
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">{item.value} • {item.includes}</p>
-              </button>
-              <ActionMenu
-                items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => setSelected(item) },
-                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Cotação em edição", `${item.client} • ${item.destination} foi aberta para edição mockada.`) },
-                  { label: "Salvar", icon: Save, onClick: () => fire("Cotação salva", `A cotação de ${item.client} foi salva em modo mockado.`) },
-                  { label: "Enviar", icon: Send, onClick: () => fire("Cotação enviada", `A cotação de ${item.client} foi enviada em modo mockado.`) },
-                  { label: "Baixar PDF", icon: Download, onClick: () => fire("PDF preparado", `O PDF da cotação de ${item.client} foi preparado.`) },
-                  { label: "Converter em viagem", icon: ArrowRightLeft, onClick: () => fire("Conversão preparada", `A cotação de ${item.client} foi preparada para virar viagem.`) },
-                  {
-                    label: "Excluir",
-                    icon: Trash2,
-                    onClick: () =>
-                      setConfirmAction({
-                        title: "Excluir cotação",
-                        description: `Deseja confirmar a exclusão mockada da cotação de ${item.client}?`,
-                        confirmLabel: "Excluir cotação",
-                        onConfirm: () => fire("Cotação excluída", `A cotação de ${item.client} foi removida em modo mockado.`),
-                      }),
-                    danger: true,
-                  },
-                ]}
-              />
-            </div>
-          ))}
-        </div>
-      </DashboardCard>
-
-      <MockFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="Nova cotação"
-        description="Crie uma cotação com cliente, destino, valor base e observações."
-        fields={[
-          { label: "Cliente", value: "Fabio Mello" },
-          { label: "Destino", value: "Gramado" },
-          { label: "Valor inicial", value: "R$ 9.200" },
-          { label: "Observações", value: "Família com duas crianças" },
-        ]}
-        confirmLabel="Salvar cotação"
-        onConfirm={() => fire("Cotação criada", "A nova cotação foi preparada em modo mockado.")}
-      />
-      <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
-
-      <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent className="max-w-4xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-          {selected ? (
-            <>
-              <DialogHeader className="border-b border-white/8 px-6 py-5">
-                <DialogTitle>{selected.client} • {selected.destination}</DialogTitle>
-                <DialogDescription>Detalhe da cotação com valores, inclusos, status e histórico comercial.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 px-6 py-5 md:grid-cols-2 xl:grid-cols-3">
-                <InfoCard label="Cliente" value={selected.client} />
-                <InfoCard label="Destino" value={selected.destination} />
-                <InfoCard label="Valor" value={selected.value} />
-                <InfoCard label="Status" value={selected.status} />
-                <InfoCard label="Itens inclusos" value={selected.includes} />
-                <InfoCard label="Observações" value={selected.notes} />
-              </div>
-              <div className="space-y-3 px-6 pb-5">
-                {["Cotação criada após lead quente", "Ajuste de hotel aplicado", "Cliente pediu revisão de datas"].map((item) => (
-                  <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-muted-foreground">{item}</div>
-                ))}
-              </div>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-    </PageShell>
+    <DocumentHub
+      title="Cotações"
+      description="Propostas comerciais reais com vínculo a cliente, viagem, status e histórico interno."
+      createLabel="Nova cotação"
+      typeFilter="Cotação"
+      createHref="/app/viagens/cotacoes/nova"
+      editHref={(record) => `/app/viagens/cotacoes/nova?id=${record.id}`}
+      mode="cotacao"
+    />
   )
 }
 
@@ -3167,20 +3075,28 @@ export function AgencyFinancePage() {
 export function AgencyTeamPage() {
   const [records, setRecords] = useState<TeamRecord[]>([])
   const [selected, setSelected] = useState<TeamRecord | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const router = useRouter()
   const fire = (title: string, description: string) => toast({ title, description })
 
   useEffect(() => {
     let active = true
+    setIsLoading(true)
+    setLoadError(null)
     requestJson<TeamMemberRow[]>("/api/team")
       .then((data) => {
         if (!active) return
         setRecords(data.map(mapTeamRowToRecord))
       })
-      .catch(() => {
+      .catch((error) => {
         if (!active) return
         setRecords([])
+        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar a equipe.")
+      })
+      .finally(() => {
+        if (active) setIsLoading(false)
       })
     return () => {
       active = false
@@ -3207,14 +3123,40 @@ export function AgencyTeamPage() {
         title="Equipe"
         description="Funcionários, módulos acessíveis, permissões e histórico de acesso."
         actions={
-          <Button asChild className="rounded-full">
-            <Link href="/app/equipe/novo">Adicionar</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild className="rounded-full">
+              <Link href="/app/equipe/novo">Adicionar</Link>
+            </Button>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Convite em breve", "O convite real por e-mail será conectado quando o fluxo avançado de auth da equipe for liberado.")}>
+              Convidar
+            </Button>
+          </div>
         }
       />
       <DashboardCard title="Pessoas da agência" description="Ações rápidas para visualizar, editar e controlar status.">
         <div className="space-y-3">
-          {records.map((item) => (
+          {loadError ? (
+            <div className="rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+              <p className="font-medium">Nao foi possivel carregar a equipe agora.</p>
+              <p className="mt-1 text-amber-100/80">{loadError}</p>
+            </div>
+          ) : null}
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={`team-skeleton-${index}`} className="animate-pulse rounded-[28px] border border-white/8 bg-white/[0.03] p-4">
+                <div className="h-4 w-40 rounded-full bg-white/10" />
+                <div className="mt-3 h-3 w-48 rounded-full bg-white/10" />
+              </div>
+            ))
+          ) : records.length === 0 ? (
+            <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center">
+              <p className="text-sm font-medium text-foreground">Nenhum membro cadastrado ainda.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Crie o primeiro membro real da equipe para organizar acesso, escopo e status da operação.</p>
+              <Button asChild className="mt-4 rounded-full">
+                <Link href="/app/equipe/novo">Criar membro agora</Link>
+              </Button>
+            </div>
+          ) : records.map((item) => (
             <div key={item.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
               <button type="button" onClick={() => setSelected(item)} className="min-w-0 text-left">
                 <div className="flex flex-wrap items-center gap-2">
@@ -3231,18 +3173,7 @@ export function AgencyTeamPage() {
                   {
                     label: "Editar",
                     icon: FilePenLine,
-                    onClick: async () => {
-                      try {
-                        const updated = await requestJson<TeamMemberRow>(`/api/team/${item.id}`, {
-                          method: "PATCH",
-                          body: JSON.stringify({ scope: item.scope }),
-                        })
-                        setRecords((current) => current.map((entry, index) => (entry.id === item.id ? mapTeamRowToRecord(updated, index) : entry)))
-                        fire("Membro atualizado", `${item.name} foi sincronizado com o Supabase.`)
-                      } catch (error) {
-                        fire("Falha ao atualizar", error instanceof Error ? error.message : "Não foi possível atualizar o membro.")
-                      }
-                    },
+                    onClick: () => router.push(`/app/equipe/novo?id=${item.id}`),
                   },
                   { label: item.status === "Ativo" ? "Inativar" : "Ativar", icon: ArrowRightLeft, onClick: () => toggleStatus(item.id) },
                   {
@@ -3271,37 +3202,6 @@ export function AgencyTeamPage() {
           ))}
         </div>
       </DashboardCard>
-      <MockFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="Adicionar membro"
-        description="Convide um novo colaborador com papel e escopo definidos."
-        fields={[
-          { label: "Nome", value: "Livia Martins" },
-          { label: "E-mail", value: "livia@agencia.com" },
-          { label: "Cargo", value: "AGENCY_SALES" },
-          { label: "Escopo", value: "Leads e cotações" },
-        ]}
-        confirmLabel="Salvar membro"
-        onConfirm={async () => {
-          try {
-            const created = await requestJson<TeamMemberRow>("/api/team", {
-              method: "POST",
-              body: JSON.stringify({
-                name: "Livia Martins",
-                role: "AGENCY_SALES",
-                scope: "Leads e cotações",
-                modules: "Leads, cotações, Agent",
-                status: "Ativo",
-              }),
-            })
-            setRecords((current) => [mapTeamRowToRecord(created, current.length), ...current])
-            fire("Membro adicionado", "O novo membro foi salvo no Supabase.")
-          } catch (error) {
-            fire("Falha ao criar", error instanceof Error ? error.message : "Não foi possível adicionar o membro.")
-          }
-        }}
-      />
       <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
 
       <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
@@ -3339,7 +3239,6 @@ export function AgencyDocumentsPage() {
       title="Documentos"
       description="Hub documental da agência com visualização, download, envio e ações por item."
       createLabel="Novo documento"
-      records={documentRecords}
     />
   )
 }
@@ -3350,7 +3249,6 @@ export function AgencyContractsPage() {
       title="Contratos"
       description="Contratos com branding, status e ações rápidas para compartilhar ou revisar."
       createLabel="Criar contrato"
-      records={documentRecords.filter((doc) => doc.type === "Contrato")}
     />
   )
 }
@@ -3361,7 +3259,6 @@ export function AgencyVouchersPage() {
       title="Vouchers"
       description="Vouchers de hotel, transfer e serviços com visualização rápida."
       createLabel="Novo voucher"
-      records={documentRecords.filter((doc) => doc.type === "Voucher")}
     />
   )
 }
@@ -3372,7 +3269,6 @@ export function AgencyReceiptsPage() {
       title="Recibos"
       description="Comprovantes financeiros organizados por cliente e viagem."
       createLabel="Novo recibo"
-      records={documentRecords.filter((doc) => doc.type === "Recibo")}
     />
   )
 }
@@ -3383,356 +3279,21 @@ export function AgencyTicketsPage() {
       title="Passagens"
       description="Trechos e emissões organizados com ações de visualização, envio e download."
       createLabel="Nova passagem"
-      records={documentRecords.filter((doc) => doc.type === "Passagem")}
     />
   )
 }
 
 export function AgencyTemplatesPage() {
-  const templateRecords = templates.filter((item) => item.type === "Contrato" || item.type === "Voucher" || item.type === "Roteiro")
-  const availableTemplates = templateRecords.map((item, index) => ({
-    ...item,
-    badge: ["Premium", "Free", "Premium"][index] ?? "Free",
-    recommendation: ["Mais usado para contratos de alta conversão", "Recomendado para operação ágil", "Ideal para jornadas aspiracionais"][index] ?? "Pronto para uso",
-    version: ["v3.4", "v2.8", "v3.1"][index] ?? "v1.0",
-    compatibility: [["IA", "Go"], ["Go", "Atlas"], ["IA", "Go", "Agent"]][index] ?? ["IA"],
-    summary: [
-      "Estrutura comercial e jurídica pronta para receber branding da agência e assinatura institucional.",
-      "Modelo oficial para emissão premium de vouchers com leitura clara para operação e cliente final.",
-      "Template narrativo com blocos elegantes para experiências, agenda e diferenciais da viagem.",
-    ][index] ?? "Modelo oficial TravelPro.",
-  }))
-  const [selected, setSelected] = useState<(typeof availableTemplates)[number] | null>(null)
-  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  const [faviconPreview, setFaviconPreview] = useState<string | null>(null)
-  const [primaryColor, setPrimaryColor] = useState("#FF6A1A")
-  const [signature, setSignature] = useState("Equipe TravelPro Atlântico Premium")
-  const [whatsapp, setWhatsapp] = useState("+55 11 99876-4321")
-  const [instagram, setInstagram] = useState("@atlantico.premium")
-  const [site, setSite] = useState("www.atlanticopremium.com.br")
-  const [slogan, setSlogan] = useState("Viagens com curadoria, contexto e operação impecável.")
-  const [footer, setFooter] = useState("Material emitido pela agência com apoio da infraestrutura TravelPro.")
-  const fire = (title: string, description: string) => toast({ title, description })
-  const handlePreviewFile = (
-    setter: React.Dispatch<React.SetStateAction<string | null>>,
-    file: File | null,
-  ) => {
-    if (!file) return
-    setter(URL.createObjectURL(file))
-  }
-
   return (
-    <PageShell>
-      <SectionHeader
-        title="Templates ativos da agência"
-        description="Escolha modelos oficiais do TravelPro e personalize a experiência da sua marca."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
-              <Link href="#templates-disponiveis">Explorar templates</Link>
-            </Button>
-            <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
-              <Link href="/app/documentos/templates/personalizar">Configurar identidade</Link>
-            </Button>
-            <Button asChild className="rounded-full">
-              <Link href="#ia-ready-templates">Ver compatibilidade IA</Link>
-            </Button>
-          </div>
-        }
-      />
-      <OperationalWorkspaceLayout
-        sidebar={
-          <>
-            <LivePreviewPanel
-              title="Preview institucional"
-              description="Como os modelos ativos podem aparecer com a identidade da agência."
-              footer={
-                <Button
-                  variant="outline"
-                  className="rounded-full border-white/10 bg-white/[0.03]"
-                  onClick={() => fire("Preview institucional", "A leitura premium da agência foi aberta em modo mockado.")}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Abrir preview
-                </Button>
-              }
-            >
-              <div className="overflow-hidden rounded-[24px] border border-white/8 bg-black/25">
-                <div
-                  className="border-b border-white/8 px-5 py-6"
-                  style={{
-                    background: `linear-gradient(135deg, ${primaryColor}40 0%, rgba(255,255,255,0.03) 62%, rgba(0,0,0,0.2) 100%)`,
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05]">
-                      {logoPreview ? (
-                        <img src={logoPreview} alt="Logo da agência" className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="text-sm font-semibold text-primary">TP</span>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-primary/75">Templates ativos</p>
-                      <h3 className="mt-1 text-lg font-semibold text-foreground">Atlântico Premium</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{slogan}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-4 px-5 py-5">
-                  <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
-                    <p className="text-sm font-medium text-foreground">Assinatura padrão</p>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{signature}</p>
-                  </div>
-                  <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
-                    <p className="text-sm font-medium text-foreground">Canais oficiais</p>
-                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                      <p>{whatsapp}</p>
-                      <p>{instagram}</p>
-                      <p>{site}</p>
-                    </div>
-                  </div>
-                  <div className="rounded-[22px] border border-primary/15 bg-primary/10 p-4">
-                    <p className="text-sm font-medium text-foreground">Compatível com TravelPro Go</p>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      Esse template poderá ser utilizado automaticamente pela IA para contratos, roteiros,
-                      vouchers, propostas e documentos operacionais.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </LivePreviewPanel>
-
-            <WorkspaceSidebarInfo
-              title="Status da identidade"
-              description="Leitura rápida do que já está pronto para reutilização pela agência."
-              items={[
-                { label: "Cor principal", value: primaryColor.toUpperCase() },
-                { label: "Modelos ativos", value: `${availableTemplates.length} oficiais` },
-                { label: "Uso futuro", value: "IA • Go • Agent • Atlas" },
-              ]}
-            />
-
-            <SetupStatusCard
-              title="Pronto para distribuição"
-              description="A base da agência fica preparada para catálogos, documentos e automações futuras."
-              badges={["Branding ativo", "IA Ready", "Go compatível", "Operação premium"]}
-            />
-          </>
-        }
-      >
-        <DashboardCard title="Identidade da marca" description="A agência ativa modelos oficiais e aplica apenas a sua assinatura institucional.">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <MediaUploadCard
-                title="Logo da agência"
-                description="Aplicado em contratos, roteiros, vouchers e materiais enviados ao cliente."
-                preview={logoPreview}
-                orientation="landscape"
-                onSelect={(file) => handlePreviewFile(setLogoPreview, file)}
-                onRemove={() => setLogoPreview(null)}
-              />
-            </div>
-            <MediaUploadCard
-              title="Favicon"
-              description="Assinatura compacta para links públicos e experiências web."
-              preview={faviconPreview}
-              orientation="square"
-              onSelect={(file) => handlePreviewFile(setFaviconPreview, file)}
-              onRemove={() => setFaviconPreview(null)}
-            />
-            <label className="space-y-2 rounded-[26px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.12)]">
-              <span className="text-sm font-medium text-foreground">Cor principal</span>
-              <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-                <input
-                  type="color"
-                  value={primaryColor}
-                  onChange={(event) => setPrimaryColor(event.target.value)}
-                  className="h-10 w-10 cursor-pointer rounded-xl border border-white/10 bg-transparent"
-                />
-                <input
-                  value={primaryColor}
-                  onChange={(event) => setPrimaryColor(event.target.value)}
-                  className="w-full bg-transparent text-sm text-foreground outline-none"
-                />
-              </div>
-              <div className="grid gap-3 pt-1 md:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="text-xs uppercase tracking-[0.18em] text-primary/75">WhatsApp</span>
-                  <input
-                    value={whatsapp}
-                    onChange={(event) => setWhatsapp(event.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
-                  />
-                </label>
-                <label className="space-y-2">
-                  <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Instagram</span>
-                  <input
-                    value={instagram}
-                    onChange={(event) => setInstagram(event.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
-                  />
-                </label>
-              </div>
-            </label>
-            <label className="space-y-2 rounded-[26px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.12)]">
-              <span className="text-sm font-medium text-foreground">Assinatura e canais</span>
-              <div className="space-y-3 pt-1">
-                <input
-                  value={signature}
-                  onChange={(event) => setSignature(event.target.value)}
-                  placeholder="Assinatura padrão"
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
-                />
-                <input
-                  value={site}
-                  onChange={(event) => setSite(event.target.value)}
-                  placeholder="Site"
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
-                />
-                <input
-                  value={slogan}
-                  onChange={(event) => setSlogan(event.target.value)}
-                  placeholder="Slogan"
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
-                />
-              </div>
-            </label>
-            <label className="space-y-2 rounded-[26px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.12)] md:col-span-2">
-              <span className="text-sm font-medium text-foreground">Rodapé institucional</span>
-              <textarea
-                rows={4}
-                value={footer}
-                onChange={(event) => setFooter(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
-              />
-            </label>
-          </div>
-        </DashboardCard>
-
-        <DashboardCard
-          title="Templates disponíveis"
-          description="Modelos oficiais do TravelPro prontos para ativação, padrão e personalização."
-        >
-          <div id="templates-disponiveis" className="space-y-3">
-            {availableTemplates.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col gap-4 rounded-[30px] border border-white/8 bg-gradient-to-r from-white/[0.05] via-white/[0.03] to-transparent p-5 shadow-[0_18px_40px_rgba(0,0,0,0.14)] xl:flex-row xl:items-center xl:justify-between"
-              >
-                <button type="button" onClick={() => setSelected(item)} className="min-w-0 flex-1 text-left">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-base font-semibold text-foreground">{item.name}</p>
-                    <StatusPill label={item.status} />
-                    <StatusPill label={item.badge} />
-                    <StatusPill label={item.version} />
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {item.type} • {item.category} • {item.recommendation}
-                  </p>
-                  <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{item.summary}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {item.compatibility.map((compatibility) => (
-                      <span
-                        key={`${item.id}-${compatibility}`}
-                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-muted-foreground"
-                      >
-                        {compatibility}
-                      </span>
-                    ))}
-                    <span className="rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-[11px] text-primary">
-                      Recomendado
-                    </span>
-                  </div>
-                </button>
-                <div className="flex flex-wrap items-center gap-2 xl:w-[320px] xl:justify-end">
-                  <Button
-                    variant="outline"
-                    className="rounded-full border-white/10 bg-white/[0.03]"
-                    onClick={() => fire("Template ativado", `${item.name} foi ativado em modo mockado.`)}
-                  >
-                    Ativar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="rounded-full border-white/10 bg-white/[0.03]"
-                    onClick={() => setSelected(item)}
-                  >
-                    Visualizar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="rounded-full border-white/10 bg-white/[0.03]"
-                    onClick={() => fire("Template padrão", `${item.name} foi definido como padrão em modo mockado.`)}
-                  >
-                    Definir padrão
-                  </Button>
-                  <Button asChild className="rounded-full">
-                    <Link href={`/app/documentos/templates/personalizar?template=${encodeURIComponent(item.name)}`}>
-                      Personalizar
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </DashboardCard>
-
-        <div id="ia-ready-templates" className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_360px]">
-          <FeatureExplanationCard
-            title="Compatível com TravelPro Go"
-            description="Os modelos oficiais da agência já ficam preparados para uso futuro dentro do ecossistema inteligente."
-            items={[
-              {
-                title: "Go operacional",
-                body: "Esse template poderá ser utilizado automaticamente pelo Go ao gerar contratos, roteiros, vouchers e documentos via WhatsApp.",
-              },
-              {
-                title: "Agent e follow-up",
-                body: "Modelos ativos também poderão ser reutilizados pelo Agent em comunicações contextuais com leads e clientes.",
-              },
-              {
-                title: "Atlas e Marketing IA",
-                body: "A mesma identidade ajuda Atlas Advisor e Marketing IA a manter coerência operacional e comercial.",
-              },
-            ]}
-          />
-          <SetupStatusCard
-            title="IA Ready"
-            description="Bloco visual para sinalizar quais modelos já estão prontos para o futuro ecossistema inteligente."
-            badges={["TravelPro Go", "Agent", "Atlas", "Marketing IA"]}
-          />
-        </div>
-      </OperationalWorkspaceLayout>
-      <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
-
-      <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent className="max-w-3xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-          {selected ? (
-            <>
-              <DialogHeader className="border-b border-white/8 px-6 py-5">
-                <DialogTitle>{selected.name}</DialogTitle>
-                <DialogDescription>Preview do modelo oficial com branding, compatibilidade e leitura de uso pela agência.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 px-6 py-5 md:grid-cols-2 xl:grid-cols-3">
-                <InfoCard label="Tipo" value={selected.type} />
-                <InfoCard label="Categoria" value={selected.category} />
-                <InfoCard label="Status" value={selected.status} />
-                <InfoCard label="Versão" value={selected.version} />
-                <InfoCard label="Compatibilidade" value={selected.compatibility.join(", ")} />
-                <InfoCard label="Badge" value={selected.badge} />
-              </div>
-              <div className="px-6 pb-6">
-                <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-sm leading-6 text-muted-foreground">
-                  {selected.summary}
-                </div>
-              </div>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-    </PageShell>
+    <DocumentHub
+      title="Templates"
+      description="Biblioteca operacional real para documentos, roteiros e relatórios futuros da agência."
+      createLabel="Novo template"
+      typeFilter="Template"
+      createHref="/app/documentos/novo?mode=template"
+      editHref={(record) => `/app/documentos/novo?mode=template&id=${record.id}`}
+      mode="template"
+    />
   )
 }
 
@@ -4633,33 +4194,120 @@ export function AgencyOperationalOverviewPage() {
 }
 
 export function AgencyInsightsPage() {
+  const [dashboard, setDashboard] = useState<AgencyDashboardData | null>(null)
+  const [credits, setCredits] = useState<CreditsOverviewData | null>(null)
+  const [operational, setOperational] = useState<CentralOperationalData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const router = useRouter()
   const fire = (title: string, description: string) => toast({ title, description })
+
+  useEffect(() => {
+    let active = true
+
+    const loadInsights = async () => {
+      setIsLoading(true)
+      setLoadError(null)
+
+      const [dashboardResult, creditsResult, operationalResult] = await Promise.allSettled([
+        requestJson<AgencyDashboardData>("/api/dashboard/agency"),
+        requestJson<CreditsOverviewData>("/api/credits/overview"),
+        requestJson<CentralOperationalData>("/api/operational-center"),
+      ])
+
+      if (!active) return
+
+      if (dashboardResult.status === "fulfilled") setDashboard(dashboardResult.value)
+      if (creditsResult.status === "fulfilled") setCredits(creditsResult.value)
+      if (operationalResult.status === "fulfilled") setOperational(operationalResult.value)
+
+      if (dashboardResult.status === "rejected") {
+        setLoadError(dashboardResult.reason instanceof Error ? dashboardResult.reason.message : "Nao foi possivel carregar os insights da agencia.")
+      }
+
+      setIsLoading(false)
+    }
+
+    void loadInsights()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const signals = useMemo(() => {
+    if (!dashboard) return []
+
+    return [
+      `Clientes ativos na base: ${dashboard.counts.clients}.`,
+      `Leads totais monitorados: ${dashboard.counts.leads}.`,
+      `Documentos pendentes ou em rascunho: ${dashboard.counts.pending_documents}.`,
+      `Saldo financeiro atual: ${formatMoney(dashboard.counts.balance)}.`,
+      `Próximos embarques mapeados: ${dashboard.counts.upcoming_trips}.`,
+      `Créditos disponíveis: ${credits?.balance ?? 0}.`,
+    ]
+  }, [credits?.balance, dashboard])
+
+  const suggestions = useMemo(() => {
+    const items: Array<{ label: string; href: string }> = []
+
+    if ((dashboard?.counts.leads ?? 0) > 0) items.push({ label: "Priorizar leads abertos e qualificação comercial.", href: "/app/leads" })
+    if ((dashboard?.counts.pending_documents ?? 0) > 0) items.push({ label: "Fechar pendências documentais da operação.", href: "/app/documentos" })
+    if ((dashboard?.counts.upcoming_trips ?? 0) > 0) items.push({ label: "Revisar viagens com embarque próximo.", href: "/app/viagens" })
+    if ((credits?.balance ?? 0) <= 0) items.push({ label: "Revisar o saldo de créditos operacionais.", href: "/app/creditos" })
+    if ((operational?.priorities.length ?? 0) > 0) items.push({ label: "Abrir prioridades reais da central operacional.", href: "/app/central-operacional" })
+
+    return items.slice(0, 4)
+  }, [credits?.balance, dashboard?.counts.leads, dashboard?.counts.pending_documents, dashboard?.counts.upcoming_trips, operational?.priorities.length])
 
   return (
     <PageShell>
       <SectionHeader
         title="Insights"
-        description="Leituras inteligentes com foco em próximos passos e exportação organizada."
+        description="Leituras operacionais reais com base em clientes, leads, viagens, documentos, financeiro e créditos."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Insights abertos", "A visão aprofundada dos insights foi preparada.")}>Ver insights</Button>
-            <Button className="rounded-full" onClick={() => fire("Relatórios preparados", "A exportação dos relatórios foi preparada em modo mockado.")}>Exportar relatórios</Button>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/relatorios")}>Abrir relatórios</Button>
+            <Button className="rounded-full" onClick={() => fire("Em breve", "A distribuição inteligente desses insights será conectada a IA, WhatsApp e Advisor em uma próxima etapa.")}>Distribuir insights</Button>
           </div>
         }
       />
+      {loadError ? (
+        <div className="rounded-[28px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+          <p className="font-medium">Nao foi possivel carregar os insights agora.</p>
+          <p className="mt-1 text-amber-100/80">{loadError}</p>
+        </div>
+      ) : null}
       <div className="grid gap-5 xl:grid-cols-2">
-        <DashboardCard title="Sinais da semana" description="Resumo visual do que merece leitura mais profunda.">
+        <DashboardCard title="Sinais da operação" description="Resumo simples e real do que merece atenção agora.">
           <div className="space-y-3">
-            {["Margem acima da média nas viagens premium", "Clientes premium respondem melhor no início da noite", "TravelPro Go acelerou tarefas repetitivas em 42%", "Match trouxe leads mais quentes para pacotes com destaque"].map((item) => (
-              <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-muted-foreground">{item}</div>
-            ))}
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, index) => <div key={`insight-signal-${index}`} className="h-16 animate-pulse rounded-2xl bg-white/[0.03]" />)
+            ) : signals.length > 0 ? (
+              signals.map((item) => (
+                <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-muted-foreground">{item}</div>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                Ainda não há dados suficientes para leituras operacionais mais profundas.
+              </div>
+            )}
           </div>
         </DashboardCard>
-        <DashboardCard title="Ações sugeridas" description="Próximos movimentos recomendados para a agência.">
+        <DashboardCard title="Ações sugeridas" description="Próximos movimentos úteis a partir do que já está acontecendo na agência.">
           <div className="space-y-3">
-            {["Reforçar follow-up nos leads de alto ticket", "Publicar novo pacote de inverno no catálogo", "Aumentar créditos para janela comercial da semana", "Abrir Atlas Advisor para scripts de objeção"].map((item) => (
-              <button key={item} type="button" onClick={() => fire("Insight acionado", item)} className="w-full rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-left text-sm text-muted-foreground transition-all hover:border-primary/15 hover:bg-white/[0.05]">{item}</button>
-            ))}
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, index) => <div key={`insight-action-${index}`} className="h-16 animate-pulse rounded-2xl bg-white/[0.03]" />)
+            ) : suggestions.length > 0 ? (
+              suggestions.map((item) => (
+                <button key={item.label} type="button" onClick={() => router.push(item.href)} className="w-full rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-left text-sm text-muted-foreground transition-all hover:border-primary/15 hover:bg-white/[0.05]">
+                  {item.label}
+                </button>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                Nenhuma sugestão crítica agora. Continue registrando a operação para enriquecer essa leitura.
+              </div>
+            )}
           </div>
         </DashboardCard>
       </div>

@@ -12,10 +12,100 @@ import type { ClientRow, DocumentRow, TripRow } from "@/types/database"
 const EMPTY_CLIENT = "Sem cliente vinculado"
 const EMPTY_TRIP = "Sem viagem vinculada"
 
+type DocumentWorkspaceMode = "document" | "roteiro" | "cotacao" | "template"
+
 type DocumentMetadata = {
   template?: string
   variables?: string
   attachments?: string
+}
+
+type DocumentWorkspaceProps = {
+  mode?: DocumentWorkspaceMode
+}
+
+const modeConfig: Record<
+  DocumentWorkspaceMode,
+  {
+    title: string
+    description: string
+    backHref: string
+    backLabel: string
+    primaryActionLabel: string
+    aiLabel: string
+    aiDescription: string
+    fixedType: string
+    statusOptions: string[]
+    templateLabel: string
+    variablesLabel: string
+    attachmentsLabel: string
+    templateDescription?: string
+    variablesDescription?: string
+    attachmentsDescription?: string
+  }
+> = {
+  document: {
+    title: "Novo documento",
+    description: "Monte um documento com dados reais, vínculos operacionais e preview pronto para revisão.",
+    backHref: "/app/documentos",
+    backLabel: "Voltar para documentos",
+    primaryActionLabel: "Criar documento agora",
+    aiLabel: "Gerar com IA",
+    aiDescription: "A geração automática com IA ainda está em planejamento para este módulo. Use o workspace para salvar o documento real.",
+    fixedType: "Documento geral",
+    statusOptions: ["Rascunho", "Em revisao", "Pronto", "Enviado"],
+    templateLabel: "Template",
+    variablesLabel: "Dados variáveis",
+    attachmentsLabel: "Anexos e observações",
+  },
+  roteiro: {
+    title: "Novo roteiro",
+    description: "Monte um roteiro manual real com vínculo de cliente, viagem e estrutura pronta para compartilhar.",
+    backHref: "/app/viagens/roteiros",
+    backLabel: "Voltar para roteiros",
+    primaryActionLabel: "Salvar roteiro",
+    aiLabel: "Gerar roteiro com IA",
+    aiDescription: "A IA futura poderá montar dias, experiências e narrativa. Nesta fase, o roteiro manual já fica salvo na base real.",
+    fixedType: "Roteiro",
+    statusOptions: ["Rascunho", "Em elaboracao", "Pronto", "Enviado"],
+    templateLabel: "Estilo ou template",
+    variablesLabel: "Estrutura do roteiro",
+    attachmentsLabel: "Observações internas",
+    variablesDescription: "Descreva os dias, blocos ou experiências principais do roteiro.",
+    attachmentsDescription: "Use para anotações operacionais, links ou detalhes de exportação futura.",
+  },
+  cotacao: {
+    title: "Nova cotação",
+    description: "Crie uma proposta comercial real com cliente, viagem, status e histórico interno.",
+    backHref: "/app/viagens/cotacoes",
+    backLabel: "Voltar para cotações",
+    primaryActionLabel: "Salvar cotação",
+    aiLabel: "Gerar cotação com IA",
+    aiDescription: "A geração assistida com IA ficará para a próxima fase. Agora a proposta já fica registrada com dados reais.",
+    fixedType: "Cotação",
+    statusOptions: ["Rascunho", "Enviada", "Pendente", "Aprovada", "Rejeitada"],
+    templateLabel: "Modelo de proposta",
+    variablesLabel: "Inclusos, proposta e valor",
+    attachmentsLabel: "Exclusões, validade e histórico",
+    variablesDescription: "Resumo comercial, valor, inclusos e diferenciais da proposta.",
+    attachmentsDescription: "Validade, ajustes pedidos pelo cliente e histórico da negociação.",
+  },
+  template: {
+    title: "Novo template",
+    description: "Monte uma base operacional reutilizável para documentos, roteiros ou relatórios.",
+    backHref: "/app/documentos/templates",
+    backLabel: "Voltar para templates",
+    primaryActionLabel: "Salvar template",
+    aiLabel: "Montar com IA",
+    aiDescription: "A criação inteligente de templates continua futura. Este fluxo salva a biblioteca operacional real.",
+    fixedType: "Template",
+    statusOptions: ["Ativo", "Inativo", "Rascunho"],
+    templateLabel: "Categoria do template",
+    variablesLabel: "Estrutura base",
+    attachmentsLabel: "Módulos e observações",
+    variablesDescription: "Defina blocos, campos e estrutura que servirão como base reutilizável.",
+    attachmentsDescription: "Indique módulos compatíveis e observações operacionais.",
+  },
 }
 
 async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
@@ -46,16 +136,24 @@ function parseMetadata(value: DocumentRow["metadata"]): DocumentMetadata {
   }
 }
 
-function buildDocumentValues(document?: DocumentRow): Record<string, string> {
+function resolveMode(searchParams: URLSearchParams, forcedMode?: DocumentWorkspaceMode): DocumentWorkspaceMode {
+  if (forcedMode) return forcedMode
+  const candidate = searchParams.get("mode")
+  if (candidate === "roteiro" || candidate === "cotacao" || candidate === "template") return candidate
+  return "document"
+}
+
+function buildDocumentValues(document: DocumentRow | undefined, mode: DocumentWorkspaceMode, searchParams: URLSearchParams): Record<string, string> {
   const metadata = document ? parseMetadata(document.metadata) : {}
+  const config = modeConfig[mode]
 
   return {
     title: document?.title ?? "",
-    type: document?.type ?? "Contrato",
-    status: document?.status ?? "Rascunho",
+    type: document?.type ?? config.fixedType,
+    status: document?.status ?? config.statusOptions[0],
     clientId: document?.client_id ? `${document.client_id}` : EMPTY_CLIENT,
     tripId: document?.trip_id ? `${document.trip_id}` : EMPTY_TRIP,
-    template: metadata.template ?? "",
+    template: metadata.template ?? searchParams.get("template") ?? "",
     variables: metadata.variables ?? "",
     attachments: metadata.attachments ?? "",
     storageBucket: document?.storage_bucket ?? "",
@@ -63,11 +161,14 @@ function buildDocumentValues(document?: DocumentRow): Record<string, string> {
   }
 }
 
-export function DocumentWorkspace() {
+export function DocumentWorkspace({ mode: forcedMode }: DocumentWorkspaceProps = {}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const documentId = searchParams.get("id")
   const isEditing = Boolean(documentId)
+  const mode = resolveMode(searchParams, forcedMode)
+  const config = modeConfig[mode]
+
   const [clients, setClients] = useState<ClientRow[]>([])
   const [trips, setTrips] = useState<TripRow[]>([])
   const [document, setDocument] = useState<DocumentRow | null>(null)
@@ -97,16 +198,13 @@ export function DocumentWorkspace() {
         if (process.env.NODE_ENV !== "production") {
           console.error("[DocumentWorkspace] failed to load workspace", error)
         }
-        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar o workspace do documento.")
+        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar o workspace.")
       } finally {
-        if (active) {
-          setIsLoading(false)
-        }
+        if (active) setIsLoading(false)
       }
     }
 
     void loadWorkspace()
-
     return () => {
       active = false
     }
@@ -118,35 +216,37 @@ export function DocumentWorkspace() {
   const sections: WorkspaceSectionConfig[] = useMemo(
     () => [
       {
-        title: "Base do documento",
-        description: "Estruture o documento com os dados reais da agencia, do cliente e da viagem.",
+        title: mode === "document" ? "Base do documento" : mode === "roteiro" ? "Base do roteiro" : mode === "cotacao" ? "Base da proposta" : "Base do template",
+        description: "Estruture o registro com dados reais da agência, do cliente e da viagem.",
         fields: [
-          { key: "title", label: "Titulo do documento" },
-          { key: "type", label: "Tipo de documento", type: "select", options: ["Contrato", "Voucher", "Recibo", "Passagem", "Documento geral"] },
-          { key: "status", label: "Status", type: "select", options: ["Rascunho", "Em revisao", "Pronto", "Enviado"] },
-          { key: "template", label: "Template" },
-          { key: "clientId", label: "Cliente", type: "select", options: clientOptions },
-          { key: "tripId", label: "Viagem", type: "select", options: tripOptions },
-          { key: "storageBucket", label: "Bucket de armazenamento" },
-          { key: "storagePath", label: "Caminho do arquivo" },
+          { key: "title", label: mode === "template" ? "Nome do template" : mode === "roteiro" ? "Nome do roteiro" : mode === "cotacao" ? "Nome da cotação" : "Título do documento" },
+          ...(mode === "document"
+            ? [{ key: "type", label: "Tipo de documento", type: "select" as const, options: ["Contrato", "Voucher", "Recibo", "Passagem", "Documento geral"] }]
+            : []),
+          { key: "status", label: "Status", type: "select", options: config.statusOptions },
+          { key: "template", label: config.templateLabel, description: config.templateDescription },
+          { key: "clientId", label: "Cliente", type: "select", options: clientOptions, hidden: () => mode === "template" },
+          { key: "tripId", label: "Viagem", type: "select", options: tripOptions, hidden: () => mode === "template" },
+          { key: "storageBucket", label: "Bucket de armazenamento", hidden: () => mode === "template" },
+          { key: "storagePath", label: mode === "cotacao" ? "Arquivo ou proposta vinculada" : "Caminho do arquivo", hidden: () => mode === "template" },
         ],
       },
       {
-        title: "Contexto e vinculacoes",
-        description: "Guarde referencias operacionais usando os campos que ja existem.",
+        title: mode === "template" ? "Estrutura reutilizável" : "Contexto e conteúdo",
+        description: "Guarde estrutura, observações e referências usando os campos que já existem.",
         fields: [
-          { key: "variables", label: "Dados variaveis", type: "textarea", rows: 4, colSpan: 2 },
-          { key: "attachments", label: "Anexos e observacoes", type: "textarea", rows: 4, colSpan: 2 },
+          { key: "variables", label: config.variablesLabel, type: "textarea", rows: 5, colSpan: 2, description: config.variablesDescription },
+          { key: "attachments", label: config.attachmentsLabel, type: "textarea", rows: 4, colSpan: 2, description: config.attachmentsDescription },
         ],
       },
     ],
-    [clientOptions, tripOptions],
+    [clientOptions, config.attachmentsDescription, config.statusOptions, config.templateDescription, config.templateLabel, config.variablesDescription, mode, tripOptions],
   )
 
   if (isLoading) {
     return (
       <PageShell>
-        <DashboardCard title="Carregando documento" description="Sincronizando clientes, viagens e dados reais do documento.">
+        <DashboardCard title="Carregando workspace" description="Sincronizando clientes, viagens e dados reais do registro.">
           <div className="space-y-3">
             <div className="h-4 w-48 animate-pulse rounded-full bg-white/10" />
             <div className="h-4 w-64 animate-pulse rounded-full bg-white/10" />
@@ -160,9 +260,9 @@ export function DocumentWorkspace() {
   if (loadError) {
     return (
       <PageShell>
-        <DashboardCard title="Nao foi possivel abrir o documento" description={loadError}>
-          <Button className="rounded-full" onClick={() => router.replace("/app/documentos")}>
-            Voltar para documentos
+        <DashboardCard title="Nao foi possivel abrir o workspace" description={loadError}>
+          <Button className="rounded-full" onClick={() => router.replace(config.backHref)}>
+            {config.backLabel}
           </Button>
         </DashboardCard>
       </PageShell>
@@ -171,43 +271,45 @@ export function DocumentWorkspace() {
 
   return (
     <DedicatedActionWorkspace
-      title={isEditing ? "Editar documento" : "Novo documento"}
-      description="Monte um documento com dados reais, vinculos operacionais e preview pronto para revisao."
-      backHref="/app/documentos"
-      backLabel="Voltar para documentos"
-      aiActionLabel="Gerar com IA"
-      aiActionDescription="A geracao automatica com IA ainda esta em planejamento para este modulo. Use o workspace para salvar o documento real."
-      primaryActionLabel={isEditing ? "Salvar documento" : "Criar documento agora"}
-      draftActionDescription="Salvar rascunho tambem persiste no Supabase com status Rascunho."
-      previewActionDescription="O preview avancado com renderizacao do arquivo ainda sera conectado em uma proxima etapa."
-      initialValues={buildDocumentValues(document ?? undefined)}
+      title={isEditing ? config.title.replace("Novo", "Editar").replace("Nova", "Editar") : config.title}
+      description={config.description}
+      backHref={config.backHref}
+      backLabel={config.backLabel}
+      aiActionLabel={config.aiLabel}
+      aiActionDescription={config.aiDescription}
+      primaryActionLabel={isEditing ? config.primaryActionLabel.replace("Criar", "Salvar").replace("Salvar", "Salvar") : config.primaryActionLabel}
+      draftActionDescription="Salvar rascunho também persiste no Supabase com status inicial."
+      previewActionDescription="O preview avançado deste conteúdo será expandido em uma próxima etapa."
+      initialValues={buildDocumentValues(document ?? undefined, mode, searchParams)}
       sections={sections}
-      previewTitle="Preview do documento"
-      previewDescription="Leitura rapida dos dados reais antes de salvar."
+      previewTitle={mode === "template" ? "Preview do template" : mode === "roteiro" ? "Preview do roteiro" : mode === "cotacao" ? "Preview da cotação" : "Preview do documento"}
+      previewDescription="Leitura rápida dos dados reais antes de salvar."
       renderPreview={(values) => {
         const selectedClient = clients.find((client) => `${client.id}::${client.name}` === values.clientId)
         const selectedTrip = trips.find((trip) => `${trip.id}::${trip.destination}` === values.tripId)
 
         return (
           <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-primary/75">{values.type || "Documento"}</p>
-            <h2 className="mt-2 text-xl font-semibold text-foreground">{values.title || "Documento sem titulo"}</h2>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-primary/75">{values.type || config.fixedType}</p>
+            <h2 className="mt-2 text-xl font-semibold text-foreground">{values.title || "Registro sem título"}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              {(selectedClient?.name ?? "Sem cliente vinculado")} • {(selectedTrip?.destination ?? "Sem viagem vinculada")}
+              {mode === "template"
+                ? values.status || "Rascunho"
+                : `${selectedClient?.name ?? "Sem cliente vinculado"} • ${selectedTrip?.destination ?? "Sem viagem vinculada"}`}
             </p>
             <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.04] p-4 text-sm text-muted-foreground">
-              {values.template ? `Template: ${values.template}` : "Nenhum template definido ainda."}
+              {values.variables || values.template || "Estrutura ainda não preenchida."}
             </div>
           </div>
         )
       }}
       sidebarInfo={{
-        title: "Leitura de geracao",
-        description: "O documento fica salvo na base real da agencia sem alterar o schema.",
+        title: "Leitura operacional",
+        description: "O conteúdo fica salvo na base real da agência sem alterar o schema.",
         items: [
-          { label: "Status", value: (values) => values.status || "Rascunho" },
-          { label: "Cliente", value: (values) => clients.find((client) => `${client.id}::${client.name}` === values.clientId)?.name || "Sem vinculo" },
-          { label: "Viagem", value: (values) => trips.find((trip) => `${trip.id}::${trip.destination}` === values.tripId)?.destination || "Sem vinculo" },
+          { label: "Status", value: (values) => values.status || config.statusOptions[0] },
+          { label: mode === "template" ? "Categoria" : "Cliente", value: (values) => mode === "template" ? values.template || "Sem categoria" : clients.find((client) => `${client.id}::${client.name}` === values.clientId)?.name || "Sem vínculo" },
+          { label: mode === "template" ? "Tipo" : "Viagem", value: (values) => mode === "template" ? values.type || config.fixedType : trips.find((trip) => `${trip.id}::${trip.destination}` === values.tripId)?.destination || "Sem vínculo" },
         ],
       }}
       extraSidebar={
@@ -215,16 +317,34 @@ export function DocumentWorkspace() {
           <Button
             variant="outline"
             className="rounded-full border-white/10 bg-white/[0.03]"
-            onClick={() => toast({ title: "Templates em breve", description: "O catalogo de templates deste modulo ainda sera conectado ao fluxo oficial." })}
+            onClick={() =>
+              toast({
+                title: mode === "template" ? "Biblioteca em foco" : "Template em breve",
+                description:
+                  mode === "template"
+                    ? "A biblioteca oficial já está sendo consolidada com esta base operacional."
+                    : "O uso guiado de templates será expandido a partir desta base real em uma próxima etapa.",
+              })
+            }
           >
-            Usar template
+            {mode === "template" ? "Ver biblioteca" : "Usar template"}
           </Button>
           <Button
             variant="outline"
             className="rounded-full border-white/10 bg-white/[0.03]"
-            onClick={() => toast({ title: "Envio em breve", description: "O envio automatizado de documentos ainda sera conectado a este modulo." })}
+            onClick={() =>
+              toast({
+                title: "Exportação em breve",
+                description:
+                  mode === "cotacao"
+                    ? "A proposta avançada com layout premium será evoluída sobre esta cotação real."
+                    : mode === "roteiro"
+                      ? "A exportação premium do roteiro será conectada a partir deste registro real."
+                      : "O envio automatizado deste conteúdo será conectado a uma próxima etapa.",
+              })
+            }
           >
-            Enviar documento
+            {mode === "cotacao" ? "Gerar proposta" : mode === "roteiro" ? "Baixar roteiro" : "Enviar conteúdo"}
           </Button>
         </div>
       }
@@ -233,19 +353,19 @@ export function DocumentWorkspace() {
         const selectedTripId = values.tripId && values.tripId !== EMPTY_TRIP ? values.tripId.split("::")[0] : null
 
         if (!values.title.trim() || values.title.trim().length < 2) {
-          throw new Error("Informe um titulo valido para o documento antes de salvar.")
+          throw new Error("Informe um título válido antes de salvar.")
         }
 
         await fetchJson<DocumentRow>(isEditing ? `/api/documents/${documentId}` : "/api/documents", {
           method: isEditing ? "PATCH" : "POST",
           body: JSON.stringify({
             title: values.title.trim(),
-            type: values.type || "Documento geral",
-            status: values.status || "Rascunho",
-            client_id: selectedClientId,
-            trip_id: selectedTripId,
-            storage_bucket: values.storageBucket.trim() || null,
-            storage_path: values.storagePath.trim() || null,
+            type: mode === "document" ? values.type || config.fixedType : config.fixedType,
+            status: values.status || config.statusOptions[0],
+            client_id: mode === "template" ? null : selectedClientId,
+            trip_id: mode === "template" ? null : selectedTripId,
+            storage_bucket: mode === "template" ? null : values.storageBucket.trim() || null,
+            storage_path: mode === "template" ? null : values.storagePath.trim() || null,
             metadata: {
               template: values.template.trim(),
               variables: values.variables.trim(),
@@ -255,11 +375,11 @@ export function DocumentWorkspace() {
         })
 
         toast({
-          title: isEditing ? "Documento atualizado" : "Documento criado",
-          description: isEditing ? "O documento foi atualizado no Supabase." : "O documento foi salvo no Supabase e ja aparece na listagem.",
+          title: isEditing ? "Registro atualizado" : "Registro criado",
+          description: `${mode === "roteiro" ? "O roteiro" : mode === "cotacao" ? "A cotação" : mode === "template" ? "O template" : "O documento"} foi salvo no Supabase.`,
         })
 
-        router.replace("/app/documentos")
+        router.replace(config.backHref)
         router.refresh()
       }}
       onDraftAction={async (values) => {
@@ -267,19 +387,19 @@ export function DocumentWorkspace() {
         const selectedTripId = values.tripId && values.tripId !== EMPTY_TRIP ? values.tripId.split("::")[0] : null
 
         if (!values.title.trim() || values.title.trim().length < 2) {
-          throw new Error("Defina ao menos um titulo valido para salvar o rascunho.")
+          throw new Error("Defina ao menos um título válido para salvar o rascunho.")
         }
 
         await fetchJson<DocumentRow>(isEditing ? `/api/documents/${documentId}` : "/api/documents", {
           method: isEditing ? "PATCH" : "POST",
           body: JSON.stringify({
             title: values.title.trim(),
-            type: values.type || "Documento geral",
-            status: "Rascunho",
-            client_id: selectedClientId,
-            trip_id: selectedTripId,
-            storage_bucket: values.storageBucket.trim() || null,
-            storage_path: values.storagePath.trim() || null,
+            type: mode === "document" ? values.type || config.fixedType : config.fixedType,
+            status: mode === "template" ? "Rascunho" : "Rascunho",
+            client_id: mode === "template" ? null : selectedClientId,
+            trip_id: mode === "template" ? null : selectedTripId,
+            storage_bucket: mode === "template" ? null : values.storageBucket.trim() || null,
+            storage_path: mode === "template" ? null : values.storagePath.trim() || null,
             metadata: {
               template: values.template.trim(),
               variables: values.variables.trim(),
@@ -290,10 +410,10 @@ export function DocumentWorkspace() {
 
         toast({
           title: "Rascunho salvo",
-          description: "O documento foi salvo como rascunho no Supabase.",
+          description: "O registro foi salvo como rascunho no Supabase.",
         })
 
-        router.replace("/app/documentos")
+        router.replace(config.backHref)
         router.refresh()
       }}
     />
