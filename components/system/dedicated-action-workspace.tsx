@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { ArrowLeft, Globe, Save, Send } from "lucide-react"
 import { LivePreviewPanel } from "@/components/system/live-preview-panel"
 import { OperationalWorkspaceLayout } from "@/components/system/operational-workspace-layout"
@@ -25,6 +25,9 @@ export type WorkspaceFieldConfig = {
   options?: string[]
   colSpan?: 1 | 2
   rows?: number
+  description?: string
+  readOnly?: boolean
+  hidden?: (values: Record<string, string>) => boolean
 }
 
 export type WorkspaceSectionConfig = {
@@ -46,6 +49,7 @@ type DedicatedActionWorkspaceProps = {
   primaryActionDescription?: string
   draftActionDescription?: string
   hideDraftAction?: boolean
+  hidePreviewAction?: boolean
   previewActionDescription?: string
   previewTitle: string
   previewDescription: string
@@ -62,6 +66,7 @@ type DedicatedActionWorkspaceProps = {
   }
   extraSidebar?: ReactNode
   bottomContent?: ReactNode
+  transformValues?: (nextValues: Record<string, string>, changedKey: string) => Record<string, string>
   onPrimaryAction?: (values: Record<string, string>) => Promise<void> | void
   onDraftAction?: (values: Record<string, string>) => Promise<void> | void
 }
@@ -85,12 +90,14 @@ function FieldRenderer({
           rows={field.rows ?? 4}
           value={value}
           placeholder={field.placeholder}
+          readOnly={field.readOnly}
           onChange={(event) => onChange(event.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
         />
       ) : field.type === "select" ? (
         <select
           value={value}
+          disabled={field.readOnly}
           onChange={(event) => onChange(event.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
         >
@@ -104,10 +111,12 @@ function FieldRenderer({
         <input
           value={value}
           placeholder={field.placeholder}
+          readOnly={field.readOnly}
           onChange={(event) => onChange(event.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
         />
       )}
+      {field.description ? <p className="text-xs leading-6 text-muted-foreground">{field.description}</p> : null}
     </label>
   )
 }
@@ -125,6 +134,7 @@ export function DedicatedActionWorkspace({
   primaryActionDescription = "A acao principal foi preparada em modo mockado.",
   draftActionDescription = "Os rascunhos deste workspace serao habilitados em uma proxima etapa.",
   hideDraftAction = false,
+  hidePreviewAction = false,
   previewActionDescription = "O preview completo deste workspace sera conectado em uma proxima etapa.",
   previewTitle,
   previewDescription,
@@ -133,12 +143,17 @@ export function DedicatedActionWorkspace({
   helpCard,
   extraSidebar,
   bottomContent,
+  transformValues,
   onPrimaryAction,
   onDraftAction,
 }: DedicatedActionWorkspaceProps) {
   const [values, setValues] = useState<Record<string, string>>(initialValues)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
+
+  useEffect(() => {
+    setValues(initialValues)
+  }, [initialValues])
 
   const sidebarItems = useMemo(
     () =>
@@ -240,7 +255,7 @@ export function DedicatedActionWorkspace({
             <LivePreviewPanel
               title={previewTitle}
               description={previewDescription}
-              footer={
+              footer={hidePreviewAction ? null : (
                 <SecondaryButton
                   onClick={() =>
                     toast({
@@ -252,7 +267,7 @@ export function DedicatedActionWorkspace({
                   <Globe className="h-4 w-4" />
                   Abrir preview
                 </SecondaryButton>
-              }
+              )}
             >
               {renderPreview(values)}
             </LivePreviewPanel>
@@ -264,12 +279,19 @@ export function DedicatedActionWorkspace({
       >
         {sections.map((section) => (
           <WorkspaceSectionCard key={section.title} title={section.title} description={section.description}>
-            {section.fields.map((field) => (
+            {section.fields
+              .filter((field) => !field.hidden?.(values))
+              .map((field) => (
               <FieldRenderer
                 key={field.key}
                 field={field}
                 value={values[field.key] ?? ""}
-                onChange={(nextValue) => setValues((current) => ({ ...current, [field.key]: nextValue }))}
+                onChange={(nextValue) =>
+                  setValues((current) => {
+                    const nextValues = { ...current, [field.key]: nextValue }
+                    return transformValues ? transformValues(nextValues, field.key) : nextValues
+                  })
+                }
               />
             ))}
           </WorkspaceSectionCard>

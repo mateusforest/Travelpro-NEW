@@ -2624,7 +2624,7 @@ export function AgencyReportsPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const router = useRouter()
   const fire = (title: string, description: string) => toast({ title, description })
-  const openPdfExport = (reportId: string) => window.open(`/app/relatorios/${reportId}?print=1`, "_blank", "noopener,noreferrer")
+  const openPdfExport = (reportId: string) => window.open(`/app/relatorios/${reportId}?export=pdf`, "_blank", "noopener,noreferrer")
 
   useEffect(() => {
     let active = true
@@ -2922,6 +2922,27 @@ export function AgencyFinancePage() {
 
   const clientsById = useMemo(() => new Map(clients.map((client) => [client.id, client])), [clients])
   const tripsById = useMemo(() => new Map(trips.map((trip) => [trip.id, trip])), [trips])
+  const openFinancialReport = (record?: FinancialRecordRow) => {
+    const params = new URLSearchParams({
+      type: "Financeiro",
+      period,
+      financeFilter: activeFilter,
+    })
+
+    if (record) {
+      const note = [
+        `Registro de origem: ${record.category || record.type}.`,
+        record.client_id ? `Cliente vinculado: ${clientsById.get(record.client_id)?.name ?? record.client_id}.` : null,
+        record.trip_id ? `Viagem vinculada: ${tripsById.get(record.trip_id)?.destination ?? record.trip_id}.` : null,
+      ]
+        .filter(Boolean)
+        .join(" ")
+
+      if (note) params.set("notes", note)
+    }
+
+    router.push(`/app/central-operacional/relatorios/novo?${params.toString()}`)
+  }
 
   const visibleRecords = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
@@ -2974,7 +2995,7 @@ export function AgencyFinancePage() {
               Analisar com IA
             </Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Stripe em breve", "A conexao automatica com Stripe ainda sera integrada a este modulo.")}>Conectar Stripe</Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Relatorio em breve", `A geracao automatica de relatorios para ${period} ainda sera conectada ao financeiro.`)}>Gerar relatório</Button>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openFinancialReport()}>Gerar relatório</Button>
           </div>
         }
       />
@@ -3080,7 +3101,7 @@ export function AgencyFinancePage() {
                         },
                       },
                       { label: "Conectar Stripe", icon: ArrowRightLeft, onClick: () => fire("Stripe em breve", "A conexao automatica com Stripe ainda sera integrada a este modulo.") },
-                      { label: "Gerar relatorio", icon: Download, onClick: () => fire("Relatorio em breve", "A geracao automatica de relatorios ainda sera conectada ao financeiro.") },
+                      { label: "Gerar relatorio", icon: Download, onClick: () => openFinancialReport(record) },
                       {
                         label: "Excluir",
                         icon: Trash2,
