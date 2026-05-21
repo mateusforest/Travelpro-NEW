@@ -44,6 +44,8 @@ type DedicatedActionWorkspaceProps = {
   aiActionDescription?: string
   primaryActionLabel?: string
   primaryActionDescription?: string
+  draftActionDescription?: string
+  hideDraftAction?: boolean
   previewTitle: string
   previewDescription: string
   renderPreview: (values: Record<string, string>) => ReactNode
@@ -119,6 +121,8 @@ export function DedicatedActionWorkspace({
   aiActionDescription,
   primaryActionLabel = "Salvar workspace",
   primaryActionDescription = "A ação principal foi preparada em modo mockado.",
+  draftActionDescription = "Os rascunhos deste workspace serão habilitados em uma próxima etapa.",
+  hideDraftAction = false,
   previewTitle,
   previewDescription,
   renderPreview,
@@ -155,17 +159,19 @@ export function DedicatedActionWorkspace({
               </Link>
             </SecondaryButton>
             {aiActionLabel ? <SmartActionButton label={aiActionLabel} description={aiActionDescription} /> : null}
-            <SecondaryButton
-              onClick={() =>
-                toast({
-                  title: "Rascunho salvo",
-                  description: "O workspace foi salvo localmente em modo mockado.",
-                })
-              }
-            >
-              <Save className="h-4 w-4" />
-              Salvar rascunho
-            </SecondaryButton>
+            {hideDraftAction ? null : (
+              <SecondaryButton
+                onClick={() =>
+                  toast({
+                    title: "Rascunho em preparação",
+                    description: draftActionDescription,
+                  })
+                }
+              >
+                <Save className="h-4 w-4" />
+                Salvar rascunho
+              </SecondaryButton>
+            )}
             <PrimaryButton
               onClick={async () => {
                 if (isSubmitting) return
@@ -181,6 +187,14 @@ export function DedicatedActionWorkspace({
                 try {
                   setIsSubmitting(true)
                   await onPrimaryAction(values)
+                } catch (error) {
+                  if (process.env.NODE_ENV !== "production") {
+                    console.error("[DedicatedActionWorkspace] primary action failed", error)
+                  }
+                  toast({
+                    title: "Não foi possível concluir a ação",
+                    description: error instanceof Error ? error.message : "Revise os dados e tente novamente.",
+                  })
                 } finally {
                   setIsSubmitting(false)
                 }

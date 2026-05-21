@@ -981,6 +981,9 @@ export function AgencyClientsPage() {
       if (clientsResult.status === "fulfilled") {
         setRecords(clientsResult.value.map(mapClientRowToRecord))
       } else {
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[AgencyClientsPage] failed to load clients", clientsResult.reason)
+        }
         setRecords([])
         setLoadError(clientsResult.reason instanceof Error ? clientsResult.reason.message : "Não foi possível carregar os clientes da agência.")
       }
@@ -1125,6 +1128,9 @@ export function AgencyClientsPage() {
       }
       setEditingClientId(null)
     } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[AgencyClientsPage] failed to save client", error)
+      }
       fire("Falha ao salvar", error instanceof Error ? error.message : "Não foi possível salvar o cliente.")
     } finally {
       setIsSavingClient(false)
@@ -1216,6 +1222,9 @@ export function AgencyClientsPage() {
                               setSelected((current) => (current?.id === client.id ? null : current))
                               fire("Cliente excluído", `${client.name} foi removido com sucesso.`)
                             } catch (error) {
+                              if (process.env.NODE_ENV !== "production") {
+                                console.error("[AgencyClientsPage] failed to delete client", error)
+                              }
                               fire("Falha ao excluir", error instanceof Error ? error.message : "Não foi possível excluir o cliente.")
                             }
                           },

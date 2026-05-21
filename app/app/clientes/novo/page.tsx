@@ -17,6 +17,7 @@ export default function NewClientWorkspacePage() {
       aiActionLabel="Cadastrar com IA"
       aiActionDescription="O assistente IA poderá transformar briefing e mensagens em cadastro estruturado."
       primaryActionLabel="Salvar cliente"
+      draftActionDescription="Rascunhos de clientes ainda não são persistidos. Use “Salvar cliente” para criar o registro real no Supabase."
       initialValues={{
         name: "Marina Costa",
         email: "marina@cliente.com",
@@ -108,47 +109,54 @@ export default function NewClientWorkspacePage() {
         ],
       }}
       onPrimaryAction={async (values) => {
-        const response = await fetch("/api/clients", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: values.name,
-            email: values.email || null,
-            phone: values.phone || null,
-            document_number: values.documentNumber || null,
-            status: "Ativo",
-            traveler_profile: {
-              origin: values.origin,
-              destination: values.destination,
-              tag: values.tag,
-              companions: values.companions,
-              preferences: values.preferences,
-              travelerProfile: values.travelerProfile,
-              nextStep: values.nextStep,
-              notes: values.notes,
-              recommendations: values.recommendations
-                .split(",")
-                .map((item) => item.trim())
-                .filter(Boolean),
+        try {
+          const response = await fetch("/api/clients", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
-          }),
-        })
+            body: JSON.stringify({
+              name: values.name,
+              email: values.email || null,
+              phone: values.phone || null,
+              document_number: values.documentNumber || null,
+              status: "Ativo",
+              traveler_profile: {
+                origin: values.origin,
+                destination: values.destination,
+                tag: values.tag,
+                companions: values.companions,
+                preferences: values.preferences,
+                travelerProfile: values.travelerProfile,
+                nextStep: values.nextStep,
+                notes: values.notes,
+                recommendations: values.recommendations
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter(Boolean),
+              },
+            }),
+          })
 
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null
+          const payload = (await response.json().catch(() => null)) as { error?: string } | null
 
-        if (!response.ok) {
-          throw new Error(payload?.error || "Não foi possível salvar o cliente.")
+          if (!response.ok) {
+            throw new Error(payload?.error || "Não foi possível salvar o cliente.")
+          }
+
+          toast({
+            title: "Cliente salvo",
+            description: "O cliente foi criado no Supabase e já está disponível na base da agência.",
+          })
+
+          router.replace("/app/clientes")
+          router.refresh()
+        } catch (error) {
+          if (process.env.NODE_ENV !== "production") {
+            console.error("[NewClientWorkspacePage] failed to create client", error)
+          }
+          throw error
         }
-
-        toast({
-          title: "Cliente salvo",
-          description: "O cliente foi criado no Supabase e já está disponível na base da agência.",
-        })
-
-        router.replace("/app/clientes")
-        router.refresh()
       }}
     />
   )

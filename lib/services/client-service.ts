@@ -7,6 +7,12 @@ function withAgencyScope<T extends { eq: (...args: unknown[]) => T }>(query: T, 
   return query.eq(column, context.agencyId)
 }
 
+function ensureAgencyContext(context: AgencyAccessContext) {
+  if (!context.isMaster && !context.agencyId) {
+    throw new Error("Sua sessão não possui uma agência vinculada para operar clientes.")
+  }
+}
+
 function normalizeClientInput(input: Partial<ClientInput>) {
   return {
     ...(input.name !== undefined ? { name: input.name.trim() } : {}),
@@ -19,6 +25,7 @@ function normalizeClientInput(input: Partial<ClientInput>) {
 }
 
 export async function listClients(context: AgencyAccessContext, options?: { search?: string }) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("clients").select("*").order("created_at", { ascending: false })
   query = withAgencyScope(query, context)
@@ -33,6 +40,7 @@ export async function listClients(context: AgencyAccessContext, options?: { sear
 }
 
 export async function getClientById(context: AgencyAccessContext, id: string) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("clients").select("*").eq("id", id)
   query = withAgencyScope(query, context)
@@ -42,6 +50,7 @@ export async function getClientById(context: AgencyAccessContext, id: string) {
 }
 
 export async function createClient(context: AgencyAccessContext, input: ClientInput) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   const payload = normalizeClientInput(input)
   const { data, error } = await supabase
@@ -64,6 +73,7 @@ export async function createClient(context: AgencyAccessContext, input: ClientIn
 }
 
 export async function updateClient(context: AgencyAccessContext, id: string, input: Partial<ClientInput>) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   const payload = normalizeClientInput(input)
   let query = supabase
@@ -78,6 +88,7 @@ export async function updateClient(context: AgencyAccessContext, id: string, inp
 }
 
 export async function deleteClient(context: AgencyAccessContext, id: string) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("clients").delete().eq("id", id)
   query = withAgencyScope(query, context)
