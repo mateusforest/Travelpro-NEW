@@ -28,7 +28,7 @@ const agencyNotifications: NotificationItem[] = [
   { id: "a-1", title: "Lead quente recebido", description: "Camila pediu cotação premium para Maldivas.", time: "há 3 min", tone: "success", href: "/app/leads" },
   { id: "a-2", title: "Contrato assinado", description: "Ana Martins concluiu a assinatura da viagem.", time: "há 18 min", tone: "info", href: "/app/documentos/contratos" },
   { id: "a-3", title: "Viagem próxima", description: "João Ribeiro embarca em 3 dias.", time: "há 41 min", tone: "warning", href: "/app/viagens" },
-  { id: "a-4", title: "Cobrança pendente", description: "Uma assinatura entrou em alerta financeiro.", time: "há 58 min", tone: "danger", href: "/master/financeiro" },
+  { id: "a-4", title: "Cobrança pendente", description: "Uma assinatura entrou em alerta financeiro.", time: "há 58 min", tone: "danger", href: "/app/financeiro" },
   { id: "a-5", title: "Atlas sugeriu ajuste", description: "Novo script de atendimento para leads frios.", time: "hoje", tone: "default", href: "/app/atlas-advisor" },
   { id: "a-6", title: "TravelPro Go executado", description: "Pacote publicado e pronto para compartilhar.", time: "hoje", tone: "success", href: "/app/travelpro-go" },
 ]

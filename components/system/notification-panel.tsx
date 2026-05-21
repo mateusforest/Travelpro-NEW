@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useMemo, useState } from "react"
 import { Bell, CheckCheck, Circle, Sparkles, Trash2 } from "lucide-react"
 import { Drawer } from "@/components/system/drawer"
+import { toast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
 
 export type NotificationItem = {
@@ -120,13 +121,29 @@ export function NotificationPanel({
                       >
                         Marcar como lida
                       </button>
-                      <Link
-                        href={item.href ?? "#"}
-                        className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-primary/10 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/15"
-                      >
-                        Abrir origem
-                        <Sparkles className="h-3 w-3" />
-                      </Link>
+                      {item.href ? (
+                        <Link
+                          href={item.href}
+                          className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-primary/10 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/15"
+                        >
+                          Abrir origem
+                          <Sparkles className="h-3 w-3" />
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            toast({
+                              title: "Origem em preparação",
+                              description: "A origem desta notificação será conectada na próxima etapa do TravelPro.",
+                            })
+                          }
+                          className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-primary/10 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/15"
+                        >
+                          Abrir origem
+                          <Sparkles className="h-3 w-3" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
