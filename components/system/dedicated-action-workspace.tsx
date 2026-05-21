@@ -63,6 +63,7 @@ type DedicatedActionWorkspaceProps = {
   extraSidebar?: ReactNode
   bottomContent?: ReactNode
   onPrimaryAction?: (values: Record<string, string>) => Promise<void> | void
+  onDraftAction?: (values: Record<string, string>) => Promise<void> | void
 }
 
 function FieldRenderer({
@@ -121,10 +122,10 @@ export function DedicatedActionWorkspace({
   aiActionLabel,
   aiActionDescription,
   primaryActionLabel = "Salvar workspace",
-  primaryActionDescription = "A ação principal foi preparada em modo mockado.",
-  draftActionDescription = "Os rascunhos deste workspace serão habilitados em uma próxima etapa.",
+  primaryActionDescription = "A acao principal foi preparada em modo mockado.",
+  draftActionDescription = "Os rascunhos deste workspace serao habilitados em uma proxima etapa.",
   hideDraftAction = false,
-  previewActionDescription = "O preview completo deste workspace será conectado em uma próxima etapa.",
+  previewActionDescription = "O preview completo deste workspace sera conectado em uma proxima etapa.",
   previewTitle,
   previewDescription,
   renderPreview,
@@ -133,9 +134,11 @@ export function DedicatedActionWorkspace({
   extraSidebar,
   bottomContent,
   onPrimaryAction,
+  onDraftAction,
 }: DedicatedActionWorkspaceProps) {
   const [values, setValues] = useState<Record<string, string>>(initialValues)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
 
   const sidebarItems = useMemo(
     () =>
@@ -163,20 +166,41 @@ export function DedicatedActionWorkspace({
             {aiActionLabel ? <SmartActionButton label={aiActionLabel} description={aiActionDescription} /> : null}
             {hideDraftAction ? null : (
               <SecondaryButton
-                onClick={() =>
-                  toast({
-                    title: "Rascunho em preparação",
-                    description: draftActionDescription,
-                  })
-                }
+                onClick={async () => {
+                  if (isSavingDraft || isSubmitting) return
+
+                  if (!onDraftAction) {
+                    toast({
+                      title: "Rascunho em preparacao",
+                      description: draftActionDescription,
+                    })
+                    return
+                  }
+
+                  try {
+                    setIsSavingDraft(true)
+                    await onDraftAction(values)
+                  } catch (error) {
+                    if (process.env.NODE_ENV !== "production") {
+                      console.error("[DedicatedActionWorkspace] draft action failed", error)
+                    }
+                    toast({
+                      title: "Nao foi possivel salvar o rascunho",
+                      description: error instanceof Error ? error.message : "Revise os dados e tente novamente.",
+                    })
+                  } finally {
+                    setIsSavingDraft(false)
+                  }
+                }}
+                disabled={isSavingDraft || isSubmitting}
               >
                 <Save className="h-4 w-4" />
-                Salvar rascunho
+                {isSavingDraft ? "Salvando rascunho..." : "Salvar rascunho"}
               </SecondaryButton>
             )}
             <PrimaryButton
               onClick={async () => {
-                if (isSubmitting) return
+                if (isSubmitting || isSavingDraft) return
 
                 if (!onPrimaryAction) {
                   toast({
@@ -194,14 +218,14 @@ export function DedicatedActionWorkspace({
                     console.error("[DedicatedActionWorkspace] primary action failed", error)
                   }
                   toast({
-                    title: "Não foi possível concluir a ação",
+                    title: "Nao foi possivel concluir a acao",
                     description: error instanceof Error ? error.message : "Revise os dados e tente novamente.",
                   })
                 } finally {
                   setIsSubmitting(false)
                 }
               }}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSavingDraft}
             >
               <Send className="h-4 w-4" />
               {isSubmitting ? "Salvando..." : primaryActionLabel}
@@ -220,7 +244,7 @@ export function DedicatedActionWorkspace({
                 <SecondaryButton
                   onClick={() =>
                     toast({
-                      title: "Preview em preparação",
+                      title: "Preview em preparacao",
                       description: previewActionDescription,
                     })
                   }

@@ -7,8 +7,11 @@ const financeSchema = z.object({
   type: z.string().min(2),
   amount: z.number(),
   status: z.string().optional(),
+  client_id: z.string().uuid().optional().nullable(),
+  trip_id: z.string().uuid().optional().nullable(),
   description: z.string().optional().nullable(),
   category: z.string().optional().nullable(),
+  occurred_at: z.string().optional().nullable(),
 })
 
 export async function GET() {

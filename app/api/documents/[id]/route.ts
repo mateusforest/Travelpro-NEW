@@ -9,7 +9,9 @@ const documentPatchSchema = z.object({
   status: z.string().optional(),
   client_id: z.string().uuid().optional().nullable(),
   trip_id: z.string().uuid().optional().nullable(),
+  storage_bucket: z.string().optional().nullable(),
   storage_path: z.string().optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {

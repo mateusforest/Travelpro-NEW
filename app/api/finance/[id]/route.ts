@@ -7,8 +7,11 @@ const financePatchSchema = z.object({
   type: z.string().min(2).optional(),
   amount: z.number().optional(),
   status: z.string().optional(),
+  client_id: z.string().uuid().optional().nullable(),
+  trip_id: z.string().uuid().optional().nullable(),
   description: z.string().optional().nullable(),
   category: z.string().optional().nullable(),
+  occurred_at: z.string().optional().nullable(),
 })
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {

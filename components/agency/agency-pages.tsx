@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   AlertTriangle,
   ArrowRightLeft,
@@ -289,20 +290,41 @@ function mapTripRowToRecord(row: TripRow, index: number): TripRecord {
   }
 }
 
-function mapDocumentRowToRecord(row: DocumentRow, index: number): DocumentRecord {
+function parseDocumentMetadata(value: DocumentRow["metadata"]) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  return value as Record<string, unknown>
+}
+
+function formatDateLabel(value?: string | null) {
+  if (!value) return "Nao informado"
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(parsed)
+}
+
+function mapDocumentRowToRecord(
+  row: DocumentRow,
+  index: number,
+  related?: {
+    clientsById?: Map<string, ClientRow>
+    tripsById?: Map<string, TripRow>
+  },
+): DocumentRecord {
+  const metadata = parseDocumentMetadata(row.metadata)
+  const linkedClient = row.client_id ? related?.clientsById?.get(row.client_id) : null
+  const linkedTrip = row.trip_id ? related?.tripsById?.get(row.trip_id) : null
+  const previewFromMetadata = typeof metadata.variables === "string" && metadata.variables.trim()
+    ? metadata.variables.trim()
+    : typeof metadata.attachments === "string" && metadata.attachments.trim()
+      ? metadata.attachments.trim()
+      : null
+
   return {
     ...row,
     name: row.title,
-    client: ["Ana Martins", "João Ribeiro", "Marina Costa", "Pedro Santos"][index % 4] ?? "Cliente vinculado",
-    trip: ["Cancún", "Orlando", "Maldivas", "Lisboa"][index % 4] ?? "Viagem vinculada",
-    preview:
-      row.type === "Contrato"
-        ? "Contrato com identidade da agência e campos da viagem."
-        : row.type === "Voucher"
-          ? "Voucher do serviço com horários, local e contato."
-          : row.type === "Seguro"
-            ? "Cobertura ativa e instruções rápidas para acionamento."
-            : "Documento pronto para compartilhar com o cliente.",
+    client: linkedClient?.name ?? (row.client_id ? `Cliente ${row.client_id.slice(0, 8)}` : "Sem cliente vinculado"),
+    trip: linkedTrip?.destination ?? (row.trip_id ? `Viagem ${row.trip_id.slice(0, 8)}` : "Sem viagem vinculada"),
+    preview: previewFromMetadata || row.storage_path || `Documento ${row.type.toLowerCase()} salvo em ${formatDateLabel(row.updated_at)}.`,
   }
 }
 
@@ -1147,7 +1169,7 @@ export function AgencyClientsPage() {
         requestJson<ClientRow[]>("/api/clients"),
         requestJson<TripRow[]>("/api/trips"),
         requestJson<DocumentRow[]>("/api/documents"),
-        requestJson<FinancialRecordRow[]>("/api/finance"),
+        requestJson<FinancialRecordRow[]>("/api/financial-records"),
       ])
 
       if (!active) return
@@ -1904,10 +1926,17 @@ export function AgencyTripsPage() {
   )
 }
 
-function DocumentHub({ title, description, records, createLabel }: { title: string; description: string; records: DocumentRecord[]; createLabel: string }) {
-  const [documentList, setDocumentList] = useState<DocumentRecord[]>([])
+function DocumentHub({ title, description, createLabel, records: _records }: { title: string; description: string; records: DocumentRecord[]; createLabel: string }) {
+  const router = useRouter()
+  const [documentRows, setDocumentRows] = useState<DocumentRow[]>([])
+  const [clients, setClients] = useState<ClientRow[]>([])
+  const [trips, setTrips] = useState<TripRow[]>([])
   const [selected, setSelected] = useState<DocumentRecord | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [activeFilter, setActiveFilter] = useState("Todos")
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const fire = (titleText: string, body: string) => toast({ title: titleText, description: body })
   const filterType =
     title === "Contratos"
@@ -1922,20 +1951,87 @@ function DocumentHub({ title, description, records, createLabel }: { title: stri
 
   useEffect(() => {
     let active = true
-    requestJson<DocumentRow[]>("/api/documents")
-      .then((data) => {
-        if (!active) return
-        const mapped = data.map(mapDocumentRowToRecord)
-        setDocumentList(filterType ? mapped.filter((item) => item.type === filterType) : mapped)
-      })
-      .catch(() => {
-        if (!active) return
-        setDocumentList(filterType ? records.filter((item) => item.type === filterType) : [])
-      })
+
+    const loadDocumentsModule = async () => {
+      setIsLoading(true)
+      setLoadError(null)
+
+      const [documentsResult, clientsResult, tripsResult] = await Promise.allSettled([
+        requestJson<DocumentRow[]>("/api/documents"),
+        requestJson<ClientRow[]>("/api/clients"),
+        requestJson<TripRow[]>("/api/trips"),
+      ])
+
+      if (!active) return
+
+      if (documentsResult.status === "fulfilled") {
+        setDocumentRows(documentsResult.value)
+      } else {
+        setDocumentRows([])
+        setLoadError(documentsResult.reason instanceof Error ? documentsResult.reason.message : "Nao foi possivel carregar os documentos da agencia.")
+      }
+
+      setClients(clientsResult.status === "fulfilled" ? clientsResult.value : [])
+      setTrips(tripsResult.status === "fulfilled" ? tripsResult.value : [])
+      setIsLoading(false)
+    }
+
+    void loadDocumentsModule()
+
     return () => {
       active = false
     }
-  }, [filterType, records])
+  }, [])
+
+  const clientsById = useMemo(() => new Map(clients.map((client) => [client.id, client])), [clients])
+  const tripsById = useMemo(() => new Map(trips.map((trip) => [trip.id, trip])), [trips])
+
+  const mappedDocuments = useMemo(() => {
+    return documentRows.map((row, index) => mapDocumentRowToRecord(row, index, { clientsById, tripsById }))
+  }, [clientsById, documentRows, tripsById])
+
+  const availableFilters = useMemo(() => {
+    const base = filterType ? ["Todos", filterType] : ["Todos"]
+    const dynamic = Array.from(new Set(mappedDocuments.map((item) => item.type))).sort()
+    return Array.from(new Set([...base, ...dynamic]))
+  }, [filterType, mappedDocuments])
+
+  const filteredDocuments = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
+    return mappedDocuments.filter((document) => {
+      if (filterType && document.type !== filterType) return false
+      if (activeFilter !== "Todos" && document.type !== activeFilter) return false
+
+      if (!normalizedSearch) return true
+
+      return [
+        document.name,
+        document.client,
+        document.trip,
+        document.type,
+        document.status,
+        document.preview,
+        document.storage_path ?? "",
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedSearch)
+    })
+  }, [activeFilter, filterType, mappedDocuments, searchTerm])
+
+  const metrics = useMemo(() => {
+    const readyCount = mappedDocuments.filter((item) => item.status.toLowerCase().includes("pronto") || item.status.toLowerCase().includes("enviado")).length
+    const draftCount = mappedDocuments.filter((item) => item.status.toLowerCase().includes("rascunho")).length
+    const linkedCount = mappedDocuments.filter((item) => item.client_id || item.trip_id).length
+
+    return [
+      { label: "Total", value: `${mappedDocuments.length}`, change: "Documentos reais no Supabase", tone: "info" as const, icon: FileText },
+      { label: "Prontos", value: `${readyCount}`, change: "Itens prontos ou enviados", tone: "success" as const, icon: CheckCheck },
+      { label: "Rascunhos", value: `${draftCount}`, change: "Em elaboracao", tone: "warning" as const, icon: Save },
+      { label: "Vinculados", value: `${linkedCount}`, change: "Com cliente ou viagem", tone: "success" as const, icon: Route },
+    ]
+  }, [mappedDocuments])
 
   return (
     <PageShell>
@@ -1948,63 +2044,93 @@ function DocumentHub({ title, description, records, createLabel }: { title: stri
           </Button>
         }
       />
-      <DashboardCard title="Documentos da operação" description="Visualize, edite, baixe e envie documentos sem poluir a tela.">
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {metrics.map((metric) => (
+          <MetricCard key={metric.label} {...metric} />
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="xl:max-w-md xl:flex-1">
+          <SearchInput placeholder="Buscar documento, cliente, viagem ou status" value={searchTerm} onChange={setSearchTerm} />
+        </div>
+        <FilterTabs items={availableFilters} activeItem={activeFilter} onChange={setActiveFilter} />
+      </div>
+
+      <DashboardCard title="Documentos da operacao" description="Visualize, edite, exclua e acompanhe documentos reais da agencia.">
         <div className="space-y-3">
-          {documentList.map((doc) => (
-            <div key={doc.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <button type="button" onClick={() => setSelected(doc)} className="min-w-0 text-left">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{doc.name}</p>
-                  <StatusPill label={doc.status} />
-                  <StatusPill label={doc.type} />
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">{doc.client} • {doc.trip}</p>
-              </button>
-              <ActionMenu
-                items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => setSelected(doc) },
-                  {
-                    label: "Editar",
-                    icon: FilePenLine,
-                    onClick: async () => {
-                      try {
-                        const updated = await requestJson<DocumentRow>(`/api/documents/${doc.id}`, {
-                          method: "PATCH",
-                          body: JSON.stringify({ status: doc.status }),
-                        })
-                        setDocumentList((current) => current.map((item, index) => (item.id === doc.id ? mapDocumentRowToRecord(updated, index) : item)))
-                        fire("Documento atualizado", `${doc.name} foi sincronizado com o Supabase.`)
-                      } catch (error) {
-                        fire("Falha ao atualizar", error instanceof Error ? error.message : "Não foi possível atualizar o documento.")
-                      }
-                    },
-                  },
-                  { label: "Baixar", icon: Download, onClick: () => fire("Download preparado", `O download de ${doc.name} foi iniciado em modo mockado.`) },
-                  { label: "Enviar ao cliente", icon: Send, onClick: () => fire("Envio preparado", `${doc.name} foi preparado para envio ao cliente.`) },
-                  {
-                    label: "Excluir",
-                    icon: Trash2,
-                    onClick: () =>
-                      setConfirmAction({
-                        title: "Excluir documento",
-                        description: `Deseja confirmar a exclusão mockada de ${doc.name}?`,
-                        confirmLabel: "Excluir documento",
-                        onConfirm: async () => {
-                          try {
-                            await requestJson(`/api/documents/${doc.id}`, { method: "DELETE" })
-                            setDocumentList((current) => current.filter((item) => item.id !== doc.id))
-                            fire("Documento excluído", `${doc.name} foi removido do Supabase.`)
-                          } catch (error) {
-                            fire("Falha ao excluir", error instanceof Error ? error.message : "Não foi possível excluir o documento.")
-                          }
-                        },
-                      }),
-                    danger: true,
-                  },
-                ]}
-              />
+          {loadError ? (
+            <div className="flex items-start gap-3 rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-medium">Nao foi possivel sincronizar os documentos agora.</p>
+                <p className="mt-1 text-amber-100/80">{loadError}</p>
+              </div>
             </div>
-          ))}
+          ) : null}
+
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={`document-skeleton-${index}`} className="animate-pulse rounded-[28px] border border-white/8 bg-white/[0.03] p-4">
+                <div className="h-4 w-44 rounded-full bg-white/10" />
+                <div className="mt-3 h-3 w-64 rounded-full bg-white/10" />
+                <div className="mt-2 h-3 w-40 rounded-full bg-white/10" />
+              </div>
+            ))
+          ) : filteredDocuments.length === 0 ? (
+            <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center">
+              <p className="text-sm font-medium text-foreground">Nenhum documento encontrado.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Crie o primeiro documento real da agencia ou ajuste a busca e os filtros atuais.</p>
+              <Button asChild className="mt-4 rounded-full">
+                <Link href="/app/documentos/novo">Criar documento agora</Link>
+              </Button>
+            </div>
+          ) : (
+            filteredDocuments.map((doc) => (
+              <div key={doc.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
+                <button type="button" onClick={() => setSelected(doc)} className="min-w-0 text-left">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{doc.name}</p>
+                    <StatusPill label={doc.status} />
+                    <StatusPill label={doc.type} />
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{doc.client} • {doc.trip}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">Atualizado em {formatDateLabel(doc.updated_at)} • {doc.storage_path || "Sem arquivo vinculado"}</p>
+                </button>
+                <ActionMenu
+                  items={[
+                    { label: "Visualizar", icon: Eye, onClick: () => setSelected(doc) },
+                    { label: "Editar", icon: FilePenLine, onClick: () => router.push(`/app/documentos/novo?id=${doc.id}`) },
+                    { label: "Gerar com IA", icon: Sparkles, onClick: () => fire("IA em breve", "A geracao automatica com IA ainda sera conectada ao modulo de documentos.") },
+                    { label: "Usar template", icon: Copy, onClick: () => fire("Templates em breve", "O uso guiado de templates ainda sera conectado ao modulo de documentos.") },
+                    { label: "Enviar documento", icon: Send, onClick: () => fire("Envio em breve", "O envio automatizado de documentos ainda sera conectado a este modulo.") },
+                    {
+                      label: "Excluir",
+                      icon: Trash2,
+                      onClick: () =>
+                        setConfirmAction({
+                          title: "Excluir documento",
+                          description: `Deseja confirmar a exclusao de ${doc.name}? Esta acao remove o registro real do Supabase.`,
+                          confirmLabel: "Excluir documento",
+                          onConfirm: async () => {
+                            try {
+                              await requestJson(`/api/documents/${doc.id}`, { method: "DELETE" })
+                              setDocumentRows((current) => current.filter((item) => item.id !== doc.id))
+                              setSelected((current) => (current?.id === doc.id ? null : current))
+                              fire("Documento excluido", `${doc.name} foi removido do Supabase.`)
+                            } catch (error) {
+                              fire("Falha ao excluir", error instanceof Error ? error.message : "Nao foi possivel excluir o documento.")
+                            }
+                          },
+                        }),
+                      danger: true,
+                    },
+                  ]}
+                />
+              </div>
+            ))
+          )}
         </div>
       </DashboardCard>
       <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
@@ -2015,18 +2141,24 @@ function DocumentHub({ title, description, records, createLabel }: { title: stri
             <>
               <DialogHeader className="border-b border-white/8 px-6 py-5">
                 <DialogTitle>{selected.name}</DialogTitle>
-                <DialogDescription>Visualização mockada do documento com contexto da viagem e do cliente.</DialogDescription>
+                <DialogDescription>Detalhe real do documento com vinculos, status e caminho salvo.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
                 <InfoCard label="Cliente" value={selected.client} />
                 <InfoCard label="Viagem" value={selected.trip} />
                 <InfoCard label="Tipo" value={selected.type} />
                 <InfoCard label="Status" value={selected.status} />
+                <InfoCard label="Criado em" value={formatDateLabel(selected.created_at)} />
+                <InfoCard label="Atualizado em" value={formatDateLabel(selected.updated_at)} />
               </div>
-              <div className="px-6 pb-6">
+              <div className="px-6 pb-6 space-y-4">
                 <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5">
-                  <p className="text-sm font-medium text-foreground">Preview do documento</p>
+                  <p className="text-sm font-medium text-foreground">Resumo do documento</p>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">{selected.preview}</p>
+                </div>
+                <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5">
+                  <p className="text-sm font-medium text-foreground">Arquivo vinculado</p>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{selected.storage_path || "Nenhum arquivo vinculado no momento."}</p>
                 </div>
               </div>
             </>
@@ -2441,25 +2573,80 @@ export function AgencyReportsPage() {
 export function AgencyFinancePage() {
   const periods = Object.keys(financeSeriesByPeriod) as Array<keyof typeof financeSeriesByPeriod>
   const [period, setPeriod] = useState<(typeof periods)[number]>("Mês")
-  const [modal, setModal] = useState<"receita" | "despesa" | null>(null)
   const [records, setRecords] = useState<FinancialRecordRow[]>([])
+  const [clients, setClients] = useState<ClientRow[]>([])
+  const [trips, setTrips] = useState<TripRow[]>([])
+  const [selected, setSelected] = useState<FinancialRecordRow | null>(null)
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [activeFilter, setActiveFilter] = useState("Todos")
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const router = useRouter()
   const fire = (title: string, description: string) => toast({ title, description })
 
   useEffect(() => {
     let active = true
-    requestJson<FinancialRecordRow[]>("/api/finance")
-      .then((data) => {
-        if (!active) return
-        setRecords(data)
-      })
-      .catch(() => {
-        if (!active) return
+
+    const loadFinanceModule = async () => {
+      setIsLoading(true)
+      setLoadError(null)
+
+      const [recordsResult, clientsResult, tripsResult] = await Promise.allSettled([
+        requestJson<FinancialRecordRow[]>("/api/financial-records"),
+        requestJson<ClientRow[]>("/api/clients"),
+        requestJson<TripRow[]>("/api/trips"),
+      ])
+
+      if (!active) return
+
+      if (recordsResult.status === "fulfilled") {
+        setRecords(recordsResult.value)
+      } else {
         setRecords([])
-      })
+        setLoadError(recordsResult.reason instanceof Error ? recordsResult.reason.message : "Nao foi possivel carregar os lancamentos da agencia.")
+      }
+
+      setClients(clientsResult.status === "fulfilled" ? clientsResult.value : [])
+      setTrips(tripsResult.status === "fulfilled" ? tripsResult.value : [])
+      setIsLoading(false)
+    }
+
+    void loadFinanceModule()
+
     return () => {
       active = false
     }
   }, [])
+
+  const clientsById = useMemo(() => new Map(clients.map((client) => [client.id, client])), [clients])
+  const tripsById = useMemo(() => new Map(trips.map((trip) => [trip.id, trip])), [trips])
+
+  const visibleRecords = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
+    return records.filter((record) => {
+      if (activeFilter !== "Todos" && record.type !== activeFilter && record.status !== activeFilter) return false
+
+      if (!normalizedSearch) return true
+
+      const linkedClient = record.client_id ? clientsById.get(record.client_id)?.name ?? "" : ""
+      const linkedTrip = record.trip_id ? tripsById.get(record.trip_id)?.destination ?? "" : ""
+
+      return [
+        record.type,
+        record.status,
+        record.category ?? "",
+        record.description ?? "",
+        linkedClient,
+        linkedTrip,
+        record.amount,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedSearch)
+    })
+  }, [activeFilter, clientsById, records, searchTerm, tripsById])
 
   const totalRevenue = records.filter((item) => item.type.toLowerCase().includes("receita")).reduce((sum, item) => sum + Number(item.amount || 0), 0)
   const totalExpenses = records.filter((item) => item.type.toLowerCase().includes("despesa")).reduce((sum, item) => sum + Number(item.amount || 0), 0)
@@ -2467,44 +2654,58 @@ export function AgencyFinancePage() {
   const profit = totalRevenue - totalExpenses
   const margin = totalRevenue > 0 ? Math.round((profit / totalRevenue) * 100) : 0
 
+  const financeFilters = useMemo(() => {
+    const dynamic = Array.from(new Set(records.flatMap((item) => [item.type, item.status]).filter(Boolean))).sort()
+    return ["Todos", ...dynamic]
+  }, [records])
+
   return (
     <PageShell>
       <SectionHeader
         title="Financeiro"
-        description="Receitas, despesas, comissões, lucro, margem e exportações com leitura por período."
+        description="Receitas, despesas, vinculos e status com leitura real do Supabase por agencia."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild className="rounded-full">
-              <Link href="/app/financeiro/lancamentos/novo">Novo lançamento</Link>
+              <Link href="/app/financeiro/novo">Novo lançamento</Link>
             </Button>
-            <Button variant="outline" asChild className="rounded-full border-white/10 bg-white/[0.03]">
-              <Link href="/app/financeiro/lancamentos/novo">Analisar com IA</Link>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("IA em breve", "A analise automatica com IA ainda sera conectada ao modulo financeiro.")}>
+              Analisar com IA
             </Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Exportação preparada", `O relatório financeiro em ${period} foi preparado.`)}>Exportar relatório</Button>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Stripe em breve", "A conexao automatica com Stripe ainda sera integrada a este modulo.")}>Conectar Stripe</Button>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Relatorio em breve", `A geracao automatica de relatorios para ${period} ainda sera conectada ao financeiro.`)}>Gerar relatório</Button>
           </div>
         }
       />
 
-      <FilterTabs items={periods} activeItem={period} onChange={(item) => setPeriod(item as typeof period)} />
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="xl:max-w-md xl:flex-1">
+          <SearchInput placeholder="Buscar categoria, cliente, viagem ou status" value={searchTerm} onChange={setSearchTerm} />
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <FilterTabs items={financeFilters} activeItem={activeFilter} onChange={setActiveFilter} />
+          <FilterTabs items={periods} activeItem={period} onChange={(item) => setPeriod(item as typeof period)} />
+        </div>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <MetricCard label="Receitas" value={formatMoney(totalRevenue || 84200)} change={`Período: ${period}`} tone="success" icon={Wallet} />
-        <MetricCard label="Despesas" value={formatMoney(totalExpenses || 18400)} change="Hotelaria + mídia" tone="warning" icon={Receipt} />
-        <MetricCard label="Comissões" value={formatMoney(totalCommissions || 9840)} change="Equipe comercial" tone="info" icon={Users} />
-        <MetricCard label="Lucro" value={formatMoney(profit || 55960)} change={`Margem ${margin || 66}%`} tone="success" icon={TrendingUp} />
-        <MetricCard label="Margem" value={`${margin || 66}%`} change="Saudável" tone="success" icon={Percent} />
-        <MetricCard label="Saldo do mês" value={formatMoney((profit || 55960) + 9840)} change="Caixa operacional" tone="info" icon={HandCoins} />
+        <MetricCard label="Receitas" value={formatMoney(totalRevenue)} change={`Periodo: ${period}`} tone="success" icon={Wallet} />
+        <MetricCard label="Despesas" value={formatMoney(totalExpenses)} change="Saidas registradas" tone="warning" icon={Receipt} />
+        <MetricCard label="Comissoes" value={formatMoney(totalCommissions)} change="Categorias com comissao" tone="info" icon={Users} />
+        <MetricCard label="Lucro" value={formatMoney(profit)} change={`Margem ${margin}%`} tone={profit >= 0 ? "success" : "danger"} icon={TrendingUp} />
+        <MetricCard label="Margem" value={`${margin}%`} change="Base real do periodo" tone="success" icon={Percent} />
+        <MetricCard label="Lancamentos" value={`${records.length}`} change="Receitas e despesas reais" tone="info" icon={HandCoins} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <MockChart title="Receitas, despesas, lucro e margem" description={`Gráfico interativo mockado para o período ${period}.`} span="full" filters={periods} series={financeSeriesByPeriod[period]} />
-        <DashboardCard title="Resumo do período" description="Leitura rápida do caixa com contexto operacional.">
+        <MockChart title="Receitas, despesas, lucro e margem" description={`Visual do periodo ${period} enquanto a camada de relatorios detalhados continua em evolucao.`} span="full" filters={periods} series={financeSeriesByPeriod[period]} />
+        <DashboardCard title="Resumo do periodo" description="Leitura rapida do caixa com contexto operacional e vinculos reais.">
           <div className="space-y-3">
             {[
-              `Período selecionado: ${period}`,
-              "Nova receita preparada para entradas de pacote e upsell.",
-              "Nova despesa pronta para mídia, hotelaria e suporte.",
-              "Exportação vinculada ao filtro atual para PDF ou CSV.",
+              `Periodo selecionado: ${period}`,
+              `${records.filter((item) => item.status.toLowerCase().includes("pago")).length} lancamentos pagos ou concluídos.`,
+              `${records.filter((item) => item.client_id || item.trip_id).length} lancamentos vinculados a cliente ou viagem.`,
+              "Relatorios automaticos e Stripe permanecem sinalizados como proximas etapas.",
             ].map((item) => (
               <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-muted-foreground">{item}</div>
             ))}
@@ -2512,47 +2713,129 @@ export function AgencyFinancePage() {
         </DashboardCard>
       </div>
 
-      <Dialog open={modal !== null} onOpenChange={(open) => !open && setModal(null)}>
-        <DialogContent className="max-w-xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-          <DialogHeader className="border-b border-white/8 px-6 py-5">
-            <DialogTitle>{modal === "receita" ? "Nova receita" : "Nova despesa"}</DialogTitle>
-            <DialogDescription>{modal === "receita" ? "Lance uma nova entrada com contexto da venda." : "Registre uma nova saída com categoria e impacto."}</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 px-6 py-5">
-            <InfoCard label="Descrição" value={modal === "receita" ? "Entrada pacote Maldivas" : "Campanha de inverno"} />
-            <InfoCard label="Valor" value={modal === "receita" ? "R$ 8.900" : "R$ 2.400"} />
-            <InfoCard label="Categoria" value={modal === "receita" ? "Viagem premium" : "Marketing"} />
-          </div>
-          <DialogFooter className="border-t border-white/8 px-6 py-5">
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setModal(null)}>
-              Fechar
-            </Button>
-            <Button
-              className="rounded-full"
-              onClick={async () => {
-                const current = modal
-                try {
-                  const created = await requestJson<FinancialRecordRow>("/api/finance", {
-                    method: "POST",
-                    body: JSON.stringify({
-                      type: current === "receita" ? "Receita" : "Despesa",
-                      amount: current === "receita" ? 8900 : 2400,
-                      status: "Ativo",
-                      description: current === "receita" ? "Entrada pacote Maldivas" : "Campanha de inverno",
-                      category: current === "receita" ? "Vendas" : "Marketing",
-                    }),
-                  })
-                  setRecords((prev) => [created, ...prev])
-                  setModal(null)
-                  fire(current === "receita" ? "Receita salva" : "Despesa salva", "O lançamento foi salvo no Supabase.")
-                } catch (error) {
-                  fire("Falha ao salvar", error instanceof Error ? error.message : "Não foi possível salvar o lançamento.")
-                }
-              }}
-            >
-              Salvar
-            </Button>
-          </DialogFooter>
+      <DashboardCard title="Lancamentos da operacao" description="Visualize, edite, exclua e acompanhe registros reais do financeiro.">
+        <div className="space-y-3">
+          {loadError ? (
+            <div className="flex items-start gap-3 rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-medium">Nao foi possivel sincronizar o financeiro agora.</p>
+                <p className="mt-1 text-amber-100/80">{loadError}</p>
+              </div>
+            </div>
+          ) : null}
+
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={`finance-skeleton-${index}`} className="animate-pulse rounded-[28px] border border-white/8 bg-white/[0.03] p-4">
+                <div className="h-4 w-44 rounded-full bg-white/10" />
+                <div className="mt-3 h-3 w-64 rounded-full bg-white/10" />
+                <div className="mt-2 h-3 w-40 rounded-full bg-white/10" />
+              </div>
+            ))
+          ) : visibleRecords.length === 0 ? (
+            <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center">
+              <p className="text-sm font-medium text-foreground">Nenhum lancamento encontrado.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Crie o primeiro lancamento real da agencia ou ajuste a busca e os filtros atuais.</p>
+              <Button asChild className="mt-4 rounded-full">
+                <Link href="/app/financeiro/novo">Criar lancamento agora</Link>
+              </Button>
+            </div>
+          ) : (
+            visibleRecords.map((record) => {
+              const linkedClient = record.client_id ? clientsById.get(record.client_id)?.name ?? `Cliente ${record.client_id.slice(0, 8)}` : "Sem cliente vinculado"
+              const linkedTrip = record.trip_id ? tripsById.get(record.trip_id)?.destination ?? `Viagem ${record.trip_id.slice(0, 8)}` : "Sem viagem vinculada"
+
+              return (
+                <div key={record.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
+                  <button type="button" onClick={() => setSelected(record)} className="min-w-0 text-left">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">{record.category || record.type}</p>
+                      <StatusPill label={record.type} />
+                      <StatusPill label={record.status} />
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{linkedClient} • {linkedTrip}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">{formatMoney(Number(record.amount || 0))} • {formatDateLabel(record.occurred_at)} • {record.description || "Sem descricao complementar"}</p>
+                  </button>
+                  <ActionMenu
+                    items={[
+                      { label: "Visualizar", icon: Eye, onClick: () => setSelected(record) },
+                      { label: "Editar", icon: FilePenLine, onClick: () => router.push(`/app/financeiro/novo?id=${record.id}`) },
+                      {
+                        label: "Registrar pagamento",
+                        icon: CreditCard,
+                        onClick: async () => {
+                          try {
+                            const updated = await requestJson<FinancialRecordRow>(`/api/financial-records/${record.id}`, {
+                              method: "PATCH",
+                              body: JSON.stringify({ status: "Pago" }),
+                            })
+                            setRecords((current) => current.map((item) => (item.id === record.id ? updated : item)))
+                            setSelected((current) => (current?.id === record.id ? updated : current))
+                            fire("Pagamento registrado", "O lancamento foi atualizado com status Pago.")
+                          } catch (error) {
+                            fire("Falha ao atualizar", error instanceof Error ? error.message : "Nao foi possivel registrar o pagamento.")
+                          }
+                        },
+                      },
+                      { label: "Conectar Stripe", icon: ArrowRightLeft, onClick: () => fire("Stripe em breve", "A conexao automatica com Stripe ainda sera integrada a este modulo.") },
+                      { label: "Gerar relatorio", icon: Download, onClick: () => fire("Relatorio em breve", "A geracao automatica de relatorios ainda sera conectada ao financeiro.") },
+                      {
+                        label: "Excluir",
+                        icon: Trash2,
+                        onClick: () =>
+                          setConfirmAction({
+                            title: "Excluir lancamento",
+                            description: `Deseja confirmar a exclusao de ${record.category || record.type}? Esta acao remove o registro real do Supabase.`,
+                            confirmLabel: "Excluir lancamento",
+                            onConfirm: async () => {
+                              try {
+                                await requestJson(`/api/financial-records/${record.id}`, { method: "DELETE" })
+                                setRecords((current) => current.filter((item) => item.id !== record.id))
+                                setSelected((current) => (current?.id === record.id ? null : current))
+                                fire("Lancamento excluido", "O registro foi removido do Supabase.")
+                              } catch (error) {
+                                fire("Falha ao excluir", error instanceof Error ? error.message : "Nao foi possivel excluir o lancamento.")
+                              }
+                            },
+                          }),
+                        danger: true,
+                      },
+                    ]}
+                  />
+                </div>
+              )
+            })
+          )}
+        </div>
+      </DashboardCard>
+
+      <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
+
+      <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent className="max-w-3xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+          {selected ? (
+            <>
+              <DialogHeader className="border-b border-white/8 px-6 py-5">
+                <DialogTitle>{selected.category || selected.type}</DialogTitle>
+                <DialogDescription>Detalhe real do lancamento com valor, vinculos e status atual.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
+                <InfoCard label="Tipo" value={selected.type} />
+                <InfoCard label="Status" value={selected.status} />
+                <InfoCard label="Valor" value={formatMoney(Number(selected.amount || 0))} />
+                <InfoCard label="Data" value={formatDateLabel(selected.occurred_at)} />
+                <InfoCard label="Cliente" value={selected.client_id ? clientsById.get(selected.client_id)?.name ?? `Cliente ${selected.client_id.slice(0, 8)}` : "Sem cliente vinculado"} />
+                <InfoCard label="Viagem" value={selected.trip_id ? tripsById.get(selected.trip_id)?.destination ?? `Viagem ${selected.trip_id.slice(0, 8)}` : "Sem viagem vinculada"} />
+              </div>
+              <div className="px-6 pb-6">
+                <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5">
+                  <p className="text-sm font-medium text-foreground">Descricao</p>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{selected.description || "Nenhuma descricao complementar foi registrada."}</p>
+                </div>
+              </div>
+            </>
+          ) : null}
         </DialogContent>
       </Dialog>
     </PageShell>

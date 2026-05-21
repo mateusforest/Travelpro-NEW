@@ -7,7 +7,14 @@ function withAgencyScope<T extends { eq: (...args: unknown[]) => T }>(query: T, 
   return query.eq(column, context.agencyId)
 }
 
+function ensureAgencyContext(context: AgencyAccessContext) {
+  if (!context.isMaster && !context.agencyId) {
+    throw new Error("Sua sessão não possui uma agência vinculada para operar documentos.")
+  }
+}
+
 export async function listDocuments(context: AgencyAccessContext) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("documents").select("*").order("created_at", { ascending: false })
   query = withAgencyScope(query, context)
@@ -17,6 +24,7 @@ export async function listDocuments(context: AgencyAccessContext) {
 }
 
 export async function getDocumentById(context: AgencyAccessContext, id: string) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("documents").select("*").eq("id", id)
   query = withAgencyScope(query, context)
@@ -26,6 +34,7 @@ export async function getDocumentById(context: AgencyAccessContext, id: string) 
 }
 
 export async function createDocument(context: AgencyAccessContext, input: DocumentInput) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   const { data, error } = await supabase
     .from("documents")
@@ -37,7 +46,9 @@ export async function createDocument(context: AgencyAccessContext, input: Docume
       title: input.title,
       type: input.type,
       status: input.status ?? "Rascunho",
+      storage_bucket: input.storage_bucket ?? null,
       storage_path: input.storage_path ?? null,
+      metadata: input.metadata ?? {},
     })
     .select("*")
     .single()
@@ -46,6 +57,7 @@ export async function createDocument(context: AgencyAccessContext, input: Docume
 }
 
 export async function updateDocument(context: AgencyAccessContext, id: string, input: Partial<DocumentInput>) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase
     .from("documents")
@@ -55,7 +67,9 @@ export async function updateDocument(context: AgencyAccessContext, id: string, i
       ...(input.status !== undefined ? { status: input.status } : {}),
       ...(input.client_id !== undefined ? { client_id: input.client_id } : {}),
       ...(input.trip_id !== undefined ? { trip_id: input.trip_id } : {}),
+      ...(input.storage_bucket !== undefined ? { storage_bucket: input.storage_bucket } : {}),
       ...(input.storage_path !== undefined ? { storage_path: input.storage_path } : {}),
+      ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
     })
     .eq("id", id)
   query = withAgencyScope(query, context)
@@ -65,6 +79,7 @@ export async function updateDocument(context: AgencyAccessContext, id: string, i
 }
 
 export async function deleteDocument(context: AgencyAccessContext, id: string) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("documents").delete().eq("id", id)
   query = withAgencyScope(query, context)
