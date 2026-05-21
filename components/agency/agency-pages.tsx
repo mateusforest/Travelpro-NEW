@@ -21,14 +21,12 @@ import {
   FileText,
   HandCoins,
   MoreHorizontal,
-  Palette,
   PlaneTakeoff,
   Percent,
   Receipt,
   Route,
   Save,
   Send,
-  ShieldCheck,
   Sparkles,
   Target,
   Trash2,
@@ -40,7 +38,6 @@ import {
 } from "lucide-react"
 import { trips } from "@/mock/trips"
 import { documents } from "@/mock/documents"
-import { tasks } from "@/mock/tasks"
 import { templates } from "@/mock/templates"
 import { leads } from "@/mock/leads"
 import { PageShell } from "@/components/system/page-shell"
@@ -63,9 +60,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { MockChart } from "@/components/system/mock-chart"
 import { toast } from "@/components/ui/use-toast"
-import type { CatalogItemRow, ClientRow, DocumentRow, FinancialRecordRow, LeadRow, TeamMemberRow, TripRow } from "@/types/database"
+import type { ClientRow, DocumentRow, FinancialRecordRow, LeadRow, ReportRow, TaskRow, TeamMemberRow, TripRow } from "@/types/database"
 import type { ClientInput, ClientTravelerProfile } from "@/types/client"
 import type { AgencyDashboardData } from "@/types/dashboard"
+import type { CentralOperationalData } from "@/types/operational-center"
+import type { CreditsOverviewData } from "@/types/credits-overview"
+import type { ReportsOverviewData } from "@/types/reports-overview"
 
 type ClientRecord = {
   id: string
@@ -180,19 +180,6 @@ const quoteRecords: QuoteRecord[] = [
   { id: "qt-3", client: "Beatriz Lima", destination: "Macei?", status: "Aprovada", value: "R$ 12.780", includes: "Resort, a?reo e seguro", notes: "Preparar convers?o em viagem." },
 ]
 
-const reportCards = [
-  "Clientes",
-  "Viagens",
-  "Financeiro",
-  "Documentos",
-  "IA e cr?ditos",
-  "TravelPro Go",
-  "Agent",
-  "Match",
-  "Equipe",
-  "Central Operacional",
-]
-
 async function requestJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const response = await fetch(input, {
     ...init,
@@ -298,6 +285,18 @@ function formatDateLabel(value?: string | null) {
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(parsed)
+}
+
+function formatDateTimeLabel(value?: string | null) {
+  if (!value) return "Nao informado"
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(parsed)
+}
+
+function parseReportFilters(value: ReportRow["filters"]) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  return value as Record<string, unknown>
 }
 
 function mapDocumentRowToRecord(
@@ -2466,13 +2465,64 @@ export function AgencyCotacoesPage() {
 }
 
 export function AgencyTasksPage() {
-  const [taskList, setTaskList] = useState(tasks)
-  const [createOpen, setCreateOpen] = useState(false)
+  const [taskList, setTaskList] = useState<TaskRow[]>([])
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const router = useRouter()
   const fire = (title: string, description: string) => toast({ title, description })
 
-  const concludeTask = (id: string) => setTaskList((current) => current.map((task) => (task.id === id ? { ...task, status: "Concluído" } : task)))
-  const postponeTask = (id: string) => setTaskList((current) => current.map((task) => (task.id === id ? { ...task, due: "Amanhã, 10:00" } : task)))
+  useEffect(() => {
+    let active = true
+
+    const loadTasks = async () => {
+      setIsLoading(true)
+      setLoadError(null)
+      try {
+        const data = await requestJson<TaskRow[]>("/api/tasks")
+        if (!active) return
+        setTaskList(data)
+      } catch (error) {
+        if (!active) return
+        setTaskList([])
+        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar as tarefas.")
+      } finally {
+        if (active) setIsLoading(false)
+      }
+    }
+
+    void loadTasks()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const concludeTask = async (task: TaskRow) => {
+    try {
+      const updated = await requestJson<TaskRow>(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "Concluída" }),
+      })
+      setTaskList((current) => current.map((item) => (item.id === task.id ? updated : item)))
+      fire("Tarefa concluída", `${task.title} foi marcada como concluída.`)
+    } catch (error) {
+      fire("Falha ao concluir", error instanceof Error ? error.message : "Nao foi possivel concluir a tarefa.")
+    }
+  }
+
+  const postponeTask = async (task: TaskRow) => {
+    try {
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+      const updated = await requestJson<TaskRow>(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ due_at: tomorrow.toISOString(), status: "Hoje" }),
+      })
+      setTaskList((current) => current.map((item) => (item.id === task.id ? updated : item)))
+      fire("Tarefa adiada", `${task.title} foi reagendada para amanhã.`)
+    } catch (error) {
+      fire("Falha ao adiar", error instanceof Error ? error.message : "Nao foi possivel adiar a tarefa.")
+    }
+  }
 
   return (
     <PageShell>
@@ -2484,7 +2534,7 @@ export function AgencyTasksPage() {
             <Button asChild className="rounded-full">
               <Link href="/app/central-operacional/tarefas/nova">Nova tarefa</Link>
             </Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Rota rápida preparada", "O atalho operacional foi preparado em modo mockado.")}>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Rota rápida em breve", "As rotas rápidas configuráveis ainda serão conectadas a este módulo.")}>
               Adicionar rota rápida
             </Button>
           </div>
@@ -2492,75 +2542,135 @@ export function AgencyTasksPage() {
       />
       <DashboardCard title="Backlog operacional" description="Acompanhe e ajuste rapidamente as tarefas da central.">
         <div className="space-y-3">
-          {taskList.map((task) => (
-            <div key={task.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{task.title}</p>
-                  <StatusPill label={task.status} />
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">{task.owner}</p>
-                <p className="mt-2 text-xs text-muted-foreground">{task.due}</p>
-              </div>
-              <ActionMenu
-                items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => fire("Tarefa aberta", `${task.title} foi aberta em modo mockado.`) },
-                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Tarefa em edição", `${task.title} foi aberta para edição mockada.`) },
-                  { label: "Concluir", icon: CheckCheck, onClick: () => concludeTask(task.id) },
-                  { label: "Adiar", icon: Clock3, onClick: () => postponeTask(task.id) },
-                  {
-                    label: "Excluir",
-                    icon: Trash2,
-                    onClick: () =>
-                      setConfirmAction({
-                        title: "Excluir tarefa",
-                        description: `Deseja confirmar a exclusão mockada da tarefa ${task.title}?`,
-                        confirmLabel: "Excluir tarefa",
-                        onConfirm: () => fire("Tarefa excluída", `${task.title} foi removida em modo mockado.`),
-                      }),
-                    danger: true,
-                  },
-                ]}
-              />
+          {loadError ? (
+            <div className="rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+              <p className="font-medium">Nao foi possivel sincronizar as tarefas agora.</p>
+              <p className="mt-1 text-amber-100/80">{loadError}</p>
             </div>
-          ))}
+          ) : null}
+
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={`task-skeleton-${index}`} className="animate-pulse rounded-[28px] border border-white/8 bg-white/[0.03] p-4">
+                <div className="h-4 w-40 rounded-full bg-white/10" />
+                <div className="mt-3 h-3 w-52 rounded-full bg-white/10" />
+              </div>
+            ))
+          ) : taskList.length === 0 ? (
+            <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center">
+              <p className="text-sm font-medium text-foreground">Nenhuma tarefa encontrada.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Crie a primeira tarefa real da central operacional para começar a organizar a execução.</p>
+              <Button asChild className="mt-4 rounded-full">
+                <Link href="/app/central-operacional/tarefas/nova">Criar tarefa agora</Link>
+              </Button>
+            </div>
+          ) : (
+            taskList.map((task) => (
+              <div key={task.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{task.title}</p>
+                    <StatusPill label={task.status} />
+                    <StatusPill label={task.priority} />
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{task.description || "Sem descrição operacional complementar."}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">Prazo: {formatDateTimeLabel(task.due_at)} • Atualizado em {formatDateTimeLabel(task.updated_at)}</p>
+                </div>
+                <ActionMenu
+                  items={[
+                    { label: "Visualizar", icon: Eye, onClick: () => fire("Tarefa real", `${task.title} está salva na central operacional.`) },
+                    { label: "Editar", icon: FilePenLine, onClick: () => router.push(`/app/central-operacional/tarefas/nova?id=${task.id}`) },
+                    { label: "Concluir", icon: CheckCheck, onClick: () => void concludeTask(task) },
+                    { label: "Adiar", icon: Clock3, onClick: () => void postponeTask(task) },
+                    {
+                      label: "Excluir",
+                      icon: Trash2,
+                      onClick: () =>
+                        setConfirmAction({
+                          title: "Excluir tarefa",
+                          description: `Deseja confirmar a exclusão de ${task.title}?`,
+                          confirmLabel: "Excluir tarefa",
+                          onConfirm: async () => {
+                            try {
+                              await requestJson(`/api/tasks/${task.id}`, { method: "DELETE" })
+                              setTaskList((current) => current.filter((item) => item.id !== task.id))
+                              fire("Tarefa excluída", `${task.title} foi removida da central.`)
+                            } catch (error) {
+                              fire("Falha ao excluir", error instanceof Error ? error.message : "Nao foi possivel excluir a tarefa.")
+                            }
+                          },
+                        }),
+                      danger: true,
+                    },
+                  ]}
+                />
+              </div>
+            ))
+          )}
         </div>
       </DashboardCard>
       <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
-
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-          <DialogHeader className="border-b border-white/8 px-6 py-5">
-            <DialogTitle>Nova tarefa</DialogTitle>
-            <DialogDescription>Crie uma tarefa com responsável, prazo e prioridade.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 px-6 py-5">
-            <InfoCard label="Tarefa" value="Confirmar voucher do hotel" />
-            <InfoCard label="Responsável" value="Operacional" />
-            <InfoCard label="Prazo" value="Hoje, 17:00" />
-          </div>
-          <DialogFooter className="border-t border-white/8 px-6 py-5">
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setCreateOpen(false)}>
-              Fechar
-            </Button>
-            <Button className="rounded-full" onClick={() => { setCreateOpen(false); fire("Tarefa criada", "A nova tarefa foi adicionada em modo mockado.") }}>
-              Salvar tarefa
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PageShell>
   )
 }
 
 export function AgencyReportsPage() {
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [overview, setOverview] = useState<ReportsOverviewData | null>(null)
+  const [selectedReport, setSelectedReport] = useState<ReportRow | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isExporting, setIsExporting] = useState<"pdf" | "csv" | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const router = useRouter()
   const fire = (title: string, description: string) => toast({ title, description })
-  const recentReports = [
-    { id: "r-1", title: "Financeiro mensal", meta: "Gerado hoje • mês • pronto para exportar", status: "Pronto" },
-    { id: "r-2", title: "TravelPro Go", meta: "Atualizado há 12 min • operação", status: "Atualizado" },
-    { id: "r-3", title: "Clientes em risco", meta: "Últimos 30 dias • atenção", status: "Em revisão" },
-  ]
+
+  useEffect(() => {
+    let active = true
+
+    const loadReportsOverview = async () => {
+      setIsLoading(true)
+      setLoadError(null)
+      try {
+        const data = await requestJson<ReportsOverviewData>("/api/reports/overview")
+        if (!active) return
+        setOverview(data)
+      } catch (error) {
+        if (!active) return
+        setOverview(null)
+        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar os relatórios.")
+      } finally {
+        if (active) setIsLoading(false)
+      }
+    }
+
+    void loadReportsOverview()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const registerExport = async (format: "pdf" | "csv") => {
+    setIsExporting(format)
+    try {
+      await requestJson("/api/credit-transactions", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "consumo",
+          amount: format === "pdf" ? 4 : 3,
+          feature: "Relatórios operacionais",
+          source: format === "pdf" ? "Exportação PDF" : "Exportação CSV",
+        }),
+      })
+      fire("Exportação registrada", `O consumo operacional da exportação ${format.toUpperCase()} foi registrado. O download real continua como próxima etapa.`)
+    } catch (error) {
+      fire("Falha ao exportar", error instanceof Error ? error.message : "Nao foi possivel registrar a exportacao.")
+    } finally {
+      setIsExporting(null)
+    }
+  }
+
+  const previewLines = selectedReport
+    ? (parseReportFilters(selectedReport.filters).preview as { lines?: string[] } | undefined)?.lines ?? []
+    : overview?.preview.lines ?? []
 
   return (
     <PageShell>
@@ -2572,57 +2682,90 @@ export function AgencyReportsPage() {
             <Button asChild className="rounded-full">
               <Link href="/app/central-operacional/relatorios/novo">Gerar relatório</Link>
             </Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("PDF preparado", "A exportação em PDF foi preparada.")}>Exportar PDF</Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("CSV preparado", "A exportação em CSV foi preparada.")}>Exportar CSV</Button>
+            <Button
+              variant="outline"
+              className="rounded-full border-white/10 bg-white/[0.03]"
+              onClick={() => void registerExport("pdf")}
+              disabled={isExporting !== null}
+            >
+              {isExporting === "pdf" ? "Registrando..." : "Exportar PDF"}
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-full border-white/10 bg-white/[0.03]"
+              onClick={() => void registerExport("csv")}
+              disabled={isExporting !== null}
+            >
+              {isExporting === "csv" ? "Registrando..." : "Exportar CSV"}
+            </Button>
           </div>
         }
       />
 
-      <DashboardCard title="Filtros" description="Recorte o relatório antes de gerar ou exportar.">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <InfoCard label="Período" value="Últimos 30 dias" />
-          <InfoCard label="Módulo" value="Todos os módulos" />
-          <InfoCard label="Cliente" value="Todos os clientes" />
-          <InfoCard label="Status" value="Ativos e pendentes" />
-          <InfoCard label="Tipo" value="Resumo executivo" />
-        </div>
-        <div className="mt-4">
-          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setFiltersOpen(true)}>
-            Editar filtros
-          </Button>
-        </div>
-      </DashboardCard>
-
       <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
         <DashboardCard title="Relatórios disponíveis" description="Escolha o foco principal e gere um relatório contextualizado.">
+          {loadError && !overview ? (
+            <div className="mb-4 rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+              <p className="font-medium">Nao foi possivel carregar os modelos agora.</p>
+              <p className="mt-1 text-amber-100/80">{loadError}</p>
+            </div>
+          ) : null}
           <div className="grid gap-3 md:grid-cols-2">
-            {reportCards.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => fire("Relatório selecionado", item + " foi definido como foco do relatório.")}
-                className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4 text-left transition-all hover:border-primary/15 hover:bg-white/[0.05]"
-              >
-                <p className="text-sm font-medium text-foreground">{item}</p>
-                <p className="mt-2 text-sm leading-5 text-muted-foreground">Filtros prontos para geração, exportação e leitura rápida.</p>
-              </button>
-            ))}
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, index) => (
+                <div key={`report-template-skeleton-${index}`} className="animate-pulse rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                  <div className="h-4 w-32 rounded-full bg-white/10" />
+                  <div className="mt-3 h-3 w-44 rounded-full bg-white/10" />
+                </div>
+              ))
+            ) : (
+              <>
+                {(overview?.templates ?? []).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => router.push(`/app/central-operacional/relatorios/novo?template=${encodeURIComponent(item.title)}`)}
+                    className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4 text-left transition-all hover:border-primary/15 hover:bg-white/[0.05]"
+                  >
+                    <p className="text-sm font-medium text-foreground">{item.title}</p>
+                    <p className="mt-2 text-sm leading-5 text-muted-foreground">{item.description}</p>
+                    <p className="mt-3 text-xs uppercase tracking-[0.16em] text-primary/70">{item.metric}</p>
+                  </button>
+                ))}
+                {(overview?.templates ?? []).length === 0 ? (
+                  <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground md:col-span-2">
+                    Nenhum modelo operacional disponível ainda. Gere o primeiro relatório real da agência.
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
         </DashboardCard>
 
         <div className="space-y-5">
           <DashboardCard title="Recentes" description="Últimas saídas geradas pela operação.">
             <div className="space-y-3">
-              {recentReports.map((report) => (
-                <div key={report.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+              {loadError ? (
+                <div className="rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+                  <p className="font-medium">Nao foi possivel carregar os relatórios agora.</p>
+                  <p className="mt-1 text-amber-100/80">{loadError}</p>
+                </div>
+              ) : null}
+              {(overview?.recent_reports ?? []).length === 0 && !isLoading ? (
+                <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                  Nenhum relatório salvo ainda. Gere o primeiro relatório operacional real da agência.
+                </div>
+              ) : null}
+              {(overview?.recent_reports ?? []).map((report) => (
+                <button key={report.id} type="button" onClick={() => setSelectedReport(report)} className="w-full rounded-[24px] border border-white/8 bg-white/[0.03] p-4 text-left">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-medium text-foreground">{report.title}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{report.meta}</p>
+                      <p className="text-sm font-medium text-foreground">{report.name}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{report.type} • {formatDateTimeLabel(report.created_at)}</p>
                     </div>
                     <StatusPill label={report.status} />
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </DashboardCard>
@@ -2630,33 +2773,47 @@ export function AgencyReportsPage() {
           <DashboardCard title="Preview do relatório" description="Resumo do relatório atualmente selecionado.">
             <div className="space-y-3">
               <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-sm font-medium text-foreground">Financeiro mensal</p>
-                <p className="mt-2 text-sm text-muted-foreground">Receitas em alta, margem saudável e despesas sob controle no período.</p>
-              </div>
-              <div className="grid gap-3 md:grid-cols-3">
-                <InfoCard label="Receitas" value="R$ 84.200" />
-                <InfoCard label="Despesas" value="R$ 18.400" />
-                <InfoCard label="Lucro" value="R$ 55.960" />
+                <p className="text-sm font-medium text-foreground">{selectedReport?.name || overview?.preview.title || "Resumo operacional"}</p>
+                <div className="mt-2 space-y-2">
+                  {previewLines.map((line) => (
+                    <p key={line} className="text-sm text-muted-foreground">{line}</p>
+                  ))}
+                  {previewLines.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum resumo salvo para exibir ainda.</p> : null}
+                </div>
               </div>
             </div>
           </DashboardCard>
         </div>
       </div>
 
-      <MockFormDialog
-        open={filtersOpen}
-        onOpenChange={setFiltersOpen}
-        title="Editar filtros"
-        description="Ajuste o recorte do relatório antes de gerar ou exportar."
-        fields={[
-          { label: "Período", value: "Últimos 30 dias" },
-          { label: "Módulo", value: "Todos os módulos" },
-          { label: "Cliente", value: "Todos os clientes" },
-          { label: "Tipo", value: "Resumo executivo" },
-        ]}
-        confirmLabel="Salvar filtros"
-        onConfirm={() => fire("Filtros salvos", "Os filtros do relatório foram atualizados em modo mockado.")}
-      />
+      <Dialog open={Boolean(selectedReport)} onOpenChange={(open) => !open && setSelectedReport(null)}>
+        <DialogContent className="max-w-3xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+          {selectedReport ? (
+            <>
+              <DialogHeader className="border-b border-white/8 px-6 py-5">
+                <DialogTitle>{selectedReport.name}</DialogTitle>
+                <DialogDescription>Relatório real salvo na base operacional da agência.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
+                <InfoCard label="Tipo" value={selectedReport.type} />
+                <InfoCard label="Status" value={selectedReport.status} />
+                <InfoCard label="Criado em" value={formatDateTimeLabel(selectedReport.created_at)} />
+                <InfoCard label="Atualizado em" value={formatDateTimeLabel(selectedReport.updated_at)} />
+              </div>
+              <div className="px-6 pb-6">
+                <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-sm font-medium text-foreground">Snapshot salvo</p>
+                  <div className="mt-3 space-y-2">
+                    {(parseReportFilters(selectedReport.filters).preview as { lines?: string[] } | undefined)?.lines?.map((line) => (
+                      <p key={line} className="text-sm text-muted-foreground">{line}</p>
+                    )) || <p className="text-sm text-muted-foreground">Nenhum snapshot adicional foi salvo para este relatório.</p>}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </PageShell>
   )
 }
@@ -3513,6 +3670,10 @@ export function AgencyReportsOperationalPage() {
   return <AgencyReportsPage />
 }
 
+export function AgencyCreditsOperationalPage() {
+  return <AgencyCreditsPage />
+}
+
 export function AgencyLeadsPage() {
   const [records, setRecords] = useState<Array<ReturnType<typeof mapLeadRowToCard>>>([])
   const [selected, setSelected] = useState<Array<ReturnType<typeof mapLeadRowToCard>>[number] | null>(null)
@@ -4173,9 +4334,44 @@ export function AgencyAutomationsPage() {
 }
 
 export function AgencyOperationalOverviewPage() {
-  const [createOpen, setCreateOpen] = useState(false)
-  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
+  const [data, setData] = useState<CentralOperationalData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const router = useRouter()
   const fire = (title: string, description: string) => toast({ title, description })
+
+  useEffect(() => {
+    let active = true
+
+    const loadOperationalCenter = async () => {
+      setIsLoading(true)
+      setLoadError(null)
+      try {
+        const response = await requestJson<CentralOperationalData>("/api/operational-center")
+        if (!active) return
+        setData(response)
+      } catch (error) {
+        if (!active) return
+        setData(null)
+        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar a central operacional.")
+      } finally {
+        if (active) setIsLoading(false)
+      }
+    }
+
+    void loadOperationalCenter()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const toneClassMap: Record<CentralOperationalData["priorities"][number]["tone"], string> = {
+    success: "border-green-400/20 bg-green-400/10 text-green-100",
+    info: "border-sky-400/20 bg-sky-400/10 text-sky-100",
+    warning: "border-amber-400/20 bg-amber-400/10 text-amber-100",
+    danger: "border-red-400/20 bg-red-400/10 text-red-100",
+    default: "border-white/10 bg-white/[0.03] text-muted-foreground",
+  }
 
   return (
     <PageShell>
@@ -4184,60 +4380,180 @@ export function AgencyOperationalOverviewPage() {
         description="Prioridades do dia, rotas rápidas e ações por item para mover a operação."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button className="rounded-full" onClick={() => setCreateOpen(true)}>Nova tarefa</Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Rota rápida criada", "A nova rota rápida foi preparada em modo mockado.")}>Adicionar rota rápida</Button>
+            <Button asChild className="rounded-full">
+              <Link href="/app/central-operacional/tarefas/nova">Nova tarefa</Link>
+            </Button>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Rotas rápidas em breve", "As rotas rápidas configuráveis serão liberadas em uma próxima etapa da central.")}>Adicionar rota rápida</Button>
           </div>
         }
       />
-      <DashboardCard title="Itens operacionais" description="Abra origem, visualize e edite cada item da central.">
-        <div className="space-y-3">
-          {tasks.map((item) => (
-            <div key={item.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{item.title}</p>
-                  <StatusPill label={item.status} />
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">{item.owner} • {item.due}</p>
-              </div>
-              <ActionMenu
-                items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => fire("Item aberto", `${item.title} foi aberto em modo mockado.`) },
-                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Item em edição", `${item.title} foi aberto para edição mockada.`) },
-                  { label: "Abrir origem", icon: ExternalLink, onClick: () => fire("Origem aberta", `A origem de ${item.title} foi preparada.`) },
-                  {
-                    label: "Excluir",
-                    icon: Trash2,
-                    onClick: () =>
-                      setConfirmAction({
-                        title: "Excluir item",
-                        description: `Deseja confirmar a exclusão mockada de ${item.title}?`,
-                        confirmLabel: "Excluir item",
-                        onConfirm: () => fire("Item excluído", `${item.title} foi removido em modo mockado.`),
-                      }),
-                    danger: true,
-                  },
-                ]}
-              />
-            </div>
-          ))}
+      {loadError ? (
+        <div className="rounded-[28px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+          <p className="font-medium">Nao foi possivel carregar a central agora.</p>
+          <p className="mt-1 text-amber-100/80">{loadError}</p>
         </div>
-      </DashboardCard>
-      <MockFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="Nova tarefa operacional"
-        description="Crie uma nova tarefa com responsável, prazo e impacto esperado."
-        fields={[
-          { label: "Tarefa", value: "Validar voucher do hotel" },
-          { label: "Responsável", value: "Operacional" },
-          { label: "Prazo", value: "Hoje, 18:00" },
-          { label: "Impacto", value: "Pré-embarque" },
-        ]}
-        confirmLabel="Salvar tarefa"
-        onConfirm={() => fire("Tarefa criada", "A nova tarefa operacional foi preparada em modo mockado.")}
-      />
-      <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
+      ) : null}
+
+      <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="space-y-5">
+          <DashboardCard title="Status operacional" description="Leitura viva da central com base em tarefas, notificações, relatórios e créditos.">
+            <div className="grid gap-4 md:grid-cols-2">
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, index) => (
+                  <div key={`operational-status-skeleton-${index}`} className="animate-pulse rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                    <div className="h-4 w-28 rounded-full bg-white/10" />
+                    <div className="mt-3 h-7 w-24 rounded-full bg-white/10" />
+                    <div className="mt-3 h-3 w-44 rounded-full bg-white/10" />
+                  </div>
+                ))
+              ) : (
+                <>
+                  {(data?.statuses ?? []).map((item) => (
+                    <div key={item.label} className={`rounded-[24px] border p-4 ${toneClassMap[item.tone]}`}>
+                      <p className="text-xs uppercase tracking-[0.16em]">{item.label}</p>
+                      <p className="mt-3 text-2xl font-semibold text-foreground">{item.value}</p>
+                      <p className="mt-2 text-sm">{item.detail}</p>
+                    </div>
+                  ))}
+                  {(data?.statuses ?? []).length === 0 ? (
+                    <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground md:col-span-2">
+                      Ainda não há sinais operacionais suficientes para montar um painel vivo desta agência.
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </DashboardCard>
+
+          <DashboardCard title="Prioridades reais" description="Itens derivados da operação para abrir o módulo certo sem botões mortos.">
+            <div className="space-y-3">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, index) => (
+                  <div key={`operational-priority-skeleton-${index}`} className="animate-pulse rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                    <div className="h-4 w-36 rounded-full bg-white/10" />
+                    <div className="mt-3 h-7 w-20 rounded-full bg-white/10" />
+                    <div className="mt-3 h-3 w-52 rounded-full bg-white/10" />
+                  </div>
+                ))
+              ) : (
+                <>
+                  {(data?.priorities ?? []).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => router.push(item.href)}
+                      className="w-full rounded-[24px] border border-white/8 bg-white/[0.03] p-4 text-left transition-all hover:border-primary/15 hover:bg-white/[0.05]"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{item.label}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{item.hint}</p>
+                        </div>
+                        <StatusPill label={item.value} />
+                      </div>
+                    </button>
+                  ))}
+                  {(data?.priorities ?? []).length === 0 ? (
+                    <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                      Nenhuma prioridade crítica agora. A central vai ganhar corpo conforme a agência registrar operações reais.
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </DashboardCard>
+        </div>
+
+        <div className="space-y-5">
+          <DashboardCard title="Feed operacional" description="Eventos agregados sem tabela nova, priorizando o que acabou de acontecer.">
+            <div className="space-y-3">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, index) => (
+                  <div key={`operational-feed-skeleton-${index}`} className="animate-pulse rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                    <div className="h-4 w-40 rounded-full bg-white/10" />
+                    <div className="mt-3 h-3 w-56 rounded-full bg-white/10" />
+                    <div className="mt-3 h-3 w-24 rounded-full bg-white/10" />
+                  </div>
+                ))
+              ) : (
+                <>
+                  {(data?.feed ?? []).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => router.push(item.href)}
+                      className="w-full rounded-[24px] border border-white/8 bg-white/[0.03] p-4 text-left transition-all hover:border-primary/15 hover:bg-white/[0.05]"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{item.title}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
+                        </div>
+                        <StatusPill label={item.time} />
+                      </div>
+                      <p className="mt-3 text-xs uppercase tracking-[0.16em] text-primary/70">{item.origin}</p>
+                    </button>
+                  ))}
+                  {(data?.feed ?? []).length === 0 ? (
+                    <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                      Sem eventos recentes ainda. Assim que clientes, leads, viagens, documentos e lançamentos forem criados, o feed aparece aqui.
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </DashboardCard>
+
+          <DashboardCard title="Ações recentes" description="Atalhos vivos para tarefas, notificações e relatórios que já existem.">
+            <div className="space-y-3">
+              {(data?.tasks ?? []).slice(0, 3).map((item) => (
+                <div key={item.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{item.title}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{item.description || "Sem descrição complementar."}</p>
+                    </div>
+                    <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push(`/app/central-operacional/tarefas/nova?id=${item.id}`)}>
+                      Abrir prioridade
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {(data?.notifications ?? []).slice(0, 2).map((item) => (
+                <div key={item.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{item.title}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{item.body || item.type}</p>
+                    </div>
+                    <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push(item.action_url || "/app/central-operacional")}>
+                      Abrir origem
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {(data?.reports ?? []).slice(0, 1).map((item) => (
+                <div key={item.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{item.name}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{item.type} • {formatDateTimeLabel(item.created_at)}</p>
+                    </div>
+                    <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/relatorios")}>
+                      Abrir relatório
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {!isLoading && (data?.tasks?.length ?? 0) === 0 && (data?.notifications?.length ?? 0) === 0 && (data?.reports?.length ?? 0) === 0 ? (
+                <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                  Nenhuma ação operacional recente por aqui ainda.
+                </div>
+              ) : null}
+            </div>
+          </DashboardCard>
+        </div>
+      </div>
     </PageShell>
   )
 }
@@ -4278,38 +4594,113 @@ export function AgencyInsightsPage() {
 }
 
 export function AgencyCreditsPage() {
+  const [overview, setOverview] = useState<CreditsOverviewData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const fire = (title: string, description: string) => toast({ title, description })
-  const rows = [
-    { id: "cr-1", origin: "Roteiros premium", usage: "640 créditos", time: "Hoje, 09:20" },
-    { id: "cr-2", origin: "TravelPro Go", usage: "420 créditos", time: "Hoje, 11:05" },
-    { id: "cr-3", origin: "Agent", usage: "980 créditos", time: "Ontem, 18:12" },
-  ]
+
+  useEffect(() => {
+    let active = true
+
+    const loadCredits = async () => {
+      setIsLoading(true)
+      setLoadError(null)
+      try {
+        const response = await requestJson<CreditsOverviewData>("/api/credits/overview")
+        if (!active) return
+        setOverview(response)
+      } catch (error) {
+        if (!active) return
+        setOverview(null)
+        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar os creditos.")
+      } finally {
+        if (active) setIsLoading(false)
+      }
+    }
+
+    void loadCredits()
+    return () => {
+      active = false
+    }
+  }, [])
 
   return (
     <PageShell>
       <SectionHeader title="Créditos e consumo" description="Consumo por feature, histórico e ações rápidas de compra e rastreio." />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <MetricCard label="Créditos disponíveis" value="2.520" change="Ciclo atual" tone="success" icon={CreditCard} />
-        <MetricCard label="Créditos usados" value="3.480" change="58% do plano" tone="warning" icon={Sparkles} />
-        <MetricCard label="Maior origem" value="Agent" change="980 créditos" tone="info" icon={Bot} />
+        <MetricCard label="Créditos disponíveis" value={isLoading ? "--" : String(overview?.balance ?? 0)} change="Saldo operacional atual" tone={Number(overview?.balance ?? 0) > 0 ? "success" : "warning"} icon={CreditCard} />
+        <MetricCard label="Créditos usados" value={isLoading ? "--" : String(overview?.consumed ?? 0)} change={`${overview?.history.length ?? 0} movimentos no histórico`} tone="warning" icon={Sparkles} />
+        <MetricCard label="Maior origem" value={isLoading ? "--" : overview?.top_feature || "Sem consumo"} change={isLoading ? "Carregando" : `${overview?.top_feature_amount ?? 0} créditos`} tone="info" icon={Bot} />
       </div>
+      {loadError ? (
+        <div className="rounded-[28px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+          <p className="font-medium">Nao foi possivel carregar os créditos agora.</p>
+          <p className="mt-1 text-amber-100/80">{loadError}</p>
+        </div>
+      ) : null}
       <DashboardCard title="Histórico de uso" description="Abra a origem do consumo, revise o histórico e compre novos créditos.">
         <div className="mb-4 flex flex-wrap gap-2">
-          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Histórico aberto", "O histórico completo de créditos foi preparado.")}>Ver histórico</Button>
-          <Button className="rounded-full" onClick={() => fire("Compra preparada", "O fluxo de compra de créditos foi preparado em modo mockado.")}>Comprar créditos</Button>
+          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Histórico em foco", "O histórico operacional abaixo já reflete os movimentos reais de créditos.")}>Ver histórico</Button>
+          <Button className="rounded-full" onClick={() => fire("Compra em breve", "A compra de créditos continua fora deste escopo e será integrada depois, sem Stripe por enquanto.")}>Comprar créditos</Button>
         </div>
-        <div className="space-y-3">
-          {rows.map((row) => (
-            <div key={row.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">{row.origin}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{row.usage} • {row.time}</p>
-              </div>
-              <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem aberta", `A origem de ${row.origin} foi preparada.`)}>
-                Abrir origem
-              </Button>
+        <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+          <div className="space-y-3">
+            <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+              <p className="text-sm font-medium text-foreground">Saldo e entradas</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">{isLoading ? "--" : `${overview?.balance ?? 0} créditos`}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{isLoading ? "Carregando histórico..." : `${overview?.added ?? 0} créditos adicionados até agora.`}</p>
             </div>
-          ))}
+            <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+              <p className="text-sm font-medium text-foreground">Origens operacionais</p>
+              <div className="mt-3 space-y-2">
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, index) => <div key={`credit-feature-skeleton-${index}`} className="h-10 animate-pulse rounded-2xl bg-white/10" />)
+                ) : (
+                  <>
+                    {(overview?.by_feature ?? []).map((item) => (
+                      <div key={item.feature} className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/10 px-3 py-2 text-sm">
+                        <span className="text-muted-foreground">{item.feature}</span>
+                        <span className="font-medium text-foreground">{item.amount}</span>
+                      </div>
+                    ))}
+                    {(overview?.by_feature ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma origem registrada ainda.</p> : null}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, index) => (
+                <div key={`credit-history-skeleton-${index}`} className="animate-pulse rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                  <div className="h-4 w-40 rounded-full bg-white/10" />
+                  <div className="mt-3 h-3 w-56 rounded-full bg-white/10" />
+                </div>
+              ))
+            ) : (
+              <>
+                {(overview?.history ?? []).map((row) => (
+                  <div key={row.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{row.feature || row.source || "Operação geral"}</p>
+                        <StatusPill label={row.type} />
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">{row.amount} créditos • {formatDateTimeLabel(row.created_at)}</p>
+                    </div>
+                    <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem do consumo", row.source || row.feature || "Movimento operacional sem origem detalhada.")}>
+                      Abrir origem
+                    </Button>
+                  </div>
+                ))}
+                {(overview?.history ?? []).length === 0 ? (
+                  <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                    Ainda não há consumo de créditos registrado. Quando relatórios e ações futuras gerarem consumo operacional, o histórico aparece aqui.
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
         </div>
       </DashboardCard>
     </PageShell>
