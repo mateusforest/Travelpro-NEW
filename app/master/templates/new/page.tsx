@@ -2,6 +2,6 @@
 
 import { MasterTemplateWorkspace } from "@/components/master/master-template-workspace"
 
-export default function LegacyNewMasterTemplateWorkspacePage() {
+export default function NewMasterTemplatePage() {
   return <MasterTemplateWorkspace />
 }

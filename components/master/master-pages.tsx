@@ -1121,62 +1121,189 @@ export function MasterSettingsPage() {
 
 export function MasterTemplatesPage() {
   const [records] = useState(templateBase)
-  const [selected, setSelected] = useState<TemplateEntry | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
+  const templateCards = records.map((item, index) => ({
+    ...item,
+    destination: ["Documentos premium", "Operação contratual", "Comercial e vendas", "Vouchers e emissão"][index] ?? "Documentos TravelPro",
+    version: ["v3.4", "v2.8", "v1.9", "v3.1"][index] ?? "v1.0",
+    badge: ["Premium", "Free", "Premium", "Free"][index] ?? "Free",
+    compatibilities:
+      [
+        ["IA", "Go", "Agent"],
+        ["IA", "Atlas"],
+        ["IA", "Go"],
+        ["Go", "Agent"],
+      ][index] ?? ["IA"],
+    agenciesUsing: item.usage,
+    updatedLabel: item.updatedAt,
+  }))
+  const [selected, setSelected] = useState<(TemplateEntry & {
+    destination: string
+    version: string
+    badge: string
+    compatibilities: string[]
+    agenciesUsing: string
+    updatedLabel: string
+  }) | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
   const fire = (title: string, description: string) => toast({ title, description })
 
   return (
     <PageShell>
-      <SectionHeader title="Templates" description="Biblioteca premium para roteiros, contratos, cotações, vouchers e documentos operacionais." actions={<Button asChild className="rounded-full"><Link href="/master/templates/novo">Novo template</Link></Button>} />
-      <DashboardCard title="Biblioteca ativa" description="Templates com ações rápidas e contexto de uso por plano.">
-        <div className="space-y-3">
-          {records.map((item) => (
-            <div key={item.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
+      <SectionHeader
+        title="Central de templates"
+        description="Gerencie modelos oficiais utilizados por IA, Go, Agent e operação das agências."
+        actions={
+          <MasterHeaderActions
+            primary={
+              <Button asChild className="rounded-full">
+                <Link href="/master/templates/new">Novo template</Link>
+              </Button>
+            }
+            secondary={
+              <>
+                <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+                  <Link href="#biblioteca-oficial">Biblioteca oficial</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+                  <Link href="#marketplace-templates">Marketplace</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+                  <Link href="#atualizacoes-templates">Atualizações</Link>
+                </Button>
+              </>
+            }
+          />
+        }
+      />
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Templates ativos" value="48" helper="Distribuição oficial em contratos, roteiros, vouchers e operação." trend="9 ativos nesta semana" icon={FileStack} />
+        <MetricCard label="Templates premium" value="17" helper="Modelos com branding avançado, preview rico e uso estratégico." trend="5 novos em revisão" icon={Sparkles} />
+        <MetricCard label="Compatíveis com IA" value="32" helper="Prontos para uso futuro por IA, Go, Agent e Atlas Advisor." trend="12 com IA Ready total" icon={Bot} />
+        <MetricCard label="Instalações nas agências" value="320" helper="Adoção agregada dos modelos oficiais distribuídos pelo TravelPro." trend="Crescimento de 14% no mês" icon={Store} />
+      </div>
+
+      <div id="biblioteca-oficial">
+        <DashboardCard
+          title="Biblioteca oficial"
+          description="Modelos estruturais do TravelPro com versão, compatibilidade e distribuição por agência."
+        >
+          <div className="space-y-3">
+          {templateCards.map((item) => (
+            <div
+              key={item.id}
+              className="flex flex-col gap-4 rounded-[30px] border border-white/8 bg-gradient-to-r from-white/[0.05] via-white/[0.03] to-transparent p-5 shadow-[0_18px_40px_rgba(0,0,0,0.14)] xl:flex-row xl:items-center xl:justify-between"
+            >
+              <div className="min-w-0 flex-1 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{item.name}</p>
+                  <p className="text-base font-semibold text-foreground">{item.name}</p>
                   <StatusPill label={item.status} />
+                  <StatusPill label={item.badge} />
                   <StatusPill label={item.type} />
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">{item.category}</p>
-                <p className="mt-2 text-xs text-muted-foreground">Uso {item.usage} • Última edição {item.updatedAt} • Plano {item.plan}</p>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {item.category} • {item.destination} • {item.version}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {item.compatibilities.map((compatibility) => (
+                    <span
+                      key={`${item.id}-${compatibility}`}
+                      className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-muted-foreground"
+                    >
+                      {compatibility}
+                    </span>
+                  ))}
+                </div>
+                <div className="grid gap-3 text-xs text-muted-foreground md:grid-cols-3">
+                  <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
+                    <span className="block uppercase tracking-[0.16em] text-primary/70">Agências usando</span>
+                    <span className="mt-1 block text-sm font-medium text-foreground">{item.agenciesUsing}</span>
+                  </div>
+                  <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
+                    <span className="block uppercase tracking-[0.16em] text-primary/70">Última atualização</span>
+                    <span className="mt-1 block text-sm font-medium text-foreground">{item.updatedLabel}</span>
+                  </div>
+                  <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
+                    <span className="block uppercase tracking-[0.16em] text-primary/70">Disponibilidade</span>
+                    <span className="mt-1 block text-sm font-medium text-foreground">{item.plan}</span>
+                  </div>
+                </div>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="rounded-full border-white/10 bg-white/[0.03]"><MoreHorizontal className="h-4 w-4" /></Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" sideOffset={10} className="w-56 rounded-3xl border-white/10 bg-black/85 p-2 text-foreground shadow-2xl shadow-black/40 backdrop-blur-xl">
-                  <DropdownMenuItem className="rounded-2xl px-3 py-2.5" onSelect={() => setSelected(item)}><Eye className="h-4 w-4" />Visualizar</DropdownMenuItem>
-                  <DropdownMenuItem className="rounded-2xl px-3 py-2.5" onSelect={() => fire("Template em edição", `${item.name} foi aberto para edição mockada.`)}><FilePenLine className="h-4 w-4" />Editar</DropdownMenuItem>
-                  <DropdownMenuItem className="rounded-2xl px-3 py-2.5" onSelect={() => fire("Status alterado", `${item.name} teve o status ajustado em modo mockado.`)}><ArrowRightLeft className="h-4 w-4" />Ativar/Inativar</DropdownMenuItem>
-                  <DropdownMenuItem className="rounded-2xl px-3 py-2.5" onSelect={() => fire("Template duplicado", `${item.name} foi duplicado em modo mockado.`)}><FileStack className="h-4 w-4" />Duplicar</DropdownMenuItem>
-                  <DropdownMenuItem className="rounded-2xl px-3 py-2.5 text-red-200 focus:text-red-200" onSelect={() => setConfirmAction({
-                    title: "Excluir template",
-                    description: `Deseja confirmar a exclusão mockada de ${item.name}?`,
-                    confirmLabel: "Excluir template",
-                    onConfirm: () => fire("Template excluído", `${item.name} foi removido em modo mockado.`),
-                  })}><Trash2 className="h-4 w-4" />Excluir</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex flex-wrap items-center gap-2 xl:w-[300px] xl:justify-end">
+                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setSelected(item)}>
+                  <Eye className="h-4 w-4" />
+                  Visualizar
+                </Button>
+                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Template em edição", `${item.name} foi preparado para edição mockada.`)}>
+                  <FilePenLine className="h-4 w-4" />
+                  Editar
+                </Button>
+                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Template publicado", `${item.name} foi sinalizado para publicação mockada.`)}>
+                  <BadgeCheck className="h-4 w-4" />
+                  Publicar
+                </Button>
+                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Template duplicado", `${item.name} foi duplicado em modo mockado.`)}>
+                  <FileStack className="h-4 w-4" />
+                  Duplicar
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-full border-white/10 bg-white/[0.03]"
+                  onClick={() =>
+                    setConfirmAction({
+                      title: "Desativar template",
+                      description: `Deseja desativar ${item.name} da central oficial?`,
+                      confirmLabel: "Desativar template",
+                      onConfirm: () => fire("Template desativado", `${item.name} foi desativado em modo mockado.`),
+                    })
+                  }
+                >
+                  <ArrowRightLeft className="h-4 w-4" />
+                  Desativar
+                </Button>
+              </div>
             </div>
           ))}
-        </div>
-      </DashboardCard>
-      <MockFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="Novo template"
-        description="Crie um novo template com tipo, categoria e plano de disponibilidade."
-        fields={[
-          { label: "Nome", value: "Contrato Premium Europa" },
-          { label: "Tipo", value: "Contrato" },
-          { label: "Categoria", value: "Premium" },
-          { label: "Plano disponível", value: "Pro e Scale" },
-        ]}
-        confirmLabel="Salvar template"
-        onConfirm={() => fire("Template criado", "O novo template foi preparado em modo mockado.")}
-      />
+          </div>
+        </DashboardCard>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_360px]">
+        <DashboardCard
+          title="Marketplace e distribuição"
+          description="Prepare a biblioteca oficial para expansão pública, bundles premium e instalação simplificada nas agências."
+        >
+          <div id="marketplace-templates" className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+              <p className="text-sm font-medium text-foreground">Biblioteca oficial TravelPro</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Modelos homologados para operação, IA, Go, Agent, Atlas e materiais premium das agências.
+              </p>
+            </div>
+            <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+              <p className="text-sm font-medium text-foreground">Marketplace de templates</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Estrutura visual preparada para bundles, templates premium e atualizações distribuídas por plano.
+              </p>
+            </div>
+          </div>
+        </DashboardCard>
+
+        <DashboardCard title="Atualizações" description="Leitura rápida da evolução da biblioteca oficial.">
+          <div id="atualizacoes-templates" className="space-y-3">
+            {[
+              "Contrato Signature recebeu novas variáveis de pagamento e assinatura.",
+              "Template de roteiro ganhou selo IA Ready e mapeamento para Go.",
+              "Vouchers premium ficaram preparados para personalização de capa e rodapé.",
+            ].map((item, index) => (
+              <div key={`${item}-${index}`} className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-muted-foreground">
+                {item}
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+      </div>
+
       <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
 
       <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
@@ -1185,14 +1312,16 @@ export function MasterTemplatesPage() {
             <>
               <DialogHeader className="border-b border-white/8 px-6 py-5">
                 <DialogTitle>{selected.name}</DialogTitle>
-                <DialogDescription>Visão do template com disponibilidade, uso e histórico de atualização.</DialogDescription>
+                <DialogDescription>Visão do template oficial com compatibilidade, distribuição e status de publicação.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
                 <InfoCard label="Tipo" value={selected.type} />
                 <InfoCard label="Status" value={selected.status} />
-                <InfoCard label="Uso por agências" value={selected.usage} />
+                <InfoCard label="Sessão destino" value={selected.destination} />
+                <InfoCard label="Compatibilidade" value={selected.compatibilities.join(", ")} />
+                <InfoCard label="Instalações" value={selected.agenciesUsing} />
                 <InfoCard label="Criado em" value={selected.createdAt} />
-                <InfoCard label="Última edição" value={selected.updatedAt} />
+                <InfoCard label="Última atualização" value={selected.updatedLabel} />
                 <InfoCard label="Plano disponível" value={selected.plan} />
               </div>
             </>

@@ -55,6 +55,10 @@ import { SearchInput } from "@/components/system/search-input"
 import { FilterTabs } from "@/components/system/filter-tabs"
 import { SetupStatusCard } from "@/components/system/setup-status-card"
 import { SmartActionButton } from "@/components/system/smart-action-button"
+import { LivePreviewPanel } from "@/components/system/live-preview-panel"
+import { MediaUploadCard } from "@/components/system/media-upload-card"
+import { OperationalWorkspaceLayout } from "@/components/system/operational-workspace-layout"
+import { WorkspaceSidebarInfo } from "@/components/system/workspace-sidebar-info"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -1931,71 +1935,321 @@ export function AgencyTicketsPage() {
 
 export function AgencyTemplatesPage() {
   const templateRecords = templates.filter((item) => item.type === "Contrato" || item.type === "Voucher" || item.type === "Roteiro")
-  const [selected, setSelected] = useState<(typeof templateRecords)[number] | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
+  const availableTemplates = templateRecords.map((item, index) => ({
+    ...item,
+    badge: ["Premium", "Free", "Premium"][index] ?? "Free",
+    recommendation: ["Mais usado para contratos de alta conversão", "Recomendado para operação ágil", "Ideal para jornadas aspiracionais"][index] ?? "Pronto para uso",
+    version: ["v3.4", "v2.8", "v3.1"][index] ?? "v1.0",
+    compatibility: [["IA", "Go"], ["Go", "Atlas"], ["IA", "Go", "Agent"]][index] ?? ["IA"],
+    summary: [
+      "Estrutura comercial e jurídica pronta para receber branding da agência e assinatura institucional.",
+      "Modelo oficial para emissão premium de vouchers com leitura clara para operação e cliente final.",
+      "Template narrativo com blocos elegantes para experiências, agenda e diferenciais da viagem.",
+    ][index] ?? "Modelo oficial TravelPro.",
+  }))
+  const [selected, setSelected] = useState<(typeof availableTemplates)[number] | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(null)
+  const [primaryColor, setPrimaryColor] = useState("#FF6A1A")
+  const [signature, setSignature] = useState("Equipe TravelPro Atlântico Premium")
+  const [whatsapp, setWhatsapp] = useState("+55 11 99876-4321")
+  const [instagram, setInstagram] = useState("@atlantico.premium")
+  const [site, setSite] = useState("www.atlanticopremium.com.br")
+  const [slogan, setSlogan] = useState("Viagens com curadoria, contexto e operação impecável.")
+  const [footer, setFooter] = useState("Material emitido pela agência com apoio da infraestrutura TravelPro.")
   const fire = (title: string, description: string) => toast({ title, description })
+  const handlePreviewFile = (
+    setter: React.Dispatch<React.SetStateAction<string | null>>,
+    file: File | null,
+  ) => {
+    if (!file) return
+    setter(URL.createObjectURL(file))
+  }
 
   return (
     <PageShell>
       <SectionHeader
-        title="Templates"
-        description="Modelos prontos para contratos, vouchers, roteiros e documentos da operação."
+        title="Templates ativos da agência"
+        description="Escolha modelos oficiais do TravelPro e personalize a experiência da sua marca."
         actions={
-          <Button asChild className="rounded-full">
-            <Link href="/app/documentos/novo">Novo template</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+              <Link href="#templates-disponiveis">Explorar templates</Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+              <Link href="/app/documentos/templates/personalizar">Configurar identidade</Link>
+            </Button>
+            <Button asChild className="rounded-full">
+              <Link href="#ia-ready-templates">Ver compatibilidade IA</Link>
+            </Button>
+          </div>
         }
       />
-      <DashboardCard title="Biblioteca de templates" description="Ações rápidas para revisar, baixar, enviar ou remover modelos.">
-        <div className="space-y-3">
-          {templateRecords.map((item) => (
-            <div key={item.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <button type="button" onClick={() => setSelected(item)} className="min-w-0 text-left">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{item.name}</p>
-                  <StatusPill label={item.status} />
+      <OperationalWorkspaceLayout
+        sidebar={
+          <>
+            <LivePreviewPanel
+              title="Preview institucional"
+              description="Como os modelos ativos podem aparecer com a identidade da agência."
+              footer={
+                <Button
+                  variant="outline"
+                  className="rounded-full border-white/10 bg-white/[0.03]"
+                  onClick={() => fire("Preview institucional", "A leitura premium da agência foi aberta em modo mockado.")}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Abrir preview
+                </Button>
+              }
+            >
+              <div className="overflow-hidden rounded-[24px] border border-white/8 bg-black/25">
+                <div
+                  className="border-b border-white/8 px-5 py-6"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}40 0%, rgba(255,255,255,0.03) 62%, rgba(0,0,0,0.2) 100%)`,
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05]">
+                      {logoPreview ? (
+                        <img src={logoPreview} alt="Logo da agência" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-semibold text-primary">TP</span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-primary/75">Templates ativos</p>
+                      <h3 className="mt-1 text-lg font-semibold text-foreground">Atlântico Premium</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">{slogan}</p>
+                    </div>
+                  </div>
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">{item.type} • {item.category}</p>
-              </button>
-              <ActionMenu
-                items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => setSelected(item) },
-                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Template em edição", `${item.name} foi aberto para edição mockada.`) },
-                  { label: "Baixar", icon: Download, onClick: () => fire("Template baixado", `${item.name} foi preparado para download.`) },
-                  { label: "Enviar ao cliente", icon: Send, onClick: () => fire("Template preparado", `${item.name} ficou pronto para compartilhamento mockado.`) },
-                  {
-                    label: "Excluir",
-                    icon: Trash2,
-                    onClick: () =>
-                      setConfirmAction({
-                        title: "Excluir template",
-                        description: `Deseja confirmar a exclusão mockada de ${item.name}?`,
-                        confirmLabel: "Excluir template",
-                        onConfirm: () => fire("Template excluído", `${item.name} foi removido em modo mockado.`),
-                      }),
-                    danger: true,
-                  },
-                ]}
+                <div className="space-y-4 px-5 py-5">
+                  <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+                    <p className="text-sm font-medium text-foreground">Assinatura padrão</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{signature}</p>
+                  </div>
+                  <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+                    <p className="text-sm font-medium text-foreground">Canais oficiais</p>
+                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                      <p>{whatsapp}</p>
+                      <p>{instagram}</p>
+                      <p>{site}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-[22px] border border-primary/15 bg-primary/10 p-4">
+                    <p className="text-sm font-medium text-foreground">Compatível com TravelPro Go</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      Esse template poderá ser utilizado automaticamente pela IA para contratos, roteiros,
+                      vouchers, propostas e documentos operacionais.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </LivePreviewPanel>
+
+            <WorkspaceSidebarInfo
+              title="Status da identidade"
+              description="Leitura rápida do que já está pronto para reutilização pela agência."
+              items={[
+                { label: "Cor principal", value: primaryColor.toUpperCase() },
+                { label: "Modelos ativos", value: `${availableTemplates.length} oficiais` },
+                { label: "Uso futuro", value: "IA • Go • Agent • Atlas" },
+              ]}
+            />
+
+            <SetupStatusCard
+              title="Pronto para distribuição"
+              description="A base da agência fica preparada para catálogos, documentos e automações futuras."
+              badges={["Branding ativo", "IA Ready", "Go compatível", "Operação premium"]}
+            />
+          </>
+        }
+      >
+        <DashboardCard title="Identidade da marca" description="A agência ativa modelos oficiais e aplica apenas a sua assinatura institucional.">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <MediaUploadCard
+                title="Logo da agência"
+                description="Aplicado em contratos, roteiros, vouchers e materiais enviados ao cliente."
+                preview={logoPreview}
+                orientation="landscape"
+                onSelect={(file) => handlePreviewFile(setLogoPreview, file)}
+                onRemove={() => setLogoPreview(null)}
               />
             </div>
-          ))}
+            <MediaUploadCard
+              title="Favicon"
+              description="Assinatura compacta para links públicos e experiências web."
+              preview={faviconPreview}
+              orientation="square"
+              onSelect={(file) => handlePreviewFile(setFaviconPreview, file)}
+              onRemove={() => setFaviconPreview(null)}
+            />
+            <label className="space-y-2 rounded-[26px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.12)]">
+              <span className="text-sm font-medium text-foreground">Cor principal</span>
+              <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+                <input
+                  type="color"
+                  value={primaryColor}
+                  onChange={(event) => setPrimaryColor(event.target.value)}
+                  className="h-10 w-10 cursor-pointer rounded-xl border border-white/10 bg-transparent"
+                />
+                <input
+                  value={primaryColor}
+                  onChange={(event) => setPrimaryColor(event.target.value)}
+                  className="w-full bg-transparent text-sm text-foreground outline-none"
+                />
+              </div>
+              <div className="grid gap-3 pt-1 md:grid-cols-2">
+                <label className="space-y-2">
+                  <span className="text-xs uppercase tracking-[0.18em] text-primary/75">WhatsApp</span>
+                  <input
+                    value={whatsapp}
+                    onChange={(event) => setWhatsapp(event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                  />
+                </label>
+                <label className="space-y-2">
+                  <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Instagram</span>
+                  <input
+                    value={instagram}
+                    onChange={(event) => setInstagram(event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                  />
+                </label>
+              </div>
+            </label>
+            <label className="space-y-2 rounded-[26px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.12)]">
+              <span className="text-sm font-medium text-foreground">Assinatura e canais</span>
+              <div className="space-y-3 pt-1">
+                <input
+                  value={signature}
+                  onChange={(event) => setSignature(event.target.value)}
+                  placeholder="Assinatura padrão"
+                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                />
+                <input
+                  value={site}
+                  onChange={(event) => setSite(event.target.value)}
+                  placeholder="Site"
+                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                />
+                <input
+                  value={slogan}
+                  onChange={(event) => setSlogan(event.target.value)}
+                  placeholder="Slogan"
+                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                />
+              </div>
+            </label>
+            <label className="space-y-2 rounded-[26px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.12)] md:col-span-2">
+              <span className="text-sm font-medium text-foreground">Rodapé institucional</span>
+              <textarea
+                rows={4}
+                value={footer}
+                onChange={(event) => setFooter(event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+              />
+            </label>
+          </div>
+        </DashboardCard>
+
+        <DashboardCard
+          title="Templates disponíveis"
+          description="Modelos oficiais do TravelPro prontos para ativação, padrão e personalização."
+        >
+          <div id="templates-disponiveis" className="space-y-3">
+            {availableTemplates.map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-col gap-4 rounded-[30px] border border-white/8 bg-gradient-to-r from-white/[0.05] via-white/[0.03] to-transparent p-5 shadow-[0_18px_40px_rgba(0,0,0,0.14)] xl:flex-row xl:items-center xl:justify-between"
+              >
+                <button type="button" onClick={() => setSelected(item)} className="min-w-0 flex-1 text-left">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-base font-semibold text-foreground">{item.name}</p>
+                    <StatusPill label={item.status} />
+                    <StatusPill label={item.badge} />
+                    <StatusPill label={item.version} />
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {item.type} • {item.category} • {item.recommendation}
+                  </p>
+                  <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{item.summary}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {item.compatibility.map((compatibility) => (
+                      <span
+                        key={`${item.id}-${compatibility}`}
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-muted-foreground"
+                      >
+                        {compatibility}
+                      </span>
+                    ))}
+                    <span className="rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-[11px] text-primary">
+                      Recomendado
+                    </span>
+                  </div>
+                </button>
+                <div className="flex flex-wrap items-center gap-2 xl:w-[320px] xl:justify-end">
+                  <Button
+                    variant="outline"
+                    className="rounded-full border-white/10 bg-white/[0.03]"
+                    onClick={() => fire("Template ativado", `${item.name} foi ativado em modo mockado.`)}
+                  >
+                    Ativar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="rounded-full border-white/10 bg-white/[0.03]"
+                    onClick={() => setSelected(item)}
+                  >
+                    Visualizar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="rounded-full border-white/10 bg-white/[0.03]"
+                    onClick={() => fire("Template padrão", `${item.name} foi definido como padrão em modo mockado.`)}
+                  >
+                    Definir padrão
+                  </Button>
+                  <Button asChild className="rounded-full">
+                    <Link href={`/app/documentos/templates/personalizar?template=${encodeURIComponent(item.name)}`}>
+                      Personalizar
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+
+        <div id="ia-ready-templates" className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_360px]">
+          <FeatureExplanationCard
+            title="Compatível com TravelPro Go"
+            description="Os modelos oficiais da agência já ficam preparados para uso futuro dentro do ecossistema inteligente."
+            items={[
+              {
+                title: "Go operacional",
+                body: "Esse template poderá ser utilizado automaticamente pelo Go ao gerar contratos, roteiros, vouchers e documentos via WhatsApp.",
+              },
+              {
+                title: "Agent e follow-up",
+                body: "Modelos ativos também poderão ser reutilizados pelo Agent em comunicações contextuais com leads e clientes.",
+              },
+              {
+                title: "Atlas e Marketing IA",
+                body: "A mesma identidade ajuda Atlas Advisor e Marketing IA a manter coerência operacional e comercial.",
+              },
+            ]}
+          />
+          <SetupStatusCard
+            title="IA Ready"
+            description="Bloco visual para sinalizar quais modelos já estão prontos para o futuro ecossistema inteligente."
+            badges={["TravelPro Go", "Agent", "Atlas", "Marketing IA"]}
+          />
         </div>
-      </DashboardCard>
-      <MockFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="Novo template"
-        description="Crie um novo modelo com tipo, categoria e uso principal."
-        fields={[
-          { label: "Nome", value: "Voucher Premium Caribe" },
-          { label: "Tipo", value: "Voucher" },
-          { label: "Categoria", value: "Premium" },
-          { label: "Uso principal", value: "Hospedagem e experiências" },
-        ]}
-        confirmLabel="Salvar template"
-        onConfirm={() => fire("Template criado", "O novo template foi preparado em modo mockado.")}
-      />
+      </OperationalWorkspaceLayout>
       <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
 
       <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
@@ -2004,16 +2258,19 @@ export function AgencyTemplatesPage() {
             <>
               <DialogHeader className="border-b border-white/8 px-6 py-5">
                 <DialogTitle>{selected.name}</DialogTitle>
-                <DialogDescription>Prévia mockada do template com categoria, tipo e uso principal.</DialogDescription>
+                <DialogDescription>Preview do modelo oficial com branding, compatibilidade e leitura de uso pela agência.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 px-6 py-5 md:grid-cols-2 xl:grid-cols-3">
                 <InfoCard label="Tipo" value={selected.type} />
                 <InfoCard label="Categoria" value={selected.category} />
                 <InfoCard label="Status" value={selected.status} />
+                <InfoCard label="Versão" value={selected.version} />
+                <InfoCard label="Compatibilidade" value={selected.compatibility.join(", ")} />
+                <InfoCard label="Badge" value={selected.badge} />
               </div>
               <div className="px-6 pb-6">
                 <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-sm leading-6 text-muted-foreground">
-                  Estrutura mockada pronta para preview, revisão e uso em documentos e fluxos da agência.
+                  {selected.summary}
                 </div>
               </div>
             </>
