@@ -20,8 +20,6 @@ import {
   FilePenLine,
   FileText,
   HandCoins,
-  HeartHandshake,
-  MessageSquareText,
   MoreHorizontal,
   Palette,
   PlaneTakeoff,
@@ -32,7 +30,6 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
-  Tags,
   Target,
   Trash2,
   TrendingUp,
@@ -68,6 +65,7 @@ import { MockChart } from "@/components/system/mock-chart"
 import { toast } from "@/components/ui/use-toast"
 import type { CatalogItemRow, ClientRow, DocumentRow, FinancialRecordRow, LeadRow, TeamMemberRow, TripRow } from "@/types/database"
 import type { ClientInput, ClientTravelerProfile } from "@/types/client"
+import type { AgencyDashboardData } from "@/types/dashboard"
 
 type ClientRecord = {
   id: string
@@ -887,34 +885,64 @@ function TripEditorDialog({
 }
 
 export function AgencyDashboardPage() {
-  const operationalFeed = [
-    { title: "Contrato Signature enviado", detail: "Atlântico Premium • casal Santiago • há 8 min", icon: FilePenLine },
-    { title: "TravelPro Go criou roteiro", detail: "Paris Signature • cliente Helena Faria • há 2 min", icon: MessageSquareText },
-    { title: "Cliente respondeu no WhatsApp", detail: "Família Prado confirmou upgrade de hotel • há 14 min", icon: BellRing },
-    { title: "Match detectou oportunidade", detail: "Alta procura por Caribe Premium para julho • há 21 min", icon: Sparkles },
-    { title: "Advisor sugeriu ação", detail: "Lead VIP sem follow-up desde ontem à noite", icon: Target },
-  ]
+  const [dashboard, setDashboard] = useState<AgencyDashboardData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const fire = (title: string, description: string) => toast({ title, description })
 
-  const liveSystemItems = [
-    { label: "GO ativo", status: "Operando", detail: "184 comandos úteis hoje", tone: "bg-emerald-400" },
-    { label: "Agent monitorando leads", status: "Em observação", detail: "8 conversas com alta chance", tone: "bg-sky-400" },
-    { label: "Advisor analisando performance", status: "Atualizando", detail: "Nova leitura comercial do dia", tone: "bg-primary" },
-    { label: "Match sincronizando oportunidades", status: "Em alta", detail: "3 pacotes aderentes ao mercado", tone: "bg-violet-400" },
-    { label: "Marketing IA preparando campanha", status: "Em breve", detail: "Europa premium com pico de busca", tone: "bg-amber-400" },
-  ]
+  useEffect(() => {
+    let active = true
 
-  const advisorRecommendations = [
-    "Cliente VIP de Mendoza está sem follow-up desde 18h de ontem.",
-    "Campanha sazonal para Europa premium pode entrar hoje com alta chance de clique.",
-    "Pacote Cancún Family tem aderência alta ao Match nesta semana.",
-  ]
+    const loadDashboard = async () => {
+      setIsLoading(true)
+      setLoadError(null)
 
-  const miniCentralItems = [
-    { label: "Clientes aguardando", value: "5", hint: "2 VIPs com resposta pendente" },
-    { label: "Documentos críticos", value: "3", hint: "1 contrato e 2 vouchers" },
-    { label: "Pagamentos pendentes", value: "R$ 12,4 mil", hint: "4 confirmações para hoje" },
-    { label: "Follow-ups", value: "14", hint: "3 quentes há mais de 2h" },
-    { label: "Viagens próximas", value: "4", hint: "2 embarques ainda hoje" },
+      try {
+        const data = await requestJson<AgencyDashboardData>("/api/dashboard/agency")
+        if (!active) return
+        setDashboard(data)
+      } catch (error) {
+        if (!active) return
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[AgencyDashboardPage] failed to load dashboard", error)
+        }
+        setDashboard(null)
+        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar o dashboard da agencia.")
+      } finally {
+        if (active) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadDashboard()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const metricIconMap = [Users, Waypoints, PlaneTakeoff, FileText, Wallet, CalendarClock]
+
+  const feedIconForHref = (href: string) => {
+    if (href.includes("/clientes")) return UserRoundPlus
+    if (href.includes("/leads")) return Waypoints
+    if (href.includes("/viagens")) return PlaneTakeoff
+    if (href.includes("/documentos")) return FilePenLine
+    return HandCoins
+  }
+
+  const quickActions = [
+    { title: "Novo cliente", href: "/app/clientes/novo", icon: UserRoundPlus, description: "Cadastrar contato e abrir relacionamento." },
+    { title: "Novo lead", href: "/app/leads/novo", icon: Waypoints, description: "Adicionar lead novo ao funil comercial." },
+    { title: "Nova viagem", href: "/app/viagens/nova", icon: PlaneTakeoff, description: "Abrir jornada operacional com dados reais." },
+    { title: "Novo documento", href: "/app/documentos/novo", icon: FilePenLine, description: "Criar documento real vinculado a cliente ou viagem." },
+    { title: "Novo lançamento", href: "/app/financeiro/novo", icon: HandCoins, description: "Registrar receita ou despesa no financeiro real." },
+    { title: "Ver clientes", href: "/app/clientes", icon: Users, description: "Abrir a base real de clientes da agência." },
+    { title: "Ver leads", href: "/app/leads", icon: Target, description: "Acompanhar o pipeline comercial em tempo real." },
+    { title: "Ver viagens", href: "/app/viagens", icon: Route, description: "Consultar viagens ativas e próximos embarques." },
+    { title: "Ver documentos", href: "/app/documentos", icon: FileText, description: "Acompanhar contratos, vouchers e pendências." },
+    { title: "Ver financeiro", href: "/app/financeiro", icon: Wallet, description: "Consultar saldo, receitas e despesas reais." },
   ]
 
   return (
@@ -939,13 +967,15 @@ export function AgencyDashboardPage() {
         description="O que o sistema está vendo agora sem transformar seu dia em um cockpit barulhento."
       >
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          {[
-            { label: "Viagens em andamento", value: "12 ativas", hint: "2 embarques hoje" },
-            { label: "Clientes aguardando", value: "5 respostas", hint: "1 VIP parado há 3h" },
-            { label: "Follow-ups pendentes", value: "14 ações", hint: "3 quentes agora" },
-            { label: "Financeiro previsto", value: "R$ 84,2 mil", hint: "R$ 12,4 mil a receber" },
-            { label: "Status do GO", value: "Ativo", hint: "Última ação há 2 min" },
-          ].map((item) => (
+          {isLoading
+            ? Array.from({ length: 5 }).map((_, index) => (
+                <div key={`dashboard-summary-skeleton-${index}`} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3.5 animate-pulse">
+                  <div className="h-3 w-24 rounded-full bg-white/10" />
+                  <div className="mt-3 h-4 w-28 rounded-full bg-white/10" />
+                  <div className="mt-2 h-3 w-32 rounded-full bg-white/10" />
+                </div>
+              ))
+            : (dashboard?.summary_cards ?? []).map((item) => (
             <div key={item.label} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3.5">
               <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">{item.label}</p>
               <p className="mt-2 text-sm font-semibold text-foreground">{item.value}</p>
@@ -955,28 +985,91 @@ export function AgencyDashboardPage() {
         </div>
       </DashboardCard>
 
+      {loadError ? (
+        <div className="rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+          <p className="font-medium">Nao foi possivel carregar o dashboard agora.</p>
+          <p className="mt-1 text-amber-100/80">{loadError}</p>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <MetricCard label="Leads novos" value="24 novos leads" change="8 quentes • 3 aguardando há mais de 2h" tone="success" icon={Waypoints} />
-        <MetricCard label="Viagens em andamento" value="12 viagens ativas" change="2 embarques hoje • 1 documentação pendente" tone="info" icon={PlaneTakeoff} />
-        <MetricCard label="Documentos pendentes" value="7 pendências" change="2 críticas • 1 emissão final hoje" tone="warning" icon={FileText} />
-        <MetricCard label="Follow-ups pendentes" value="14 follow-ups" change="3 com alta chance • 5 precisam resposta rápida" tone="warning" icon={HeartHandshake} />
-        <MetricCard label="Resumo financeiro" value="R$ 84,2 mil" change="R$ 12,4 mil pendentes • +9% no ciclo" tone="success" icon={Wallet} />
-        <MetricCard label="TravelPro Go" value="GO operacional" change="184 ações hoje • última execução há 2 min" tone="info" icon={MessageSquareText} />
+        {isLoading
+          ? Array.from({ length: 6 }).map((_, index) => (
+              <div key={`dashboard-metric-skeleton-${index}`} className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5 animate-pulse">
+                <div className="h-4 w-28 rounded-full bg-white/10" />
+                <div className="mt-4 h-6 w-36 rounded-full bg-white/10" />
+                <div className="mt-3 h-4 w-40 rounded-full bg-white/10" />
+              </div>
+            ))
+          : (dashboard?.metrics ?? []).map((metric, index) => {
+              const Icon = metricIconMap[index] ?? Sparkles
+              return <MetricCard key={metric.label} label={metric.label} value={metric.value} change={metric.change} tone={metric.tone} icon={Icon} />
+            })}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_380px]">
-        <MockChart
-          title="Financeiro vivo"
-          description="Recebimentos, despesas, tendência do ciclo e projeção operacional em leitura compacta."
-          filters={["Hoje", "Semana", "Mês"]}
-          series={financeSeriesByPeriod.Semana}
-        />
+        <DashboardCard title="Financeiro vivo" description="Receitas, despesas, saldo e registros recentes com base real do Supabase.">
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={`dashboard-finance-skeleton-${index}`} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4 animate-pulse">
+                  <div className="h-4 w-32 rounded-full bg-white/10" />
+                  <div className="mt-3 h-4 w-40 rounded-full bg-white/10" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <InfoCard label="Receitas" value={formatMoney(dashboard?.finance_snapshot.total_revenue ?? 0)} />
+                <InfoCard label="Despesas" value={formatMoney(dashboard?.finance_snapshot.total_expenses ?? 0)} />
+                <InfoCard label="Saldo" value={formatMoney(dashboard?.finance_snapshot.balance ?? 0)} />
+                <InfoCard label="A receber" value={formatMoney(dashboard?.finance_snapshot.pending_revenue ?? 0)} />
+              </div>
+              <div className="mt-4 rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-sm font-medium text-foreground">Leitura do momento</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{dashboard?.finance_snapshot.note || "Ainda não há dados financeiros suficientes para leitura."}</p>
+              </div>
+              <div className="mt-4 space-y-3">
+                {(dashboard?.finance_snapshot.recent_records ?? []).length === 0 ? (
+                  <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                    Nenhum lançamento financeiro ainda. Use o CTA de novo lançamento para alimentar o dashboard.
+                  </div>
+                ) : (
+                  (dashboard?.finance_snapshot.recent_records ?? []).map((record) => (
+                    <div key={record.id} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{record.category || record.type}</p>
+                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{record.description || "Sem descrição complementar"} • {formatDateLabel(record.occurred_at)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-foreground">{formatMoney(Number(record.amount || 0))}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{record.status}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </DashboardCard>
 
         <div className="space-y-6">
           <DashboardCard title="Sistema Vivo TravelPro" description="Pequeno retrato do que está trabalhando por trás da operação.">
             <div className="space-y-3">
-              {liveSystemItems.map((item) => (
-                <div key={item.label} className="flex items-start gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
+              {(dashboard?.system_items ?? []).map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => {
+                    if (item.action === "future") {
+                      fire("Em breve", item.detail)
+                    }
+                  }}
+                  className="flex w-full items-start gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-left"
+                >
                   <span className={`mt-1 h-2.5 w-2.5 shrink-0 animate-pulse rounded-full ${item.tone}`} />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -987,22 +1080,22 @@ export function AgencyDashboardPage() {
                     </div>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </DashboardCard>
 
           <DashboardCard title="Saúde operacional" description="Indicador discreto baseado em leads, financeiro, follow-up e documentação.">
-            <div className="rounded-[24px] border border-emerald-400/15 bg-emerald-400/10 p-4">
+            <div className={`rounded-[24px] p-4 ${dashboard?.health.tone === "success" ? "border border-emerald-400/15 bg-emerald-400/10" : "border border-amber-400/20 bg-amber-400/10"}`}>
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-200/80">Saudável</p>
-                  <p className="mt-2 text-lg font-semibold text-foreground">Operação estável e responsiva</p>
+                  <p className={`text-[10px] uppercase tracking-[0.18em] ${dashboard?.health.tone === "success" ? "text-emerald-200/80" : "text-amber-100/80"}`}>{dashboard?.health.label || "Em análise"}</p>
+                  <p className="mt-2 text-lg font-semibold text-foreground">{dashboard?.health.title || "Carregando saúde operacional"}</p>
                 </div>
-                <div className="h-3 w-3 animate-pulse rounded-full bg-emerald-300" />
+                <div className={`h-3 w-3 animate-pulse rounded-full ${dashboard?.health.tone === "success" ? "bg-emerald-300" : "bg-amber-300"}`} />
               </div>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                Leads quentes estão sendo trabalhados, financeiro segue dentro da previsão e as pendências críticas continuam sob controle.
+                {dashboard?.health.description || "Lendo sinais reais da operação."}
               </p>
             </div>
           </DashboardCard>
@@ -1012,30 +1105,40 @@ export function AgencyDashboardPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
         <DashboardCard title="Atividade operacional" description="Fluxo recente da agência com leitura limpa e contextual.">
           <div className="space-y-3">
-            {operationalFeed.map((item) => (
+            {(dashboard?.operational_feed ?? []).length === 0 && !isLoading ? (
+              <div className="rounded-[22px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                Ainda não há eventos reais recentes. Crie clientes, leads, viagens, documentos ou lançamentos para alimentar este feed.
+              </div>
+            ) : null}
+            {(dashboard?.operational_feed ?? []).map((item) => {
+              const Icon = feedIconForHref(item.href)
+              return (
               <div key={item.title} className="flex items-start gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3.5">
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-2.5">
-                  <item.icon className="h-4 w-4 text-primary" />
+                  <Icon className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">{item.title}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{item.title}</p>
+                    <StatusPill label={item.time} />
+                  </div>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</p>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </DashboardCard>
 
         <DashboardCard title="Hoje na operação" description="Prioridades que merecem sua atenção antes do próximo ciclo do dia.">
           <div className="space-y-3">
-            {miniCentralItems.map((item) => (
-              <div key={item.label} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
+            {(dashboard?.priorities ?? []).map((item) => (
+              <Link key={item.label} href={item.href} className="block rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 transition-all hover:border-primary/15 hover:bg-white/[0.05]">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium text-foreground">{item.label}</p>
                   <span className="text-sm font-semibold text-primary">{item.value}</span>
                 </div>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.hint}</p>
-              </div>
+              </Link>
             ))}
             <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]">
               <Link href="/app/central-operacional">Abrir central operacional</Link>
@@ -1049,21 +1152,21 @@ export function AgencyDashboardPage() {
               <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">Status operacional</p>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400" />
-                  <p className="text-sm font-semibold text-foreground">Ativo e conectado à operação</p>
+                  <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-amber-400" />
+                  <p className="text-sm font-semibold text-foreground">Em breve na leitura real do dashboard</p>
                 </div>
               </div>
               <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">Ações hoje</p>
-                <p className="mt-2 text-sm font-semibold text-foreground">184 execuções úteis</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">Roteiro Paris criado há 2 min e contrato Santiago revisado há 11 min.</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">Integração futura com WhatsApp</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">O painel já reserva o espaço, mas ainda não lê execuções reais do GO sem a integração de WhatsApp.</p>
               </div>
               <div className="flex gap-2">
-                <Button asChild className="flex-1 rounded-full">
-                  <Link href="/app/travelpro-go">Abrir GO</Link>
+                <Button className="flex-1 rounded-full" onClick={() => fire("TravelPro Go em breve", "O GO ainda não está conectado ao dashboard real porque a integração de WhatsApp permanece fora deste escopo.")}>
+                  Abrir GO
                 </Button>
-                <Button asChild variant="outline" className="flex-1 rounded-full border-white/10 bg-white/[0.03]">
-                  <Link href="/app/travelpro-go">Ver histórico</Link>
+                <Button variant="outline" className="flex-1 rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Histórico em breve", "O histórico do TravelPro Go será liberado quando a integração de WhatsApp entrar na fase correspondente.")}>
+                  Ver histórico
                 </Button>
               </div>
             </div>
@@ -1071,7 +1174,7 @@ export function AgencyDashboardPage() {
 
           <DashboardCard title="Advisor recomenda" description="Sugestões discretas com maior impacto operacional e comercial.">
             <div className="space-y-3">
-              {advisorRecommendations.map((item) => (
+              {(dashboard?.advisor_recommendations ?? []).map((item) => (
                 <div key={item} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-muted-foreground">
                   {item}
                 </div>
@@ -1081,21 +1184,19 @@ export function AgencyDashboardPage() {
 
           <DashboardCard title="Match e Marketing IA" description="Oportunidades detectadas e campanhas prontas para aproveitar a demanda.">
             <div className="space-y-3">
-              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
+              <button type="button" onClick={() => fire("Match em breve", "O Match ainda não está integrado a dados reais neste dashboard.")} className="w-full rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-left">
                 <p className="text-sm font-medium text-foreground">Match em alta</p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  6 oportunidades detectadas • Europa e Caribe com procura crescente • 3 pacotes compatíveis para destaque.
+                  O conceito visual foi mantido, mas a integração real do Match continua como próxima etapa.
                 </p>
-              </div>
-              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
+              </button>
+              <button type="button" onClick={() => fire("Marketing IA em breve", "O Marketing IA ainda não está integrado a dados reais neste dashboard.")} className="w-full rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-left">
                 <p className="text-sm font-medium text-foreground">Marketing IA</p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  Alta procura por Europa premium • campanha pronta • sequência WhatsApp disponível para ativação.
+                  O painel já sinaliza o espaço do módulo, mas sem inventar dados enquanto a integração real não existe.
                 </p>
-              </div>
-              <Button asChild className="w-full rounded-full">
-                <Link href="/app/marketing">Gerar campanha</Link>
-              </Button>
+              </button>
+              <Button className="w-full rounded-full" onClick={() => fire("Campanhas em breve", "A geração de campanhas por Marketing IA ainda será integrada fora deste escopo.")}>Gerar campanha</Button>
             </div>
           </DashboardCard>
         </div>
@@ -1104,12 +1205,7 @@ export function AgencyDashboardPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         <DashboardCard title="Ações rápidas" description="Atalhos para mover a operação sem perder contexto.">
           <div className="grid gap-3 md:grid-cols-2">
-            {[
-              { title: "Novo cliente", href: "/app/clientes/novo", icon: UserRoundPlus, description: "Cadastrar contato e abrir relacionamento." },
-              { title: "Nova cotação", href: "/app/viagens/cotacoes/nova", icon: Receipt, description: "Montar proposta com rapidez." },
-              { title: "Novo contrato", href: "/app/documentos/novo", icon: FilePenLine, description: "Gerar e revisar documento da viagem." },
-              { title: "Publicar pacote", href: "/app/catalogo/pacotes/novo", icon: Tags, description: "Levar a oferta para vitrine e Match." },
-            ].map((item) => (
+            {quickActions.map((item) => (
               <Link key={item.title} href={item.href} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4 transition-all hover:border-primary/15 hover:bg-white/[0.05]">
                 <div className="mb-3 flex items-center gap-3">
                   <div className="rounded-2xl border border-white/10 bg-primary/10 p-2.5">
@@ -1125,12 +1221,7 @@ export function AgencyDashboardPage() {
 
         <DashboardCard title="Operação resumida" description="Leitura curta e contextual do que mais pesa na agência neste momento.">
           <div className="space-y-3">
-            {[
-              "Contrato premium de Santiago pronto para assinatura com branding aplicado.",
-              "Passagem internacional em emissão final com cliente aguardando retorno.",
-              "TravelPro Go acelerou tarefas repetitivas e liberou tempo do consultor principal.",
-              "Lead de Paris com alta chance de conversão no período da noite.",
-            ].map((item) => (
+            {(dashboard?.operation_notes ?? []).map((item) => (
               <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-muted-foreground">
                 {item}
               </div>
