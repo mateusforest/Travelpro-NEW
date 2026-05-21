@@ -513,11 +513,41 @@ function MockFormDialog({
 }
 
 export function AgencyDashboardPage() {
+  const operationalFeed = [
+    { title: "Contrato Signature enviado", detail: "Atlântico Premium • casal Santiago • há 8 min", icon: FilePenLine },
+    { title: "TravelPro Go criou roteiro", detail: "Paris Signature • cliente Helena Faria • há 2 min", icon: MessageSquareText },
+    { title: "Cliente respondeu no WhatsApp", detail: "Família Prado confirmou upgrade de hotel • há 14 min", icon: BellRing },
+    { title: "Match detectou oportunidade", detail: "Alta procura por Caribe Premium para julho • há 21 min", icon: Sparkles },
+    { title: "Advisor sugeriu ação", detail: "Lead VIP sem follow-up desde ontem à noite", icon: Target },
+  ]
+
+  const liveSystemItems = [
+    { label: "GO ativo", status: "Operando", detail: "184 comandos úteis hoje", tone: "bg-emerald-400" },
+    { label: "Agent monitorando leads", status: "Em observação", detail: "8 conversas com alta chance", tone: "bg-sky-400" },
+    { label: "Advisor analisando performance", status: "Atualizando", detail: "Nova leitura comercial do dia", tone: "bg-primary" },
+    { label: "Match sincronizando oportunidades", status: "Em alta", detail: "3 pacotes aderentes ao mercado", tone: "bg-violet-400" },
+    { label: "Marketing IA preparando campanha", status: "Em breve", detail: "Europa premium com pico de busca", tone: "bg-amber-400" },
+  ]
+
+  const advisorRecommendations = [
+    "Cliente VIP de Mendoza está sem follow-up desde 18h de ontem.",
+    "Campanha sazonal para Europa premium pode entrar hoje com alta chance de clique.",
+    "Pacote Cancún Family tem aderência alta ao Match nesta semana.",
+  ]
+
+  const miniCentralItems = [
+    { label: "Clientes aguardando", value: "5", hint: "2 VIPs com resposta pendente" },
+    { label: "Documentos críticos", value: "3", hint: "1 contrato e 2 vouchers" },
+    { label: "Pagamentos pendentes", value: "R$ 12,4 mil", hint: "4 confirmações para hoje" },
+    { label: "Follow-ups", value: "14", hint: "3 quentes há mais de 2h" },
+    { label: "Viagens próximas", value: "4", hint: "2 embarques ainda hoje" },
+  ]
+
   return (
     <PageShell>
       <SectionHeader
-        title="Dashboard da agência"
-        description="Uma visão mais executiva e compacta da operação, com foco no que move vendas, entrega e caixa."
+        title="Operação ativa"
+        description="Resumo vivo da agência com prioridade comercial, entrega, caixa e automação trabalhando em segundo plano."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild className="rounded-full">
@@ -530,13 +560,171 @@ export function AgencyDashboardPage() {
         }
       />
 
+      <DashboardCard
+        title="Resumo operacional inteligente"
+        description="O que o sistema está vendo agora sem transformar seu dia em um cockpit barulhento."
+      >
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {[
+            { label: "Viagens em andamento", value: "12 ativas", hint: "2 embarques hoje" },
+            { label: "Clientes aguardando", value: "5 respostas", hint: "1 VIP parado há 3h" },
+            { label: "Follow-ups pendentes", value: "14 ações", hint: "3 quentes agora" },
+            { label: "Financeiro previsto", value: "R$ 84,2 mil", hint: "R$ 12,4 mil a receber" },
+            { label: "Status do GO", value: "Ativo", hint: "Última ação há 2 min" },
+          ].map((item) => (
+            <div key={item.label} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3.5">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">{item.label}</p>
+              <p className="mt-2 text-sm font-semibold text-foreground">{item.value}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.hint}</p>
+            </div>
+          ))}
+        </div>
+      </DashboardCard>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <MetricCard label="Leads novos" value="24" change="+6 hoje" tone="success" icon={Waypoints} />
-        <MetricCard label="Viagens em andamento" value="12" change="4 próximas partidas" tone="info" icon={PlaneTakeoff} />
-        <MetricCard label="Documentos pendentes" value="7" change="2 urgentes" tone="warning" icon={FileText} />
-        <MetricCard label="Follow-ups pendentes" value="14" change="3 quentes" tone="warning" icon={HeartHandshake} />
-        <MetricCard label="Resumo financeiro" value="R$ 84.200" change="R$ 12.400 a receber" tone="success" icon={Wallet} />
-        <MetricCard label="TravelPro Go" value="Ativo" change="184 comandos no dia" tone="info" icon={MessageSquareText} />
+        <MetricCard label="Leads novos" value="24 novos leads" change="8 quentes • 3 aguardando há mais de 2h" tone="success" icon={Waypoints} />
+        <MetricCard label="Viagens em andamento" value="12 viagens ativas" change="2 embarques hoje • 1 documentação pendente" tone="info" icon={PlaneTakeoff} />
+        <MetricCard label="Documentos pendentes" value="7 pendências" change="2 críticas • 1 emissão final hoje" tone="warning" icon={FileText} />
+        <MetricCard label="Follow-ups pendentes" value="14 follow-ups" change="3 com alta chance • 5 precisam resposta rápida" tone="warning" icon={HeartHandshake} />
+        <MetricCard label="Resumo financeiro" value="R$ 84,2 mil" change="R$ 12,4 mil pendentes • +9% no ciclo" tone="success" icon={Wallet} />
+        <MetricCard label="TravelPro Go" value="GO operacional" change="184 ações hoje • última execução há 2 min" tone="info" icon={MessageSquareText} />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_380px]">
+        <MockChart
+          title="Financeiro vivo"
+          description="Recebimentos, despesas, tendência do ciclo e projeção operacional em leitura compacta."
+          filters={["Hoje", "Semana", "Mês"]}
+          series={financeSeriesByPeriod.Semana}
+        />
+
+        <div className="space-y-6">
+          <DashboardCard title="Sistema Vivo TravelPro" description="Pequeno retrato do que está trabalhando por trás da operação.">
+            <div className="space-y-3">
+              {liveSystemItems.map((item) => (
+                <div key={item.label} className="flex items-start gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                  <span className={`mt-1 h-2.5 w-2.5 shrink-0 animate-pulse rounded-full ${item.tone}`} />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">{item.label}</p>
+                      <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                        {item.status}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </DashboardCard>
+
+          <DashboardCard title="Saúde operacional" description="Indicador discreto baseado em leads, financeiro, follow-up e documentação.">
+            <div className="rounded-[24px] border border-emerald-400/15 bg-emerald-400/10 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-200/80">Saudável</p>
+                  <p className="mt-2 text-lg font-semibold text-foreground">Operação estável e responsiva</p>
+                </div>
+                <div className="h-3 w-3 animate-pulse rounded-full bg-emerald-300" />
+              </div>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                Leads quentes estão sendo trabalhados, financeiro segue dentro da previsão e as pendências críticas continuam sob controle.
+              </p>
+            </div>
+          </DashboardCard>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+        <DashboardCard title="Atividade operacional" description="Fluxo recente da agência com leitura limpa e contextual.">
+          <div className="space-y-3">
+            {operationalFeed.map((item) => (
+              <div key={item.title} className="flex items-start gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3.5">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-2.5">
+                  <item.icon className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">{item.title}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+
+        <DashboardCard title="Hoje na operação" description="Prioridades que merecem sua atenção antes do próximo ciclo do dia.">
+          <div className="space-y-3">
+            {miniCentralItems.map((item) => (
+              <div key={item.label} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium text-foreground">{item.label}</p>
+                  <span className="text-sm font-semibold text-primary">{item.value}</span>
+                </div>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.hint}</p>
+              </div>
+            ))}
+            <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]">
+              <Link href="/app/central-operacional">Abrir central operacional</Link>
+            </Button>
+          </div>
+        </DashboardCard>
+
+        <div className="space-y-6">
+          <DashboardCard title="TravelPro Go" description="Presença viva do assessor operacional dentro da rotina da agência.">
+            <div className="space-y-3">
+              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">Status operacional</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400" />
+                  <p className="text-sm font-semibold text-foreground">Ativo e conectado à operação</p>
+                </div>
+              </div>
+              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">Ações hoje</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">184 execuções úteis</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">Roteiro Paris criado há 2 min e contrato Santiago revisado há 11 min.</p>
+              </div>
+              <div className="flex gap-2">
+                <Button asChild className="flex-1 rounded-full">
+                  <Link href="/app/travelpro-go">Abrir GO</Link>
+                </Button>
+                <Button asChild variant="outline" className="flex-1 rounded-full border-white/10 bg-white/[0.03]">
+                  <Link href="/app/travelpro-go">Ver histórico</Link>
+                </Button>
+              </div>
+            </div>
+          </DashboardCard>
+
+          <DashboardCard title="Advisor recomenda" description="Sugestões discretas com maior impacto operacional e comercial.">
+            <div className="space-y-3">
+              {advisorRecommendations.map((item) => (
+                <div key={item} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-muted-foreground">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </DashboardCard>
+
+          <DashboardCard title="Match e Marketing IA" description="Oportunidades detectadas e campanhas prontas para aproveitar a demanda.">
+            <div className="space-y-3">
+              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                <p className="text-sm font-medium text-foreground">Match em alta</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  6 oportunidades detectadas • Europa e Caribe com procura crescente • 3 pacotes compatíveis para destaque.
+                </p>
+              </div>
+              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                <p className="text-sm font-medium text-foreground">Marketing IA</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Alta procura por Europa premium • campanha pronta • sequência WhatsApp disponível para ativação.
+                </p>
+              </div>
+              <Button asChild className="w-full rounded-full">
+                <Link href="/app/marketing">Gerar campanha</Link>
+              </Button>
+            </div>
+          </DashboardCard>
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
@@ -561,13 +749,13 @@ export function AgencyDashboardPage() {
           </div>
         </DashboardCard>
 
-        <DashboardCard title="Operação resumida" description="O que merece sua atenção primeiro hoje.">
+        <DashboardCard title="Operação resumida" description="Leitura curta e contextual do que mais pesa na agência neste momento.">
           <div className="space-y-3">
             {[
-              "Contrato da Ana Martins pronto para assinatura.",
-              "Passagem do João Ribeiro em emissão final.",
-              "TravelPro Go acima da média saudável no dia.",
-              "Lead de Paris com maior chance de conversão após 18h.",
+              "Contrato premium de Santiago pronto para assinatura com branding aplicado.",
+              "Passagem internacional em emissão final com cliente aguardando retorno.",
+              "TravelPro Go acelerou tarefas repetitivas e liberou tempo do consultor principal.",
+              "Lead de Paris com alta chance de conversão no período da noite.",
             ].map((item) => (
               <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-muted-foreground">
                 {item}
