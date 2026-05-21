@@ -266,11 +266,11 @@ function mapTripRowToRecord(row: TripRow, index: number): TripRecord {
 
   return {
     ...row,
-    client: ["Ana Martins", "João Ribeiro", "Marina Costa", "Pedro Santos"][index % 4] ?? "Cliente vinculado",
+    client: "Cliente vinculado",
     dates: row.starts_at && row.ends_at ? `${row.starts_at.slice(0, 10)} • ${row.ends_at.slice(0, 10)}` : "Datas em definição",
     documents: `${2 + (index % 4)} arquivos`,
     finance: index % 2 === 0 ? "Saldo ok" : "A receber",
-    itinerary: index % 2 === 0 ? "Roteiro final" : "Roteiro premium",
+    itinerary: row.summary || (index % 2 === 0 ? "Roteiro final" : "Roteiro premium"),
     dayProgress: [62, 45, 18, 72][index % 4] ?? 50,
     stage: status,
     timeline: [
@@ -312,6 +312,10 @@ function mapLeadRowToCard(row: LeadRow) {
     stage: row.status || "Novo lead",
     temperature: row.temperature || "Morno",
     destination: row.destination || "Destino em definição",
+    origin: row.origin || "Origem não informada",
+    email: row.email || "E-mail não informado",
+    phone: row.phone || "Telefone não informado",
+    notes: row.notes || "Sem observações registradas.",
   }
 }
 
@@ -683,6 +687,176 @@ function ClientEditorDialog({
           </Button>
           <Button className="rounded-full" onClick={onConfirm} disabled={saving}>
             {saving ? "Salvando..." : mode === "create" ? "Salvar cliente" : "Atualizar cliente"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+type LeadFormValues = {
+  name: string
+  email: string
+  phone: string
+  origin: string
+  destination: string
+  status: string
+  temperature: string
+  notes: string
+}
+
+function buildLeadFormValues(record?: ReturnType<typeof mapLeadRowToCard>): LeadFormValues {
+  return {
+    name: record?.name ?? "",
+    email: record?.email && record.email !== "E-mail não informado" ? record.email : "",
+    phone: record?.phone && record.phone !== "Telefone não informado" ? record.phone : "",
+    origin: record?.origin && record.origin !== "Origem não informada" ? record.origin : "",
+    destination: record?.destination && record.destination !== "Destino em definição" ? record.destination : "",
+    status: record?.stage ?? "Novo lead",
+    temperature: record?.temperature ?? "Morno",
+    notes: record?.notes && record.notes !== "Sem observações registradas." ? record.notes : "",
+  }
+}
+
+function LeadEditorDialog({
+  open,
+  onOpenChange,
+  values,
+  onChange,
+  onConfirm,
+  saving,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  values: LeadFormValues
+  onChange: (field: keyof LeadFormValues, value: string) => void
+  onConfirm: () => void
+  saving: boolean
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+        <DialogHeader className="border-b border-white/8 px-6 py-5">
+          <DialogTitle>Editar lead</DialogTitle>
+          <DialogDescription>Atualize os dados reais da oportunidade sem sair da operação.</DialogDescription>
+        </DialogHeader>
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
+          {[
+            ["name", "Nome"],
+            ["email", "E-mail"],
+            ["phone", "Telefone"],
+            ["origin", "Origem"],
+            ["destination", "Destino"],
+            ["status", "Status"],
+            ["temperature", "Temperatura"],
+          ].map(([field, label]) => (
+            <label key={field} className="space-y-2">
+              <span className="text-xs uppercase tracking-[0.18em] text-primary/75">{label}</span>
+              <input
+                value={values[field as keyof LeadFormValues]}
+                onChange={(event) => onChange(field as keyof LeadFormValues, event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+              />
+            </label>
+          ))}
+          <label className="space-y-2 md:col-span-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Observações</span>
+            <textarea
+              rows={4}
+              value={values.notes}
+              onChange={(event) => onChange("notes", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            />
+          </label>
+        </div>
+        <DialogFooter className="border-t border-white/8 px-6 py-5">
+          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button className="rounded-full" onClick={onConfirm} disabled={saving}>
+            {saving ? "Salvando..." : "Salvar lead"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+type TripFormValues = {
+  destination: string
+  origin: string
+  status: string
+  startsAt: string
+  endsAt: string
+  summary: string
+}
+
+function buildTripFormValues(record?: TripRecord): TripFormValues {
+  return {
+    destination: record?.destination ?? "",
+    origin: record?.origin ?? "",
+    status: record?.stage ?? "Planejamento",
+    startsAt: record?.starts_at ? record.starts_at.slice(0, 10) : "",
+    endsAt: record?.ends_at ? record.ends_at.slice(0, 10) : "",
+    summary: record?.summary ?? "",
+  }
+}
+
+function TripEditorDialog({
+  open,
+  onOpenChange,
+  values,
+  onChange,
+  onConfirm,
+  saving,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  values: TripFormValues
+  onChange: (field: keyof TripFormValues, value: string) => void
+  onConfirm: () => void
+  saving: boolean
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+        <DialogHeader className="border-b border-white/8 px-6 py-5">
+          <DialogTitle>Editar viagem</DialogTitle>
+          <DialogDescription>Atualize destino, datas, status e resumo da viagem com dados reais.</DialogDescription>
+        </DialogHeader>
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
+          {[
+            ["destination", "Destino"],
+            ["origin", "Origem"],
+            ["status", "Status"],
+            ["startsAt", "Data de início"],
+            ["endsAt", "Data de fim"],
+          ].map(([field, label]) => (
+            <label key={field} className="space-y-2">
+              <span className="text-xs uppercase tracking-[0.18em] text-primary/75">{label}</span>
+              <input
+                value={values[field as keyof TripFormValues]}
+                onChange={(event) => onChange(field as keyof TripFormValues, event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+              />
+            </label>
+          ))}
+          <label className="space-y-2 md:col-span-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Resumo operacional</span>
+            <textarea
+              rows={4}
+              value={values.summary}
+              onChange={(event) => onChange("summary", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            />
+          </label>
+        </div>
+        <DialogFooter className="border-t border-white/8 px-6 py-5">
+          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button className="rounded-full" onClick={onConfirm} disabled={saving}>
+            {saving ? "Salvando..." : "Salvar viagem"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1389,25 +1563,109 @@ export function AgencyClientsPage() {
 export function AgencyTripsPage() {
   const [records, setRecords] = useState<TripRecord[]>([])
   const [selected, setSelected] = useState<TripRecord | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
+  const [clients, setClients] = useState<ClientRow[]>([])
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
+  const [editingTripId, setEditingTripId] = useState<string | null>(null)
+  const [tripFormValues, setTripFormValues] = useState<TripFormValues>(buildTripFormValues())
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSavingTrip, setIsSavingTrip] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const fire = (title: string, description: string) => toast({ title, description })
 
   useEffect(() => {
     let active = true
-    requestJson<TripRow[]>("/api/trips")
-      .then((data) => {
-        if (!active) return
-        setRecords(data.map(mapTripRowToRecord))
-      })
-      .catch(() => {
-        if (!active) return
+
+    const loadTripsModule = async () => {
+      setIsLoading(true)
+      setLoadError(null)
+
+      const [tripsResult, clientsResult] = await Promise.allSettled([
+        requestJson<TripRow[]>("/api/trips"),
+        requestJson<ClientRow[]>("/api/clients"),
+      ])
+
+      if (!active) return
+
+      if (clientsResult.status === "fulfilled") {
+        setClients(clientsResult.value)
+      } else {
+        setClients([])
+      }
+
+      if (tripsResult.status === "fulfilled") {
+        const clientMap = new Map((clientsResult.status === "fulfilled" ? clientsResult.value : []).map((client) => [client.id, client.name]))
+        setRecords(tripsResult.value.map((trip, index) => ({ ...mapTripRowToRecord(trip, index), client: trip.client_id ? clientMap.get(trip.client_id) ?? "Cliente vinculado" : "Sem cliente vinculado" })))
+      } else {
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[AgencyTripsPage] failed to load trips", tripsResult.reason)
+        }
         setRecords([])
-      })
+        setLoadError(tripsResult.reason instanceof Error ? tripsResult.reason.message : "Não foi possível carregar as viagens da agência.")
+      }
+
+      setIsLoading(false)
+    }
+
+    void loadTripsModule()
+
     return () => {
       active = false
     }
   }, [])
+
+  const visibleTrips = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase()
+    return records.filter((trip) => {
+      if (!query) return true
+      return [trip.client, trip.destination, trip.stage, trip.origin ?? "", trip.summary ?? ""].join(" ").toLowerCase().includes(query)
+    })
+  }, [records, searchTerm])
+
+  const tripMetrics = useMemo(
+    () => [
+      { label: "Viagens ativas", value: records.length.toString().padStart(2, "0"), change: `${records.filter((trip) => trip.stage === "Em andamento").length} em andamento agora`, icon: PlaneTakeoff },
+      { label: "Com cliente", value: records.filter((trip) => trip.client_id).length.toString().padStart(2, "0"), change: `${records.filter((trip) => trip.client_id).length} com vínculo real em clientes`, icon: Users },
+      { label: "Planejamento", value: records.filter((trip) => trip.stage === "Planejamento").length.toString().padStart(2, "0"), change: `${records.filter((trip) => trip.stage === "Confirmada").length} já confirmadas`, icon: Route },
+    ],
+    [records],
+  )
+
+  const openTripEditor = (trip: TripRecord) => {
+    setEditingTripId(trip.id)
+    setTripFormValues(buildTripFormValues(trip))
+  }
+
+  const handleSaveTrip = async () => {
+    if (!editingTripId) return
+    try {
+      setIsSavingTrip(true)
+      const updated = await requestJson<TripRow>(`/api/trips/${editingTripId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          destination: tripFormValues.destination,
+          origin: tripFormValues.origin || null,
+          status: tripFormValues.status,
+          starts_at: tripFormValues.startsAt ? new Date(tripFormValues.startsAt).toISOString() : null,
+          ends_at: tripFormValues.endsAt ? new Date(tripFormValues.endsAt).toISOString() : null,
+          summary: tripFormValues.summary || null,
+        }),
+      })
+      const clientMap = new Map(clients.map((client) => [client.id, client.name]))
+      const mapped = { ...mapTripRowToRecord(updated, records.findIndex((item) => item.id === editingTripId)), client: updated.client_id ? clientMap.get(updated.client_id) ?? "Cliente vinculado" : "Sem cliente vinculado" }
+      setRecords((current) => current.map((item) => (item.id === editingTripId ? mapped : item)))
+      setSelected((current) => (current?.id === editingTripId ? mapped : current))
+      fire("Viagem atualizada", `${mapped.destination} foi atualizada com dados reais.`)
+      setEditingTripId(null)
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[AgencyTripsPage] failed to save trip", error)
+      }
+      fire("Falha ao salvar", error instanceof Error ? error.message : "Não foi possível salvar a viagem.")
+    } finally {
+      setIsSavingTrip(false)
+    }
+  }
 
   return (
     <PageShell>
@@ -1420,9 +1678,43 @@ export function AgencyTripsPage() {
           </Button>
         }
       />
+      <div className="grid gap-3 md:grid-cols-3">
+        {tripMetrics.map((metric) => (
+          <MetricCard key={metric.label} {...metric} />
+        ))}
+      </div>
+      <div className="xl:max-w-md xl:flex-1">
+        <SearchInput placeholder="Buscar cliente, destino ou status" value={searchTerm} onChange={setSearchTerm} />
+      </div>
       <DashboardCard title="Viagens da operação" description="Abra cada viagem para ver roteiro ao vivo, pendências, documentos e financeiro.">
         <div className="space-y-3">
-          {records.map((trip) => (
+          {loadError ? (
+            <div className="flex items-start gap-3 rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-medium">Não foi possível sincronizar as viagens agora.</p>
+                <p className="mt-1 text-amber-100/80">{loadError}</p>
+              </div>
+            </div>
+          ) : null}
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={`trip-skeleton-${index}`} className="animate-pulse rounded-[28px] border border-white/8 bg-white/[0.03] p-4">
+                <div className="h-4 w-44 rounded-full bg-white/10" />
+                <div className="mt-3 h-3 w-60 rounded-full bg-white/10" />
+                <div className="mt-2 h-3 w-40 rounded-full bg-white/10" />
+              </div>
+            ))
+          ) : visibleTrips.length === 0 ? (
+            <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center">
+              <p className="text-sm font-medium text-foreground">Nenhuma viagem encontrada.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Crie a primeira viagem real da agência para iniciar roteiros, documentos e operação.</p>
+              <Button asChild className="mt-4 rounded-full">
+                <Link href="/app/viagens/nova">Criar viagem agora</Link>
+              </Button>
+            </div>
+          ) : (
+            visibleTrips.map((trip) => (
             <div key={trip.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
               <button type="button" onClick={() => setSelected(trip)} className="min-w-0 text-left">
                 <div className="flex flex-wrap items-center gap-2">
@@ -1432,42 +1724,37 @@ export function AgencyTripsPage() {
                 <p className="mt-1 text-sm text-muted-foreground">{trip.dates}</p>
                 <p className="mt-2 text-xs text-muted-foreground">{trip.documents} • {trip.finance} • {trip.itinerary}</p>
               </button>
-              <ActionMenu
-                items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => setSelected(trip) },
-                  {
-                    label: "Editar",
-                    icon: FilePenLine,
-                    onClick: async () => {
-                      try {
-                        const updated = await requestJson<TripRow>(`/api/trips/${trip.id}`, {
-                          method: "PATCH",
-                          body: JSON.stringify({ status: trip.stage }),
-                        })
-                        setRecords((current) => current.map((item, index) => (item.id === trip.id ? mapTripRowToRecord(updated, index) : item)))
-                        fire("Viagem atualizada", `${trip.destination} foi sincronizada com o Supabase.`)
-                      } catch (error) {
-                        fire("Falha ao atualizar", error instanceof Error ? error.message : "Não foi possível atualizar a viagem.")
-                      }
+                <ActionMenu
+                  items={[
+                    { label: "Visualizar", icon: Eye, onClick: () => setSelected(trip) },
+                    { label: "Editar", icon: FilePenLine, onClick: () => openTripEditor(trip) },
+                    { label: "Notificar cliente", icon: BellRing, onClick: () => fire("Notificações em preparação", `As notificações da viagem de ${trip.client} serão ativadas com TravelPro Go e WhatsApp operacional.`) },
+                    {
+                      label: "Abrir cliente vinculado",
+                      icon: Users,
+                      onClick: () =>
+                        trip.client_id ? fire("Cliente vinculado", `${trip.client} já está conectado ao módulo real de clientes.`) : fire("Sem cliente vinculado", "Esta viagem ainda não possui um cliente vinculado."),
                     },
-                  },
-                  { label: "Notificar cliente", icon: BellRing, onClick: () => fire("Cliente notificado", `${trip.client} recebeu uma atualização da viagem.`) },
-                  { label: "Ver roteiro", icon: Route, onClick: () => fire("Roteiro aberto", `O roteiro de ${trip.destination} foi preparado.`) },
-                  { label: "Ver documento", icon: FileText, onClick: () => fire("Documentos abertos", `Os documentos de ${trip.client} foram preparados.`) },
+                    { label: "Ver roteiro", icon: Route, onClick: () => fire("Roteiros em preparação", `O fluxo de roteiros reais desta viagem será conectado à próxima etapa do módulo.`) },
+                    { label: "Ver documento", icon: FileText, onClick: () => fire("Documentos em preparação", `Os documentos reais da viagem de ${trip.client} serão exibidos quando o vínculo documental estiver completo.`) },
                   {
                     label: "Excluir",
                     icon: Trash2,
                     onClick: () =>
                       setConfirmAction({
                         title: "Excluir viagem",
-                        description: `Deseja confirmar a exclusão mockada da viagem de ${trip.client} para ${trip.destination}?`,
+                        description: `Deseja confirmar a exclusão da viagem de ${trip.client} para ${trip.destination}?`,
                         confirmLabel: "Excluir viagem",
                         onConfirm: async () => {
                           try {
                             await requestJson(`/api/trips/${trip.id}`, { method: "DELETE" })
                             setRecords((current) => current.filter((item) => item.id !== trip.id))
+                            setSelected((current) => (current?.id === trip.id ? null : current))
                             fire("Viagem excluída", `A viagem de ${trip.client} foi removida do Supabase.`)
                           } catch (error) {
+                            if (process.env.NODE_ENV !== "production") {
+                              console.error("[AgencyTripsPage] failed to delete trip", error)
+                            }
                             fire("Falha ao excluir", error instanceof Error ? error.message : "Não foi possível excluir a viagem.")
                           }
                         },
@@ -1475,41 +1762,25 @@ export function AgencyTripsPage() {
                     danger: true,
                   },
                 ]}
-              />
-            </div>
-          ))}
+                />
+              </div>
+            ))
+          )}
         </div>
       </DashboardCard>
 
-      <MockFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="Nova viagem"
-        description="Crie uma nova viagem com cliente, destino e status inicial."
-        fields={[
-          { label: "Cliente", value: "Carla Dias" },
-          { label: "Destino", value: "Paris" },
-          { label: "Período", value: "12 jun • 20 jun" },
-          { label: "Status inicial", value: "Planejamento" },
-        ]}
-        confirmLabel="Salvar viagem"
-        onConfirm={async () => {
-          try {
-            const created = await requestJson<TripRow>("/api/trips", {
-              method: "POST",
-              body: JSON.stringify({
-                destination: "Paris",
-                status: "Planejamento",
-                starts_at: "2026-06-12T00:00:00.000Z",
-                ends_at: "2026-06-20T00:00:00.000Z",
-              }),
-            })
-            setRecords((current) => [mapTripRowToRecord(created, current.length), ...current])
-            fire("Viagem criada", "A nova viagem foi salva no Supabase.")
-          } catch (error) {
-            fire("Falha ao criar", error instanceof Error ? error.message : "Não foi possível criar a viagem.")
+      <TripEditorDialog
+        open={Boolean(editingTripId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingTripId(null)
+            setTripFormValues(buildTripFormValues())
           }
         }}
+        values={tripFormValues}
+        onChange={(field, value) => setTripFormValues((current) => ({ ...current, [field]: value }))}
+        onConfirm={handleSaveTrip}
+        saving={isSavingTrip}
       />
       <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
 
@@ -2871,24 +3142,96 @@ export function AgencyReportsOperationalPage() {
 export function AgencyLeadsPage() {
   const [records, setRecords] = useState<Array<ReturnType<typeof mapLeadRowToCard>>>([])
   const [selected, setSelected] = useState<Array<ReturnType<typeof mapLeadRowToCard>>[number] | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
+  const [editingLeadId, setEditingLeadId] = useState<string | null>(null)
+  const [leadFormValues, setLeadFormValues] = useState<LeadFormValues>(buildLeadFormValues())
+  const [isSavingLead, setIsSavingLead] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
   const fire = (title: string, description: string) => toast({ title, description })
 
   useEffect(() => {
     let active = true
-    requestJson<LeadRow[]>("/api/leads")
-      .then((data) => {
+
+    const loadLeads = async () => {
+      setIsLoading(true)
+      setLoadError(null)
+      try {
+        const data = await requestJson<LeadRow[]>("/api/leads")
         if (!active) return
         setRecords(data.map(mapLeadRowToCard))
-      })
-      .catch(() => {
+      } catch (error) {
         if (!active) return
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[AgencyLeadsPage] failed to load leads", error)
+        }
         setRecords([])
-      })
+        setLoadError(error instanceof Error ? error.message : "Não foi possível carregar os leads da agência.")
+      } finally {
+        if (active) setIsLoading(false)
+      }
+    }
+
+    void loadLeads()
     return () => {
       active = false
     }
   }, [])
+
+  const visibleLeads = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase()
+    return records.filter((lead) => {
+      if (!query) return true
+      return [lead.name, lead.origin, lead.destination, lead.stage, lead.temperature, lead.email, lead.phone, lead.notes].join(" ").toLowerCase().includes(query)
+    })
+  }, [records, searchTerm])
+
+  const leadMetrics = useMemo(
+    () => [
+      { label: "Leads ativos", value: records.length.toString().padStart(2, "0"), change: `${records.filter((lead) => lead.temperature === "Quente").length} quentes agora`, icon: Waypoints },
+      { label: "Em qualificação", value: records.filter((lead) => lead.stage.toLowerCase().includes("qual")).length.toString().padStart(2, "0"), change: `${records.filter((lead) => lead.stage === "Novo lead").length} novos leads`, icon: Target },
+      { label: "Alta prioridade", value: records.filter((lead) => lead.temperature === "Quente").length.toString().padStart(2, "0"), change: `${records.filter((lead) => lead.destination !== "Destino em definição").length} com destino definido`, icon: Sparkles },
+    ],
+    [records],
+  )
+
+  const openLeadEditor = (lead: Array<ReturnType<typeof mapLeadRowToCard>>[number]) => {
+    setEditingLeadId(lead.id)
+    setLeadFormValues(buildLeadFormValues(lead))
+  }
+
+  const handleSaveLead = async () => {
+    if (!editingLeadId) return
+    try {
+      setIsSavingLead(true)
+      const updated = await requestJson<LeadRow>(`/api/leads/${editingLeadId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: leadFormValues.name,
+          email: leadFormValues.email || null,
+          phone: leadFormValues.phone || null,
+          origin: leadFormValues.origin || null,
+          destination: leadFormValues.destination || null,
+          status: leadFormValues.status,
+          temperature: leadFormValues.temperature || null,
+          notes: leadFormValues.notes || null,
+        }),
+      })
+      const mapped = mapLeadRowToCard(updated)
+      setRecords((current) => current.map((item) => (item.id === editingLeadId ? mapped : item)))
+      setSelected((current) => (current?.id === editingLeadId ? mapped : current))
+      fire("Lead atualizado", `${mapped.name} foi atualizado com dados reais.`)
+      setEditingLeadId(null)
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[AgencyLeadsPage] failed to save lead", error)
+      }
+      fire("Falha ao salvar", error instanceof Error ? error.message : "Não foi possível salvar o lead.")
+    } finally {
+      setIsSavingLead(false)
+    }
+  }
 
   return (
     <PageShell>
@@ -2906,60 +3249,109 @@ export function AgencyLeadsPage() {
           </div>
         }
       />
+      <div className="grid gap-3 md:grid-cols-3">
+        {leadMetrics.map((metric) => (
+          <MetricCard key={metric.label} {...metric} />
+        ))}
+      </div>
+      <div className="xl:max-w-md xl:flex-1">
+        <SearchInput placeholder="Buscar lead, origem, destino ou status" value={searchTerm} onChange={setSearchTerm} />
+      </div>
       <DashboardCard title="Oportunidades ativas" description="Clique em um lead para abrir detalhes e ações rápidas.">
         <div className="space-y-3">
-          {records.map((lead) => (
-            <button
-              key={lead.id}
-              type="button"
-              onClick={() => setSelected(lead)}
-              className="flex w-full flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 text-left transition-all hover:border-primary/15 hover:bg-white/[0.05] lg:flex-row lg:items-center lg:justify-between"
-            >
+          {loadError ? (
+            <div className="flex items-start gap-3 rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{lead.name}</p>
-                  <StatusPill label={lead.temperature} />
-                  <StatusPill label={lead.stage} />
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">{lead.origin} • {lead.destination}</p>
+                <p className="font-medium">Não foi possível sincronizar os leads agora.</p>
+                <p className="mt-1 text-amber-100/80">{loadError}</p>
               </div>
-              <span className="text-xs text-muted-foreground">Abrir detalhes</span>
-            </button>
-          ))}
+            </div>
+          ) : null}
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={`lead-skeleton-${index}`} className="animate-pulse rounded-[28px] border border-white/8 bg-white/[0.03] p-4">
+                <div className="h-4 w-40 rounded-full bg-white/10" />
+                <div className="mt-3 h-3 w-60 rounded-full bg-white/10" />
+                <div className="mt-2 h-3 w-32 rounded-full bg-white/10" />
+              </div>
+            ))
+          ) : visibleLeads.length === 0 ? (
+            <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center">
+              <p className="text-sm font-medium text-foreground">Nenhum lead encontrado.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Cadastre a primeira oportunidade real da agência para iniciar qualificação e follow-up.</p>
+              <Button asChild className="mt-4 rounded-full">
+                <Link href="/app/leads/novo">Criar lead agora</Link>
+              </Button>
+            </div>
+          ) : (
+            visibleLeads.map((lead) => (
+              <div key={lead.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
+                <button
+                  type="button"
+                  onClick={() => setSelected(lead)}
+                  className="min-w-0 text-left"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{lead.name}</p>
+                    <StatusPill label={lead.temperature} />
+                    <StatusPill label={lead.stage} />
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{lead.origin} • {lead.destination}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{lead.email} • {lead.phone}</p>
+                </button>
+                <ActionMenu
+                  items={[
+                    { label: "Visualizar", icon: Eye, onClick: () => setSelected(lead) },
+                    { label: "Editar", icon: FilePenLine, onClick: () => openLeadEditor(lead) },
+                    { label: "Notificar", icon: BellRing, onClick: () => fire("Notificações em preparação", `As notificações para ${lead.name} serão ativadas com TravelPro Agent e WhatsApp operacional.`) },
+                    { label: "Abrir origem", icon: ExternalLink, onClick: () => fire("Origem em preparação", `A abertura direta da origem de ${lead.name} será conectada quando os canais externos estiverem disponíveis.`) },
+                    { label: "Converter em cliente", icon: ArrowRightLeft, onClick: () => fire("Conversão em preparação", `A conversão segura de ${lead.name} em cliente real será ativada na próxima etapa.`) },
+                    {
+                      label: "Excluir",
+                      icon: Trash2,
+                      onClick: () =>
+                        setConfirmAction({
+                          title: "Excluir lead",
+                          description: `Deseja confirmar a exclusão do lead ${lead.name}?`,
+                          confirmLabel: "Excluir lead",
+                          onConfirm: async () => {
+                            try {
+                              await requestJson(`/api/leads/${lead.id}`, { method: "DELETE" })
+                              setRecords((current) => current.filter((item) => item.id !== lead.id))
+                              setSelected((current) => (current?.id === lead.id ? null : current))
+                              fire("Lead excluído", `${lead.name} foi removido com sucesso.`)
+                            } catch (error) {
+                              if (process.env.NODE_ENV !== "production") {
+                                console.error("[AgencyLeadsPage] failed to delete lead", error)
+                              }
+                              fire("Falha ao excluir", error instanceof Error ? error.message : "Não foi possível excluir o lead.")
+                            }
+                          },
+                        }),
+                      danger: true,
+                    },
+                  ]}
+                />
+              </div>
+            ))
+          )}
         </div>
       </DashboardCard>
-
-      <MockFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="Novo lead"
-        description="Cadastre uma nova oportunidade com origem, destino e intenção inicial."
-        fields={[
-          { label: "Nome", value: "Isabela Monteiro" },
-          { label: "Origem", value: "Instagram" },
-          { label: "Destino", value: "Tailândia" },
-          { label: "Intenção", value: "Lua de mel premium" },
-        ]}
-        confirmLabel="Salvar lead"
-        onConfirm={async () => {
-          try {
-            const created = await requestJson<LeadRow>("/api/leads", {
-              method: "POST",
-              body: JSON.stringify({
-                name: "Isabela Monteiro",
-                origin: "Instagram",
-                destination: "Tailândia",
-                status: "Novo lead",
-                temperature: "Quente",
-              }),
-            })
-            setRecords((current) => [mapLeadRowToCard(created), ...current])
-            fire("Lead criado", "O novo lead foi salvo no Supabase.")
-          } catch (error) {
-            fire("Falha ao criar", error instanceof Error ? error.message : "Não foi possível criar o lead.")
+      <LeadEditorDialog
+        open={Boolean(editingLeadId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingLeadId(null)
+            setLeadFormValues(buildLeadFormValues())
           }
         }}
+        values={leadFormValues}
+        onChange={(field, value) => setLeadFormValues((current) => ({ ...current, [field]: value }))}
+        onConfirm={handleSaveLead}
+        saving={isSavingLead}
       />
+      <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
 
       <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
         <DialogContent className="max-w-3xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
@@ -2974,11 +3366,12 @@ export function AgencyLeadsPage() {
                 <InfoCard label="Destino" value={selected.destination} />
                 <InfoCard label="Status" value={selected.stage} />
                 <InfoCard label="Temperatura" value={selected.temperature} />
-                <InfoCard label="Intenção" value="Pacote premium com acompanhamento próximo" />
-                <InfoCard label="Próximo passo" value="Retomar contato e enviar proposta inicial" />
+                <InfoCard label="E-mail" value={selected.email} />
+                <InfoCard label="Telefone" value={selected.phone} />
+                <InfoCard label="Observações" value={selected.notes} />
               </div>
               <div className="flex flex-wrap gap-2 px-6 pb-5">
-                <Button className="rounded-full" onClick={() => fire("Lead notificado", `${selected.name} recebeu uma resposta inicial mockada.`)}>Notificar</Button>
+                <Button className="rounded-full" onClick={() => fire("Notificações em preparação", `As notificações para ${selected.name} serão ativadas com TravelPro Agent e WhatsApp operacional.`)}>Notificar</Button>
                 <Button
                   variant="outline"
                   className="rounded-full border-white/10 bg-white/[0.03]"
@@ -3018,6 +3411,9 @@ export function AgencyLeadsPage() {
                   }}
                 >
                   Agendar próximo passo
+                </Button>
+                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Conversão em preparação", `A conversão segura de ${selected.name} em cliente real será ativada na próxima etapa.`)}>
+                  Converter em cliente
                 </Button>
               </div>
             </>

@@ -5,9 +5,11 @@ import { deleteTrip, getTripById, updateTrip } from "@/lib/services"
 
 const tripPatchSchema = z.object({
   destination: z.string().min(2).optional(),
+  origin: z.string().optional().nullable(),
   status: z.string().optional(),
   starts_at: z.string().optional().nullable(),
   ends_at: z.string().optional().nullable(),
+  summary: z.string().optional().nullable(),
   client_id: z.string().uuid().optional().nullable(),
 })
 

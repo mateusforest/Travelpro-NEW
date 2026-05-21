@@ -7,7 +7,14 @@ function withAgencyScope<T extends { eq: (...args: unknown[]) => T }>(query: T, 
   return query.eq(column, context.agencyId)
 }
 
+function ensureAgencyContext(context: AgencyAccessContext) {
+  if (!context.isMaster && !context.agencyId) {
+    throw new Error("Sua sessão não possui uma agência vinculada para operar leads.")
+  }
+}
+
 export async function listLeads(context: AgencyAccessContext) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("leads").select("*").order("created_at", { ascending: false })
   query = withAgencyScope(query, context)
@@ -17,6 +24,7 @@ export async function listLeads(context: AgencyAccessContext) {
 }
 
 export async function getLeadById(context: AgencyAccessContext, id: string) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("leads").select("*").eq("id", id)
   query = withAgencyScope(query, context)
@@ -26,6 +34,7 @@ export async function getLeadById(context: AgencyAccessContext, id: string) {
 }
 
 export async function createLead(context: AgencyAccessContext, input: LeadInput) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   const { data, error } = await supabase
     .from("leads")
@@ -34,10 +43,13 @@ export async function createLead(context: AgencyAccessContext, input: LeadInput)
       user_id: context.userId,
       client_id: input.client_id ?? null,
       name: input.name,
+      email: input.email ?? null,
+      phone: input.phone ?? null,
       origin: input.origin ?? null,
       destination: input.destination ?? null,
       status: input.status ?? "Novo lead",
       temperature: input.temperature ?? "Morno",
+      notes: input.notes ?? null,
     })
     .select("*")
     .single()
@@ -46,15 +58,19 @@ export async function createLead(context: AgencyAccessContext, input: LeadInput)
 }
 
 export async function updateLead(context: AgencyAccessContext, id: string, input: Partial<LeadInput>) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase
     .from("leads")
     .update({
       ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.email !== undefined ? { email: input.email } : {}),
+      ...(input.phone !== undefined ? { phone: input.phone } : {}),
       ...(input.origin !== undefined ? { origin: input.origin } : {}),
       ...(input.destination !== undefined ? { destination: input.destination } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
       ...(input.temperature !== undefined ? { temperature: input.temperature } : {}),
+      ...(input.notes !== undefined ? { notes: input.notes } : {}),
       ...(input.client_id !== undefined ? { client_id: input.client_id } : {}),
     })
     .eq("id", id)
@@ -65,6 +81,7 @@ export async function updateLead(context: AgencyAccessContext, id: string, input
 }
 
 export async function deleteLead(context: AgencyAccessContext, id: string) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("leads").delete().eq("id", id)
   query = withAgencyScope(query, context)

@@ -5,10 +5,13 @@ import { createLead, listLeads } from "@/lib/services"
 
 const leadSchema = z.object({
   name: z.string().min(2),
+  email: z.string().email().optional().nullable(),
+  phone: z.string().optional().nullable(),
   origin: z.string().optional().nullable(),
   destination: z.string().optional().nullable(),
   status: z.string().optional(),
   temperature: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
   client_id: z.string().uuid().optional().nullable(),
 })
 

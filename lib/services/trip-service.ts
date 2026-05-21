@@ -7,7 +7,14 @@ function withAgencyScope<T extends { eq: (...args: unknown[]) => T }>(query: T, 
   return query.eq(column, context.agencyId)
 }
 
+function ensureAgencyContext(context: AgencyAccessContext) {
+  if (!context.isMaster && !context.agencyId) {
+    throw new Error("Sua sessão não possui uma agência vinculada para operar viagens.")
+  }
+}
+
 export async function listTrips(context: AgencyAccessContext) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("trips").select("*").order("created_at", { ascending: false })
   query = withAgencyScope(query, context)
@@ -17,6 +24,7 @@ export async function listTrips(context: AgencyAccessContext) {
 }
 
 export async function getTripById(context: AgencyAccessContext, id: string) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("trips").select("*").eq("id", id)
   query = withAgencyScope(query, context)
@@ -26,6 +34,7 @@ export async function getTripById(context: AgencyAccessContext, id: string) {
 }
 
 export async function createTrip(context: AgencyAccessContext, input: TripInput) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   const { data, error } = await supabase
     .from("trips")
@@ -34,9 +43,11 @@ export async function createTrip(context: AgencyAccessContext, input: TripInput)
       user_id: context.userId,
       client_id: input.client_id ?? null,
       destination: input.destination,
+      origin: input.origin ?? null,
       status: input.status ?? "Planejamento",
       starts_at: input.starts_at ?? null,
       ends_at: input.ends_at ?? null,
+      summary: input.summary ?? null,
     })
     .select("*")
     .single()
@@ -45,14 +56,17 @@ export async function createTrip(context: AgencyAccessContext, input: TripInput)
 }
 
 export async function updateTrip(context: AgencyAccessContext, id: string, input: Partial<TripInput>) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase
     .from("trips")
     .update({
       ...(input.destination !== undefined ? { destination: input.destination } : {}),
+      ...(input.origin !== undefined ? { origin: input.origin } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
       ...(input.starts_at !== undefined ? { starts_at: input.starts_at } : {}),
       ...(input.ends_at !== undefined ? { ends_at: input.ends_at } : {}),
+      ...(input.summary !== undefined ? { summary: input.summary } : {}),
       ...(input.client_id !== undefined ? { client_id: input.client_id } : {}),
     })
     .eq("id", id)
@@ -63,6 +77,7 @@ export async function updateTrip(context: AgencyAccessContext, id: string, input
 }
 
 export async function deleteTrip(context: AgencyAccessContext, id: string) {
+  ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("trips").delete().eq("id", id)
   query = withAgencyScope(query, context)
