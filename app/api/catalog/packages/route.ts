@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     return NextResponse.json(data)
   } catch (error) {
     const status = error instanceof AuthSessionError || error instanceof AuthorizationError ? error.status : 500
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to list catalog items" }, { status })
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to list catalog packages" }, { status })
   }
 }
 
@@ -37,6 +37,6 @@ export async function POST(request: Request) {
     return NextResponse.json(data, { status: 201 })
   } catch (error) {
     const status = error instanceof AuthSessionError || error instanceof AuthorizationError ? error.status : 400
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to create catalog item" }, { status })
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to create catalog package" }, { status })
   }
 }

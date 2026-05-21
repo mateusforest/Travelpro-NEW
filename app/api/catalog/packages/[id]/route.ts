@@ -19,11 +19,11 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const context = await getAccessContext(["master", "agency_admin", "agency_user"])
     const { id } = await params
     const data = await getCatalogItemById(context, id)
-    if (!data) return NextResponse.json({ error: "Catalog item not found" }, { status: 404 })
+    if (!data) return NextResponse.json({ error: "Catalog package not found" }, { status: 404 })
     return NextResponse.json(data)
   } catch (error) {
     const status = error instanceof AuthSessionError || error instanceof AuthorizationError ? error.status : 500
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to get catalog item" }, { status })
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to get catalog package" }, { status })
   }
 }
 
@@ -36,7 +36,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json(data)
   } catch (error) {
     const status = error instanceof AuthSessionError || error instanceof AuthorizationError ? error.status : 400
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to update catalog item" }, { status })
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to update catalog package" }, { status })
   }
 }
 
@@ -48,6 +48,6 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json(data)
   } catch (error) {
     const status = error instanceof AuthSessionError || error instanceof AuthorizationError ? error.status : 400
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to delete catalog item" }, { status })
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to delete catalog package" }, { status })
   }
 }
