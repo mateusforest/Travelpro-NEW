@@ -89,7 +89,7 @@ export function PortalHeader({ portal, title, profile }: PortalHeaderProps) {
                   className="w-60 rounded-3xl border-white/10 bg-black/85 p-2 text-foreground shadow-2xl shadow-black/40 backdrop-blur-xl"
                 >
                   <DropdownMenuItem asChild className="rounded-2xl px-3 py-2.5">
-                    <Link href={portal === "master" ? "/master/agencias" : "/app/viagens"}>Abrir fluxo principal</Link>
+                    <Link href={portal === "master" ? "/master/agencias/nova" : "/app/viagens/nova"}>Abrir fluxo principal</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-2xl px-3 py-2.5">
                     <Link href={portal === "master" ? "/master/atlas" : "/app/atlas-advisor"}>Abrir módulo premium</Link>
