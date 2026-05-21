@@ -7,10 +7,26 @@ function withAgencyScope<T extends { eq: (...args: unknown[]) => T }>(query: T, 
   return query.eq(column, context.agencyId)
 }
 
-export async function listClients(context: AgencyAccessContext) {
+function normalizeClientInput(input: Partial<ClientInput>) {
+  return {
+    ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+    ...(input.email !== undefined ? { email: input.email?.trim() || null } : {}),
+    ...(input.phone !== undefined ? { phone: input.phone?.trim() || null } : {}),
+    ...(input.document_number !== undefined ? { document_number: input.document_number?.trim() || null } : {}),
+    ...(input.status !== undefined ? { status: input.status } : {}),
+    ...(input.traveler_profile !== undefined ? { traveler_profile: input.traveler_profile ?? {} } : {}),
+  }
+}
+
+export async function listClients(context: AgencyAccessContext, options?: { search?: string }) {
   const supabase = getSupabaseAdminClient()
   let query = supabase.from("clients").select("*").order("created_at", { ascending: false })
   query = withAgencyScope(query, context)
+  const search = options?.search?.trim()
+  if (search) {
+    const escaped = search.replace(/[%_,]/g, "")
+    query = query.or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%,phone.ilike.%${escaped}%,document_number.ilike.%${escaped}%`)
+  }
   const { data, error } = await query
   if (error) throw error
   return (data ?? []) as ClientRow[]
@@ -27,14 +43,18 @@ export async function getClientById(context: AgencyAccessContext, id: string) {
 
 export async function createClient(context: AgencyAccessContext, input: ClientInput) {
   const supabase = getSupabaseAdminClient()
+  const payload = normalizeClientInput(input)
   const { data, error } = await supabase
     .from("clients")
     .insert({
       agency_id: context.agencyId,
-      name: input.name,
-      email: input.email ?? null,
-      phone: input.phone ?? null,
-      status: input.status ?? "Ativo",
+      owner_user_id: context.userId,
+      name: payload.name,
+      email: payload.email ?? null,
+      phone: payload.phone ?? null,
+      document_number: payload.document_number ?? null,
+      traveler_profile: payload.traveler_profile ?? {},
+      status: payload.status ?? "Ativo",
     })
     .select("*")
     .single()
@@ -45,14 +65,10 @@ export async function createClient(context: AgencyAccessContext, input: ClientIn
 
 export async function updateClient(context: AgencyAccessContext, id: string, input: Partial<ClientInput>) {
   const supabase = getSupabaseAdminClient()
+  const payload = normalizeClientInput(input)
   let query = supabase
     .from("clients")
-    .update({
-      ...(input.name !== undefined ? { name: input.name } : {}),
-      ...(input.email !== undefined ? { email: input.email } : {}),
-      ...(input.phone !== undefined ? { phone: input.phone } : {}),
-      ...(input.status !== undefined ? { status: input.status } : {}),
-    })
+    .update(payload)
     .eq("id", id)
 
   query = withAgencyScope(query, context)

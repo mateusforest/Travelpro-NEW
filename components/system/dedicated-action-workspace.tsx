@@ -59,6 +59,7 @@ type DedicatedActionWorkspaceProps = {
   }
   extraSidebar?: ReactNode
   bottomContent?: ReactNode
+  onPrimaryAction?: (values: Record<string, string>) => Promise<void> | void
 }
 
 function FieldRenderer({
@@ -125,8 +126,10 @@ export function DedicatedActionWorkspace({
   helpCard,
   extraSidebar,
   bottomContent,
+  onPrimaryAction,
 }: DedicatedActionWorkspaceProps) {
   const [values, setValues] = useState<Record<string, string>>(initialValues)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const sidebarItems = useMemo(
     () =>
@@ -164,15 +167,28 @@ export function DedicatedActionWorkspace({
               Salvar rascunho
             </SecondaryButton>
             <PrimaryButton
-              onClick={() =>
-                toast({
-                  title: primaryActionLabel,
-                  description: primaryActionDescription,
-                })
-              }
+              onClick={async () => {
+                if (isSubmitting) return
+
+                if (!onPrimaryAction) {
+                  toast({
+                    title: primaryActionLabel,
+                    description: primaryActionDescription,
+                  })
+                  return
+                }
+
+                try {
+                  setIsSubmitting(true)
+                  await onPrimaryAction(values)
+                } finally {
+                  setIsSubmitting(false)
+                }
+              }}
+              disabled={isSubmitting}
             >
               <Send className="h-4 w-4" />
-              {primaryActionLabel}
+              {isSubmitting ? "Salvando..." : primaryActionLabel}
             </PrimaryButton>
           </>
         }

@@ -40,7 +40,6 @@ import {
   Wallet,
   Waypoints,
 } from "lucide-react"
-import { clients } from "@/mock/clients"
 import { trips } from "@/mock/trips"
 import { documents } from "@/mock/documents"
 import { tasks } from "@/mock/tasks"
@@ -67,14 +66,29 @@ import { Progress } from "@/components/ui/progress"
 import { MockChart } from "@/components/system/mock-chart"
 import { toast } from "@/components/ui/use-toast"
 import type { CatalogItemRow, ClientRow, DocumentRow, FinancialRecordRow, LeadRow, TeamMemberRow, TripRow } from "@/types/database"
+import type { ClientInput, ClientTravelerProfile } from "@/types/client"
 
-type ClientRecord = (typeof clients)[number] & {
+type ClientRecord = {
+  id: string
+  name: string
+  tag: string
+  status: string
+  destination: string
+  email: string
+  phone: string
+  profile_id: string | null
+  document_number: string | null
+  traveler_profile: ClientTravelerProfile
   document?: string
   preferences: string
   profile: string
   recommendations: string[]
   companions: string
   notes: string
+  origin: string
+  nextStep: string
+  createdAt: string
+  updatedAt: string
 }
 
 type TripRecord = (typeof trips)[number] & {
@@ -116,16 +130,6 @@ type MessageRecord = {
   time: string
   status?: string
 }
-
-const clientRecords: ClientRecord[] = clients.map((client, index) => ({
-  ...client,
-  document: ["Passaporte BR1234567", "Passaporte BR5678901", "RG 45.333.222-0", "Passaporte BR7788991"][index] ?? "Documento validado",
-  preferences: ["Hotel boutique, transfer privado e janelas com vista.", "Parques, praticidade e roteiro com horários claros.", "Experiência romântica, spa e jantares especiais.", "Viagem objetiva, internet forte e logística rápida."][index] ?? "Perfil premium",
-  profile: ["Ama experiências premium e destinos de praia com conforto alto.", "Valoriza praticidade, previsibilidade e atividades familiares.", "Busca exclusividade, romance e atendimento muito próximo.", "Prefere viagens funcionais, bons acessos e agenda organizada."][index] ?? "Perfil padrão",
-  recommendations: [["Maldivas Signature", "Mykonos Escape", "Tulum Grand"], ["Orlando Family VIP", "Gramado Inverno", "Costa do Sauípe"], ["Santorini Honeymoon", "Bora Bora Bliss", "Mendoza Private"], ["Lisboa Business Plus", "Madrid Smart Stay", "Santiago Premium"]][index] ?? ["Cancún Family Escape"],
-  companions: ["1 acompanhante", "cônjuge + 2 filhos", "1 acompanhante", "sem acompanhantes"][index] ?? "sem acompanhantes",
-  notes: ["Cliente responde rápido no WhatsApp e valoriza upgrades.", "Prefere aprovar tudo com antecedência e gosta de checklists.", "Atenção alta a detalhes e jantar especial.", "Viagens geralmente curtas, foco em eficiência."][index] ?? "Sem observações",
-}))
 
 const tripRecords: TripRecord[] = trips.map((trip, index) => ({
   ...trip,
@@ -207,17 +211,53 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit): Promise<T
   return (await response.json()) as T
 }
 
-function mapClientRowToRecord(row: ClientRow, index: number): ClientRecord {
+function parseTravelerProfile(value: ClientRow["traveler_profile"]): ClientTravelerProfile {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  const source = value as Record<string, unknown>
+
   return {
-    ...row,
-    tag: ["Premium", "Família", "Lua de mel", "Corporativo"][index % 4] ?? "Premium",
-    destination: ["Cancún", "Orlando", "Maldivas", "Lisboa"][index % 4] ?? "Destino em definição",
-    document: row.profile_id ? `Perfil ${row.profile_id.slice(0, 8)}` : "Documento validado",
-    preferences: ["Hotel boutique, transfer privado e janelas com vista.", "Parques, praticidade e roteiro com horários claros.", "Experiência romântica, spa e jantares especiais.", "Viagem objetiva, internet forte e logística rápida."][index % 4],
-    profile: ["Ama experiências premium e destinos de praia com conforto alto.", "Valoriza praticidade, previsibilidade e atividades familiares.", "Busca exclusividade, romance e atendimento muito próximo.", "Prefere viagens funcionais, bons acessos e agenda organizada."][index % 4],
-    recommendations: [["Maldivas Signature", "Mykonos Escape", "Tulum Grand"], ["Orlando Family VIP", "Gramado Inverno", "Costa do Sauípe"], ["Santorini Honeymoon", "Bora Bora Bliss", "Mendoza Private"], ["Lisboa Business Plus", "Madrid Smart Stay", "Santiago Premium"]][index % 4],
-    companions: ["1 acompanhante", "cônjuge + 2 filhos", "1 acompanhante", "sem acompanhantes"][index % 4],
-    notes: ["Cliente responde rápido no WhatsApp e valoriza upgrades.", "Prefere aprovar tudo com antecedência e gosta de checklists.", "Atenção alta a detalhes e jantar especial.", "Viagens geralmente curtas, foco em eficiência."][index % 4],
+    tag: typeof source.tag === "string" ? source.tag : undefined,
+    destination: typeof source.destination === "string" ? source.destination : undefined,
+    origin: typeof source.origin === "string" ? source.origin : undefined,
+    preferences: typeof source.preferences === "string" ? source.preferences : undefined,
+    travelerProfile: typeof source.travelerProfile === "string" ? source.travelerProfile : undefined,
+    nextStep: typeof source.nextStep === "string" ? source.nextStep : undefined,
+    companions: typeof source.companions === "string" ? source.companions : undefined,
+    notes: typeof source.notes === "string" ? source.notes : undefined,
+    recommendations: Array.isArray(source.recommendations) ? source.recommendations.filter((item): item is string => typeof item === "string") : undefined,
+  }
+}
+
+function defaultTagFromStatus(status: string) {
+  if (status === "Em viagem") return "Em viagem"
+  if (status === "Pendente") return "Pendente"
+  return "Premium"
+}
+
+function mapClientRowToRecord(row: ClientRow): ClientRecord {
+  const travelerProfile = parseTravelerProfile(row.traveler_profile)
+
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email ?? "E-mail não informado",
+    phone: row.phone ?? "Telefone não informado",
+    profile_id: row.profile_id,
+    document_number: row.document_number,
+    traveler_profile: travelerProfile,
+    status: row.status || "Ativo",
+    tag: travelerProfile.tag || defaultTagFromStatus(row.status || "Ativo"),
+    destination: travelerProfile.destination || "Destino em definição",
+    document: row.document_number || (row.profile_id ? `Perfil ${row.profile_id.slice(0, 8)}` : "Documento não informado"),
+    preferences: travelerProfile.preferences || "Preferências ainda não registradas.",
+    profile: travelerProfile.travelerProfile || "Perfil do viajante ainda não descrito.",
+    recommendations: travelerProfile.recommendations?.length ? travelerProfile.recommendations : ["Recomendações serão sugeridas conforme histórico e operação."],
+    companions: travelerProfile.companions || "Não informado",
+    notes: travelerProfile.notes || "Sem observações internas registradas.",
+    origin: travelerProfile.origin || "Origem não informada",
+    nextStep: travelerProfile.nextStep || "Definir próximo passo operacional",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
@@ -512,6 +552,144 @@ function MockFormDialog({
   )
 }
 
+type ClientFormValues = {
+  name: string
+  email: string
+  phone: string
+  status: string
+  documentNumber: string
+  destination: string
+  tag: string
+  origin: string
+  preferences: string
+  travelerProfile: string
+  recommendations: string
+  companions: string
+  nextStep: string
+  notes: string
+}
+
+function buildClientFormValues(record?: ClientRecord | null): ClientFormValues {
+  return {
+    name: record?.name ?? "",
+    email: record?.email === "E-mail não informado" ? "" : record?.email ?? "",
+    phone: record?.phone === "Telefone não informado" ? "" : record?.phone ?? "",
+    status: record?.status ?? "Ativo",
+    documentNumber: record?.document_number ?? "",
+    destination: record?.destination === "Destino em definição" ? "" : record?.destination ?? "",
+    tag: record?.tag ?? "Premium",
+    origin: record?.origin === "Origem não informada" ? "" : record?.origin ?? "",
+    preferences: record?.preferences === "Preferências ainda não registradas." ? "" : record?.preferences ?? "",
+    travelerProfile: record?.profile === "Perfil do viajante ainda não descrito." ? "" : record?.profile ?? "",
+    recommendations: record?.recommendations?.[0] === "Recomendações serão sugeridas conforme histórico e operação." ? "" : record?.recommendations.join(", "),
+    companions: record?.companions === "Não informado" ? "" : record?.companions ?? "",
+    nextStep: record?.nextStep === "Definir próximo passo operacional" ? "" : record?.nextStep ?? "",
+    notes: record?.notes === "Sem observações internas registradas." ? "" : record?.notes ?? "",
+  }
+}
+
+function buildClientPayload(values: ClientFormValues): ClientInput {
+  return {
+    name: values.name.trim(),
+    email: values.email.trim() || null,
+    phone: values.phone.trim() || null,
+    document_number: values.documentNumber.trim() || null,
+    status: values.status,
+    traveler_profile: {
+      destination: values.destination.trim(),
+      tag: values.tag.trim(),
+      origin: values.origin.trim(),
+      preferences: values.preferences.trim(),
+      travelerProfile: values.travelerProfile.trim(),
+      recommendations: values.recommendations
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      companions: values.companions.trim(),
+      nextStep: values.nextStep.trim(),
+      notes: values.notes.trim(),
+    },
+  }
+}
+
+function ClientEditorDialog({
+  open,
+  onOpenChange,
+  mode,
+  values,
+  onChange,
+  onConfirm,
+  saving,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  mode: "create" | "edit"
+  values: ClientFormValues
+  onChange: (field: keyof ClientFormValues, value: string) => void
+  onConfirm: () => void
+  saving: boolean
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+        <DialogHeader className="border-b border-white/8 px-6 py-5">
+          <DialogTitle>{mode === "create" ? "Novo cliente" : "Editar cliente"}</DialogTitle>
+          <DialogDescription>
+            Cadastre ou atualize dados reais do cliente, preservando preferências, contexto e próximos passos da operação.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
+          {[
+            ["name", "Nome"],
+            ["email", "E-mail"],
+            ["phone", "Telefone"],
+            ["status", "Status"],
+            ["documentNumber", "Documento"],
+            ["destination", "Destino em foco"],
+            ["tag", "Segmento"],
+            ["origin", "Origem"],
+            ["companions", "Acompanhantes"],
+            ["nextStep", "Próximo passo"],
+          ].map(([field, label]) => (
+            <label key={field} className="space-y-2">
+              <span className="text-xs uppercase tracking-[0.18em] text-primary/75">{label}</span>
+              <input
+                value={values[field as keyof ClientFormValues]}
+                onChange={(event) => onChange(field as keyof ClientFormValues, event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+              />
+            </label>
+          ))}
+          {[
+            ["preferences", "Preferências de viagem"],
+            ["travelerProfile", "Perfil do viajante"],
+            ["recommendations", "Recomendações"],
+            ["notes", "Observações internas"],
+          ].map(([field, label]) => (
+            <label key={field} className="space-y-2 md:col-span-2">
+              <span className="text-xs uppercase tracking-[0.18em] text-primary/75">{label}</span>
+              <textarea
+                rows={4}
+                value={values[field as keyof ClientFormValues]}
+                onChange={(event) => onChange(field as keyof ClientFormValues, event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+              />
+            </label>
+          ))}
+        </div>
+        <DialogFooter className="border-t border-white/8 px-6 py-5">
+          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button className="rounded-full" onClick={onConfirm} disabled={saving}>
+            {saving ? "Salvando..." : mode === "create" ? "Salvar cliente" : "Atualizar cliente"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function AgencyDashboardPage() {
   const operationalFeed = [
     { title: "Contrato Signature enviado", detail: "Atlântico Premium • casal Santiago • há 8 min", icon: FilePenLine },
@@ -770,33 +948,188 @@ export function AgencyDashboardPage() {
 
 export function AgencyClientsPage() {
   const [records, setRecords] = useState<ClientRecord[]>([])
+  const [tripRows, setTripRows] = useState<TripRow[]>([])
+  const [documentRows, setDocumentRows] = useState<DocumentRow[]>([])
+  const [financialRows, setFinancialRows] = useState<FinancialRecordRow[]>([])
   const [selected, setSelected] = useState<ClientRecord | null>(null)
   const [activeFilter, setActiveFilter] = useState("Todos")
-  const [createOpen, setCreateOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [editingClientId, setEditingClientId] = useState<string | null>(null)
+  const [editorValues, setEditorValues] = useState<ClientFormValues>(buildClientFormValues())
+  const [isSavingClient, setIsSavingClient] = useState(false)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
   const fire = (title: string, description: string) => toast({ title, description })
 
   useEffect(() => {
     let active = true
-    requestJson<ClientRow[]>("/api/clients")
-      .then((data) => {
-        if (!active) return
-        setRecords(data.map(mapClientRowToRecord))
-      })
-      .catch(() => {
-        if (!active) return
+
+    const loadClientModule = async () => {
+      setIsLoading(true)
+      setLoadError(null)
+
+      const [clientsResult, tripsResult, documentsResult, financeResult] = await Promise.allSettled([
+        requestJson<ClientRow[]>("/api/clients"),
+        requestJson<TripRow[]>("/api/trips"),
+        requestJson<DocumentRow[]>("/api/documents"),
+        requestJson<FinancialRecordRow[]>("/api/finance"),
+      ])
+
+      if (!active) return
+
+      if (clientsResult.status === "fulfilled") {
+        setRecords(clientsResult.value.map(mapClientRowToRecord))
+      } else {
         setRecords([])
-      })
+        setLoadError(clientsResult.reason instanceof Error ? clientsResult.reason.message : "Não foi possível carregar os clientes da agência.")
+      }
+
+      setTripRows(tripsResult.status === "fulfilled" ? tripsResult.value : [])
+      setDocumentRows(documentsResult.status === "fulfilled" ? documentsResult.value : [])
+      setFinancialRows(financeResult.status === "fulfilled" ? financeResult.value : [])
+      setIsLoading(false)
+    }
+
+    void loadClientModule()
+
     return () => {
       active = false
     }
   }, [])
 
+  const linkedTripsByClient = useMemo(() => {
+    const map = new Map<string, TripRow[]>()
+    tripRows.forEach((trip) => {
+      if (!trip.client_id) return
+      const current = map.get(trip.client_id) ?? []
+      current.push(trip)
+      map.set(trip.client_id, current)
+    })
+    return map
+  }, [tripRows])
+
+  const linkedDocumentsByClient = useMemo(() => {
+    const map = new Map<string, DocumentRow[]>()
+    documentRows.forEach((document) => {
+      if (!document.client_id) return
+      const current = map.get(document.client_id) ?? []
+      current.push(document)
+      map.set(document.client_id, current)
+    })
+    return map
+  }, [documentRows])
+
+  const linkedFinanceByClient = useMemo(() => {
+    const map = new Map<string, FinancialRecordRow[]>()
+    financialRows.forEach((record) => {
+      if (!record.client_id) return
+      const current = map.get(record.client_id) ?? []
+      current.push(record)
+      map.set(record.client_id, current)
+    })
+    return map
+  }, [financialRows])
+
   const visibleClients = useMemo(() => {
-    if (activeFilter === "Todos") return records
-    if (activeFilter === "Em viagem") return records.filter((client) => client.status === "Em viagem")
-    return records.filter((client) => client.tag === activeFilter)
-  }, [activeFilter, records])
+    const query = searchTerm.trim().toLowerCase()
+
+    return records.filter((client) => {
+      const matchesFilter =
+        activeFilter === "Todos"
+          ? true
+          : activeFilter === "Em viagem"
+            ? client.status === "Em viagem" || (linkedTripsByClient.get(client.id)?.length ?? 0) > 0
+            : client.tag === activeFilter
+
+      if (!matchesFilter) return false
+      if (!query) return true
+
+      return [
+        client.name,
+        client.email,
+        client.phone,
+        client.destination,
+        client.tag,
+        client.document_number ?? "",
+        client.origin,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
+    })
+  }, [activeFilter, linkedTripsByClient, records, searchTerm])
+
+  const metrics = useMemo(() => {
+    const activeClients = records.length
+    const travellingClients = records.filter((client) => client.status === "Em viagem" || (linkedTripsByClient.get(client.id)?.length ?? 0) > 0).length
+    const withDocuments = records.filter((client) => (linkedDocumentsByClient.get(client.id)?.length ?? 0) > 0).length
+
+    return [
+      {
+        label: "Clientes ativos",
+        value: activeClients.toString().padStart(2, "0"),
+        change: `${records.filter((client) => client.status === "Ativo").length} em acompanhamento contínuo`,
+        icon: Users,
+      },
+      {
+        label: "Em viagem",
+        value: travellingClients.toString().padStart(2, "0"),
+        change: `${tripRows.length} jornadas vinculadas à operação`,
+        icon: PlaneTakeoff,
+      },
+      {
+        label: "Documentação",
+        value: withDocuments.toString().padStart(2, "0"),
+        change: `${documentRows.length} documentos conectados ao módulo`,
+        icon: FileBadge,
+      },
+    ]
+  }, [documentRows.length, linkedDocumentsByClient, linkedTripsByClient, records, tripRows.length])
+
+  const selectedTrips = selected ? linkedTripsByClient.get(selected.id) ?? [] : []
+  const selectedDocuments = selected ? linkedDocumentsByClient.get(selected.id) ?? [] : []
+  const selectedFinance = selected ? linkedFinanceByClient.get(selected.id) ?? [] : []
+
+  const openClientEditor = (record?: ClientRecord) => {
+    setEditingClientId(record?.id ?? "new")
+    setEditorValues(buildClientFormValues(record))
+  }
+
+  const handleSaveClient = async () => {
+    try {
+      setIsSavingClient(true)
+      const payload = buildClientPayload(editorValues)
+      if (!payload.name.trim()) {
+        fire("Nome obrigatório", "Informe o nome do cliente antes de salvar.")
+        return
+      }
+
+      if (editingClientId && editingClientId !== "new") {
+        const updated = await requestJson<ClientRow>(`/api/clients/${editingClientId}`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        })
+        const mapped = mapClientRowToRecord(updated)
+        setRecords((current) => current.map((item) => (item.id === editingClientId ? mapped : item)))
+        setSelected((current) => (current?.id === editingClientId ? mapped : current))
+        fire("Cliente atualizado", `${mapped.name} foi atualizado com dados reais do Supabase.`)
+      } else {
+        const created = await requestJson<ClientRow>("/api/clients", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        })
+        const mapped = mapClientRowToRecord(created)
+        setRecords((current) => [mapped, ...current])
+        fire("Cliente criado", `${mapped.name} foi salvo com sucesso.`)
+      }
+      setEditingClientId(null)
+    } catch (error) {
+      fire("Falha ao salvar", error instanceof Error ? error.message : "Não foi possível salvar o cliente.")
+    } finally {
+      setIsSavingClient(false)
+    }
+  }
 
   return (
     <PageShell>
@@ -809,103 +1142,107 @@ export function AgencyClientsPage() {
           </Button>
         }
       />
+      <div className="grid gap-3 md:grid-cols-3">
+        {metrics.map((metric) => (
+          <MetricCard key={metric.label} {...metric} />
+        ))}
+      </div>
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="xl:max-w-md xl:flex-1">
-          <SearchInput placeholder="Buscar cliente, destino ou tag" />
+          <SearchInput placeholder="Buscar cliente, destino ou origem" value={searchTerm} onChange={setSearchTerm} />
         </div>
         <FilterTabs items={["Todos", "Premium", "Em viagem", "Família", "Lua de mel"]} activeItem={activeFilter} onChange={setActiveFilter} />
       </div>
 
       <DashboardCard title="Clientes da agência" description="Cada cliente abre um detalhe completo com histórico, financeiro e mensagens internas.">
         <div className="space-y-3">
-          {visibleClients.map((client) => (
-            <div key={client.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <button type="button" onClick={() => setSelected(client)} className="min-w-0 text-left">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{client.name}</p>
-                  <StatusPill label={client.status} />
-                  <StatusPill label={client.tag} />
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">{client.email} • {client.phone}</p>
-                <p className="mt-2 text-xs text-muted-foreground">Destino em foco: {client.destination}</p>
-              </button>
-              <ActionMenu
-                items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => setSelected(client) },
-                  {
-                    label: "Editar",
-                    icon: FilePenLine,
-                    onClick: async () => {
-                      try {
-                        const updated = await requestJson<ClientRow>(`/api/clients/${client.id}`, {
-                          method: "PATCH",
-                          body: JSON.stringify({ status: client.status }),
-                        })
-                        const mapped = mapClientRowToRecord(updated, records.findIndex((item) => item.id === client.id))
-                        setRecords((current) => current.map((item) => (item.id === client.id ? mapped : item)))
-                        fire("Cliente atualizado", `${client.name} foi sincronizado com o Supabase.`)
-                      } catch (error) {
-                        fire("Falha ao atualizar", error instanceof Error ? error.message : "Não foi possível atualizar o cliente.")
-                      }
-                    },
-                  },
-                  { label: "Notificar", icon: BellRing, onClick: () => fire("Cliente notificado", `${client.name} recebeu uma notificação mockada.`) },
-                  {
-                    label: "Excluir",
-                    icon: Trash2,
-                    onClick: () =>
-                      setConfirmAction({
-                        title: "Excluir cliente",
-                        description: `Deseja confirmar a exclusão mockada de ${client.name}?`,
-                        confirmLabel: "Excluir cliente",
-                        onConfirm: async () => {
-                          try {
-                            await requestJson(`/api/clients/${client.id}`, { method: "DELETE" })
-                            setRecords((current) => current.filter((item) => item.id !== client.id))
-                            fire("Cliente excluído", `${client.name} foi removido do Supabase.`)
-                          } catch (error) {
-                            fire("Falha ao excluir", error instanceof Error ? error.message : "Não foi possível excluir o cliente.")
-                          }
-                        },
-                      }),
-                    danger: true,
-                  },
-                ]}
-              />
+          {loadError ? (
+            <div className="flex items-start gap-3 rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-medium">Não foi possível sincronizar os clientes agora.</p>
+                <p className="mt-1 text-amber-100/80">{loadError}</p>
+              </div>
             </div>
-          ))}
+          ) : null}
+
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={`client-skeleton-${index}`} className="animate-pulse rounded-[28px] border border-white/8 bg-white/[0.03] p-4">
+                <div className="h-4 w-40 rounded-full bg-white/10" />
+                <div className="mt-3 h-3 w-60 rounded-full bg-white/10" />
+                <div className="mt-2 h-3 w-36 rounded-full bg-white/10" />
+              </div>
+            ))
+          ) : visibleClients.length === 0 ? (
+            <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center">
+              <p className="text-sm font-medium text-foreground">Nenhum cliente encontrado.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Ajuste a busca, revise os filtros ou cadastre o primeiro cliente real da agência.</p>
+              <Button className="mt-4 rounded-full" onClick={() => openClientEditor()}>
+                Criar cliente agora
+              </Button>
+            </div>
+          ) : (
+            visibleClients.map((client) => (
+              <div key={client.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
+                <button type="button" onClick={() => setSelected(client)} className="min-w-0 text-left">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{client.name}</p>
+                    <StatusPill label={client.status} />
+                    <StatusPill label={client.tag} />
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{client.email} • {client.phone}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Destino em foco: {client.destination} • Próximo passo: {client.nextStep}
+                  </p>
+                </button>
+                <ActionMenu
+                  items={[
+                    { label: "Visualizar", icon: Eye, onClick: () => setSelected(client) },
+                    { label: "Editar", icon: FilePenLine, onClick: () => openClientEditor(client) },
+                    { label: "Notificar", icon: BellRing, onClick: () => fire("Cliente notificado", `${client.name} recebeu uma notificação operacional mockada.`) },
+                    {
+                      label: "Excluir",
+                      icon: Trash2,
+                      onClick: () =>
+                        setConfirmAction({
+                          title: "Excluir cliente",
+                          description: `Deseja confirmar a exclusão de ${client.name}? Esta ação remove o registro real da sua base.`,
+                          confirmLabel: "Excluir cliente",
+                          onConfirm: async () => {
+                            try {
+                              await requestJson(`/api/clients/${client.id}`, { method: "DELETE" })
+                              setRecords((current) => current.filter((item) => item.id !== client.id))
+                              setSelected((current) => (current?.id === client.id ? null : current))
+                              fire("Cliente excluído", `${client.name} foi removido com sucesso.`)
+                            } catch (error) {
+                              fire("Falha ao excluir", error instanceof Error ? error.message : "Não foi possível excluir o cliente.")
+                            }
+                          },
+                        }),
+                      danger: true,
+                    },
+                  ]}
+                />
+              </div>
+            ))
+          )}
         </div>
       </DashboardCard>
 
-      <MockFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="Novo cliente"
-        description="Cadastre um novo cliente com os dados essenciais para iniciar o relacionamento."
-        fields={[
-          { label: "Nome", value: "Marina Costa" },
-          { label: "E-mail", value: "marina@cliente.com" },
-          { label: "Telefone", value: "+55 11 97777-0001" },
-          { label: "Destino de interesse", value: "Santorini" },
-        ]}
-        confirmLabel="Salvar cliente"
-        onConfirm={async () => {
-          try {
-            const created = await requestJson<ClientRow>("/api/clients", {
-              method: "POST",
-              body: JSON.stringify({
-                name: "Marina Costa",
-                email: "marina@cliente.com",
-                phone: "+55 11 97777-0001",
-                status: "Ativo",
-              }),
-            })
-            setRecords((current) => [mapClientRowToRecord(created, current.length), ...current])
-            fire("Cliente criado", "O novo cliente foi salvo no Supabase.")
-          } catch (error) {
-            fire("Falha ao criar", error instanceof Error ? error.message : "Não foi possível criar o cliente.")
+      <ClientEditorDialog
+        open={Boolean(editingClientId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingClientId(null)
+            setEditorValues(buildClientFormValues())
           }
         }}
+        mode={editingClientId === "new" ? "create" : "edit"}
+        values={editorValues}
+        onChange={(field, value) => setEditorValues((current) => ({ ...current, [field]: value }))}
+        onConfirm={handleSaveClient}
+        saving={isSavingClient}
       />
       <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
 
@@ -932,42 +1269,82 @@ export function AgencyClientsPage() {
                     <InfoCard label="Nome" value={selected.name} />
                     <InfoCard label="E-mail" value={selected.email} />
                     <InfoCard label="Telefone" value={selected.phone} />
-                    <InfoCard label="Documento" value={selected.document ?? "Documento válido"} />
+                    <InfoCard label="Documento" value={selected.document_number ?? "Documento não informado"} />
                     <InfoCard label="Tag" value={selected.tag} />
                     <InfoCard label="Status" value={selected.status} />
                     <InfoCard label="Destino atual" value={selected.destination} />
+                    <InfoCard label="Origem" value={selected.origin} />
+                    <InfoCard label="Próximo passo" value={selected.nextStep} />
                     <InfoCard label="Acompanhantes" value={selected.companions} />
                     <InfoCard label="Observações" value={selected.notes} />
                   </TabsContent>
                   <TabsContent value="viagens" className="space-y-3">
-                    {["Cancún • confirmada • 15 mai - 22 mai", "Gramado • finalizada • jul 2025", "Orlando • planejada • nov 2026"].map((item) => (
-                      <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-muted-foreground">{item}</div>
-                    ))}
+                    {selectedTrips.length ? (
+                      selectedTrips.map((trip) => (
+                        <div key={trip.id} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-muted-foreground">
+                          {trip.title} • {trip.status} • {trip.starts_at?.slice(0, 10) ?? "Data a definir"} {trip.ends_at ? `- ${trip.ends_at.slice(0, 10)}` : ""}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                        Nenhuma viagem vinculada a este cliente até o momento.
+                      </div>
+                    )}
                   </TabsContent>
                   <TabsContent value="financeiro" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <InfoCard label="Último pagamento" value="R$ 4.200 • pago" />
-                    <InfoCard label="Próxima parcela" value="R$ 2.800 • 22 mai 2026" />
-                    <InfoCard label="Situação" value="Saudável" />
-                    <InfoCard label="Total do histórico" value="R$ 18.900" />
-                    <InfoCard label="Comissão vinculada" value="R$ 1.280" />
-                    <InfoCard label="Preferência" value="Pagamento via cartão" />
+                    <InfoCard
+                      label="Último lançamento"
+                      value={
+                        selectedFinance[0]
+                          ? `${formatMoney(selectedFinance[0].amount)} • ${selectedFinance[0].status}`
+                          : "Sem lançamentos"
+                      }
+                    />
+                    <InfoCard
+                      label="Situação"
+                      value={selectedFinance.some((item) => item.status.toLowerCase().includes("pend")) ? "Atenção" : "Saudável"}
+                    />
+                    <InfoCard label="Total do histórico" value={formatMoney(selectedFinance.reduce((sum, item) => sum + item.amount, 0))} />
+                    <InfoCard label="Receitas" value={selectedFinance.filter((item) => item.type === "Receita").length.toString()} />
+                    <InfoCard label="Despesas" value={selectedFinance.filter((item) => item.type === "Despesa").length.toString()} />
+                    <InfoCard label="Categorias" value={selectedFinance.map((item) => item.category).filter(Boolean).slice(0, 2).join(", ") || "Não informado"} />
                   </TabsContent>
                   <TabsContent value="documentos" className="space-y-3">
-                    {documentRecords.filter((doc) => doc.client === selected.name).map((doc) => (
-                      <div key={doc.id} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium text-foreground">{doc.name}</p>
-                          <StatusPill label={doc.status} />
-                        </div>
-                        <p className="mt-2 text-sm text-muted-foreground">{doc.preview}</p>
+                    {selectedDocuments.length ? (
+                      selectedDocuments.map((doc, index) => {
+                        const mapped = mapDocumentRowToRecord(doc, index)
+                        return (
+                          <div key={mapped.id} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-medium text-foreground">{mapped.name}</p>
+                              <StatusPill label={mapped.status} />
+                            </div>
+                            <p className="mt-2 text-sm text-muted-foreground">{mapped.preview}</p>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                        Ainda não há documentos vinculados a este cliente.
                       </div>
-                    ))}
+                    )}
                   </TabsContent>
                   <TabsContent value="mensagens">
                     <InternalMessages
                       initialMessages={[
-                        { id: "mc-1", sender: "client", text: "Consigo confirmar o passeio de catamarã amanhã?", time: "09:12" },
-                        { id: "mc-2", sender: "agency", text: "Sim, já deixamos essa confirmação pronta no roteiro.", time: "09:18", status: "Enviado" },
+                        {
+                          id: "mc-1",
+                          sender: "client",
+                          text: `${selected.name.split(" ")[0]} pediu atualização sobre ${selected.destination.toLowerCase()}.`,
+                          time: "09:12",
+                        },
+                        {
+                          id: "mc-2",
+                          sender: "agency",
+                          text: `Próximo passo registrado: ${selected.nextStep}. Já deixamos o contexto salvo no perfil do cliente.`,
+                          time: "09:18",
+                          status: "Enviado",
+                        },
                       ]}
                     />
                   </TabsContent>
@@ -981,7 +1358,7 @@ export function AgencyClientsPage() {
                     {selected.recommendations.map((item) => (
                       <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
                         <p className="text-sm font-medium text-foreground">{item}</p>
-                        <p className="mt-2 text-sm text-muted-foreground">Destino sugerido com base no histórico, preferências e padrão de compra do cliente.</p>
+                        <p className="mt-2 text-sm text-muted-foreground">Sugestão gerada a partir do histórico salvo, preferências declaradas e estágio atual da operação.</p>
                       </div>
                     ))}
                   </TabsContent>

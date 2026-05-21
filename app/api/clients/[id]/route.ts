@@ -3,10 +3,24 @@ import { z } from "zod"
 import { getAccessContext, AuthSessionError, AuthorizationError } from "@/lib/auth"
 import { deleteClient, getClientById, updateClient } from "@/lib/services"
 
+const travelerProfileSchema = z.object({
+  tag: z.string().optional(),
+  destination: z.string().optional(),
+  origin: z.string().optional(),
+  preferences: z.string().optional(),
+  travelerProfile: z.string().optional(),
+  nextStep: z.string().optional(),
+  companions: z.string().optional(),
+  notes: z.string().optional(),
+  recommendations: z.array(z.string()).optional(),
+})
+
 const clientPatchSchema = z.object({
   name: z.string().min(2).optional(),
   email: z.string().email().optional().nullable(),
   phone: z.string().optional().nullable(),
+  document_number: z.string().optional().nullable(),
+  traveler_profile: travelerProfileSchema.optional(),
   status: z.string().optional(),
 })
 
