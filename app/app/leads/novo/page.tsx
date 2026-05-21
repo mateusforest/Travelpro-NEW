@@ -81,13 +81,17 @@ export default function NewLeadWorkspacePage() {
       }}
       onPrimaryAction={async (values) => {
         try {
+          if (!values.name.trim() || values.name.trim().length < 2) {
+            throw new Error("Informe um nome válido para o lead antes de salvar.")
+          }
+
           const response = await fetch("/api/leads", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              name: values.name,
+              name: values.name.trim(),
               email: values.email || null,
               phone: values.phone || null,
               origin: values.origin || null,

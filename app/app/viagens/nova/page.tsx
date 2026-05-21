@@ -63,9 +63,11 @@ export default function NewTripWorkspacePage() {
 
   const toIsoOrNull = (value: string) => {
     if (!value.trim()) return null
-    const parsed = new Date(value)
+    const normalized = value.trim()
+    const match = normalized.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})$/)
+    const parsed = match ? new Date(`${match[3]}-${match[2]}-${match[1]}T00:00:00`) : new Date(normalized)
     if (Number.isNaN(parsed.getTime())) {
-      throw new Error("Use datas válidas para início e fim da viagem.")
+      throw new Error("Use datas válidas para início e fim da viagem. Você pode usar AAAA-MM-DD ou DD/MM/AAAA.")
     }
     return parsed.toISOString()
   }
@@ -122,6 +124,10 @@ export default function NewTripWorkspacePage() {
       }}
       onPrimaryAction={async (values) => {
         try {
+          if (!values.destination.trim() || values.destination.trim().length < 2) {
+            throw new Error("Informe um destino válido para a viagem antes de salvar.")
+          }
+
           const selectedClientId = values.clientId && values.clientId !== "Sem cliente vinculado" ? values.clientId.split("::")[0] : null
 
           const response = await fetch("/api/trips", {
@@ -131,7 +137,7 @@ export default function NewTripWorkspacePage() {
             },
             body: JSON.stringify({
               client_id: selectedClientId,
-              destination: values.destination,
+              destination: values.destination.trim(),
               origin: values.origin || null,
               status: values.status || "Planejamento",
               starts_at: toIsoOrNull(values.startDate),
