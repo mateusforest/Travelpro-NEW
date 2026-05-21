@@ -143,7 +143,7 @@ export const masterPages: Record<string, PortalPageConfig> = {
     filterTabs: ["Todas", "Ativas", "Inativas", "Elite", "Growth"],
     primaryAction: "Nova agência",
     secondaryAction: "Exportar base",
-    primaryActionHref: "/master/agencias",
+    primaryActionHref: "/master/agencias/nova",
     secondaryActionHref: "/master/financeiro",
     blocks: [
       {
@@ -598,7 +598,7 @@ export const agencyPages: Record<string, PortalPageConfig> = {
     description: "Operação resumida com prioridades do dia, visão financeira e inteligência do TravelPro.",
     primaryAction: "Nova viagem",
     secondaryAction: "Abrir central",
-    primaryActionHref: "/app/viagens",
+    primaryActionHref: "/app/viagens/nova",
     secondaryActionHref: "/app/central-operacional",
     metrics: [
       { label: "Leads novos", value: "24", change: "+6 hoje", tone: "success", icon: Waypoints },
@@ -616,10 +616,10 @@ export const agencyPages: Record<string, PortalPageConfig> = {
         span: "half",
         columns: 2,
         items: [
-          { title: "Novo cliente", description: "Cadastrar contato e iniciar funil.", icon: UserRoundPlus, href: "/app/clientes" },
-          { title: "Nova cotação", description: "Criar proposta comercial personalizada.", icon: Receipt, href: "/app/cotacoes" },
-          { title: "Novo contrato", description: "Gerar documento da viagem e assinatura.", icon: FilePenLine, href: "/app/contratos" },
-          { title: "Publicar pacote", description: "Enviar oferta para o catálogo.", icon: Tags, href: "/app/catalogo" },
+          { title: "Novo cliente", description: "Cadastrar contato e iniciar funil.", icon: UserRoundPlus, href: "/app/clientes/novo" },
+          { title: "Nova cotação", description: "Criar proposta comercial personalizada.", icon: Receipt, href: "/app/viagens/cotacoes/nova" },
+          { title: "Novo contrato", description: "Gerar documento da viagem e assinatura.", icon: FilePenLine, href: "/app/documentos/novo" },
+          { title: "Publicar pacote", description: "Enviar oferta para o catálogo.", icon: Tags, href: "/app/catalogo/pacotes/novo" },
         ],
       },
       {
@@ -629,7 +629,7 @@ export const agencyPages: Record<string, PortalPageConfig> = {
         span: "half",
         items: [
           { title: "Lead quente identificado", description: "Carla Dias abriu a cotação 3 vezes na última hora.", time: "há 5 min", tone: "success", href: "/app/leads" },
-          { title: "Contrato da Ana pronto", description: "Documento já recebeu branding e pode ser enviado.", time: "há 20 min", tone: "info", href: "/app/contratos" },
+          { title: "Contrato da Ana pronto", description: "Documento já recebeu branding e pode ser enviado.", time: "há 20 min", tone: "info", href: "/app/documentos/contratos" },
           { title: "Pagamento pendente", description: "João Ribeiro precisa quitar a segunda parcela.", time: "há 45 min", tone: "warning", href: "/app/financeiro" },
         ],
       },
@@ -879,7 +879,7 @@ export const agencyPages: Record<string, PortalPageConfig> = {
     title: "Catálogo",
     description: "Pacotes publicados, rascunhos, links públicos e estrutura pronta para match futuro.",
     primaryAction: "Criar pacote",
-    primaryActionHref: "/app/catalogo",
+    primaryActionHref: "/app/catalogo/pacotes/novo",
     blocks: [
       {
         type: "table",
@@ -911,7 +911,7 @@ export const agencyPages: Record<string, PortalPageConfig> = {
     description: "Anúncios, leads recebidos, score e impulsionamento do ecossistema TravelPro.",
     primaryAction: "Criar anúncio",
     secondaryAction: "Ver leads",
-    primaryActionHref: "/app/catalogo",
+    primaryActionHref: "/app/catalogo/pacotes/novo",
     secondaryActionHref: "/app/leads",
     metrics: [
       { label: "Leads recebidos", value: "84", change: "+11 hoje", tone: "success", icon: Waypoints },
@@ -976,8 +976,8 @@ export const agencyPages: Record<string, PortalPageConfig> = {
         title: "Histórico operacional",
         span: "half",
         items: [
-          { title: "Criar roteiro para João em Gramado", description: "Roteiro criado e salvo no sistema.", time: "há 8 min", tone: "success", href: "/app/roteiros" },
-          { title: "Gerar contrato da viagem da Ana", description: "Contrato criado com a identidade da agência.", time: "há 22 min", tone: "info", href: "/app/contratos" },
+          { title: "Criar roteiro para João em Gramado", description: "Roteiro criado e salvo no sistema.", time: "há 8 min", tone: "success", href: "/app/viagens/roteiros" },
+          { title: "Gerar contrato da viagem da Ana", description: "Contrato criado com a identidade da agência.", time: "há 22 min", tone: "info", href: "/app/documentos/contratos" },
           { title: "Criar pacote para Cancún", description: "Pacote publicado e pronto para compartilhar.", time: "há 1h", tone: "success", href: "/app/catalogo" },
         ],
       },
@@ -986,7 +986,7 @@ export const agencyPages: Record<string, PortalPageConfig> = {
         title: "Comandos recentes e configurações futuras",
         span: "half",
         items: [
-          { title: "Comandos autorizados", description: "Roteiros, contratos, catálogo e tarefas operacionais.", icon: NotebookText, href: "/app/roteiros" },
+          { title: "Comandos autorizados", description: "Roteiros, contratos, catálogo e tarefas operacionais.", icon: NotebookText, href: "/app/viagens/roteiros" },
           { title: "Pausar ou ativar", description: "Mock pronto para toggles, logs e horários de operação.", tone: "warning", icon: CheckCheck, href: "/app/travelpro-go" },
           { title: "Governança", description: "Usuários liberados por perfil e auditoria futura.", tone: "info", icon: ShieldCheck, href: "/app/equipe" },
         ],
@@ -1039,7 +1039,7 @@ export const agencyPages: Record<string, PortalPageConfig> = {
     description: "Kanban e calendário inteligente para tarefas, compromissos, lembretes e pendências.",
     primaryAction: "Nova tarefa",
     secondaryAction: "Adicionar rota rápida",
-    primaryActionHref: "/app/central-operacional",
+    primaryActionHref: "/app/central-operacional/tarefas/nova",
     secondaryActionHref: "/app/central-operacional",
     blocks: [
       {
@@ -1063,7 +1063,7 @@ export const agencyPages: Record<string, PortalPageConfig> = {
         span: "full",
         items: [
           { title: "Urgência financeira sinalizada", description: "Parcela do João Ribeiro vence hoje às 18h.", time: "agora", tone: "warning", href: "/app/financeiro" },
-          { title: "Contrato revisado", description: "Alteração de acompanhante validada pelo time.", time: "há 12 min", tone: "info", href: "/app/contratos" },
+          { title: "Contrato revisado", description: "Alteração de acompanhante validada pelo time.", time: "há 12 min", tone: "info", href: "/app/documentos/contratos" },
           { title: "Follow-up disparado", description: "Agent retomou conversa com lead de Paris.", time: "há 27 min", tone: "success", href: "/app/agent" },
         ],
       },

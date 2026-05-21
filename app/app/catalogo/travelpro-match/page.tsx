@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { BarChart3, MessageSquareText, Sparkles, Target, TrendingUp, Users, ExternalLink } from "lucide-react"
 import { DashboardCard } from "@/components/system/dashboard-card"
 import { FeatureExplanationCard } from "@/components/system/feature-explanation-card"
@@ -29,9 +30,11 @@ export default function AgencyCatalogMatchPage() {
               <Sparkles className="h-4 w-4" />
               Configurar destaque
             </SecondaryButton>
-            <SecondaryButton onClick={() => fire("Marketplace aberto", "A rota externa mockada /marketplace foi preparada para nova aba.")}>
-              <ExternalLink className="h-4 w-4" />
-              Ver marketplace
+            <SecondaryButton asChild>
+              <Link href="/marketplace">
+                <ExternalLink className="h-4 w-4" />
+                Ver marketplace
+              </Link>
             </SecondaryButton>
             <PrimaryButton onClick={() => fire("Match ativado", "A ativação do TravelPro Match foi executada em modo mockado.")}>
               <Target className="h-4 w-4" />

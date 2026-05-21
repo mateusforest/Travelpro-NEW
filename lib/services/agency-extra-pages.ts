@@ -77,7 +77,7 @@ export const agencyStandalonePages: Record<string, PortalPageConfig> = {
         items: [
           { title: "Rever script de follow-up", description: "Ajuste a cadência para leads mornos.", href: "/app/leads" },
           { title: "Criar resposta para atraso", description: "Padronize atendimento em crise de viagem.", href: "/app/viagens" },
-          { title: "Refinar proposta premium", description: "Reforce valor percebido antes do preço.", href: "/app/cotacoes" },
+          { title: "Refinar proposta premium", description: "Reforce valor percebido antes do preço.", href: "/app/viagens/cotacoes" },
           { title: "Organizar rotina diária", description: "Dê prioridade ao que move caixa e operação.", href: "/app/central-operacional" },
         ],
       },

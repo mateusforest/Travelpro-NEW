@@ -551,7 +551,7 @@ export function AgencyDashboardPage() {
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild className="rounded-full">
-              <Link href="/app/viagens">Nova viagem</Link>
+              <Link href="/app/viagens/nova">Nova viagem</Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
               <Link href="/app/central-operacional">Abrir central</Link>
@@ -731,10 +731,10 @@ export function AgencyDashboardPage() {
         <DashboardCard title="Ações rápidas" description="Atalhos para mover a operação sem perder contexto.">
           <div className="grid gap-3 md:grid-cols-2">
             {[
-              { title: "Novo cliente", href: "/app/clientes", icon: UserRoundPlus, description: "Cadastrar contato e abrir relacionamento." },
-              { title: "Nova cotação", href: "/app/viagens/cotacoes", icon: Receipt, description: "Montar proposta com rapidez." },
-              { title: "Novo contrato", href: "/app/documentos/contratos", icon: FilePenLine, description: "Gerar e revisar documento da viagem." },
-              { title: "Publicar pacote", href: "/app/catalogo", icon: Tags, description: "Levar a oferta para vitrine e Match." },
+              { title: "Novo cliente", href: "/app/clientes/novo", icon: UserRoundPlus, description: "Cadastrar contato e abrir relacionamento." },
+              { title: "Nova cotação", href: "/app/viagens/cotacoes/nova", icon: Receipt, description: "Montar proposta com rapidez." },
+              { title: "Novo contrato", href: "/app/documentos/novo", icon: FilePenLine, description: "Gerar e revisar documento da viagem." },
+              { title: "Publicar pacote", href: "/app/catalogo/pacotes/novo", icon: Tags, description: "Levar a oferta para vitrine e Match." },
             ].map((item) => (
               <Link key={item.title} href={item.href} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4 transition-all hover:border-primary/15 hover:bg-white/[0.05]">
                 <div className="mb-3 flex items-center gap-3">

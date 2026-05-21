@@ -124,9 +124,11 @@ export default function AgencyCatalogPage() {
               <Copy className="h-4 w-4" />
               Copiar link
             </SecondaryButton>
-            <SecondaryButton onClick={() => fire("Link público aberto", "A vitrine pública foi preparada em modo mockado.")}>
-              <ExternalLink className="h-4 w-4" />
-              Abrir link público
+            <SecondaryButton asChild>
+              <Link href="/catalogo/jtviagens">
+                <ExternalLink className="h-4 w-4" />
+                Abrir link público
+              </Link>
             </SecondaryButton>
             <PrimaryButton onClick={() => fire("Catálogo salvo", "As alterações do catálogo foram salvas em modo mockado.")}>
               <Save className="h-4 w-4" />
@@ -276,9 +278,11 @@ export default function AgencyCatalogPage() {
                       <MessageSquareText className="h-4 w-4" />
                       Falar com consultor
                     </PrimaryButton>
-                    <SecondaryButton onClick={() => fire("Vitrine aberta", "A vitrine pública foi aberta em modo mockado.")}>
-                      <Globe className="h-4 w-4" />
-                      Abrir vitrine
+                    <SecondaryButton asChild>
+                      <Link href="/catalogo/jtviagens">
+                        <Globe className="h-4 w-4" />
+                        Abrir vitrine
+                      </Link>
                     </SecondaryButton>
                   </div>
                 </div>
