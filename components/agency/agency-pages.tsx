@@ -1094,8 +1094,8 @@ export function AgencyClientsPage() {
   const selectedDocuments = selected ? linkedDocumentsByClient.get(selected.id) ?? [] : []
   const selectedFinance = selected ? linkedFinanceByClient.get(selected.id) ?? [] : []
 
-  const openClientEditor = (record?: ClientRecord) => {
-    setEditingClientId(record?.id ?? "new")
+  const openClientEditor = (record: ClientRecord) => {
+    setEditingClientId(record.id)
     setEditorValues(buildClientFormValues(record))
   }
 
@@ -1184,8 +1184,8 @@ export function AgencyClientsPage() {
             <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center">
               <p className="text-sm font-medium text-foreground">Nenhum cliente encontrado.</p>
               <p className="mt-2 text-sm text-muted-foreground">Ajuste a busca, revise os filtros ou cadastre o primeiro cliente real da agência.</p>
-              <Button className="mt-4 rounded-full" onClick={() => openClientEditor()}>
-                Criar cliente agora
+              <Button asChild className="mt-4 rounded-full">
+                <Link href="/app/clientes/novo">Criar cliente agora</Link>
               </Button>
             </div>
           ) : (
@@ -1206,7 +1206,12 @@ export function AgencyClientsPage() {
                   items={[
                     { label: "Visualizar", icon: Eye, onClick: () => setSelected(client) },
                     { label: "Editar", icon: FilePenLine, onClick: () => openClientEditor(client) },
-                    { label: "Notificar", icon: BellRing, onClick: () => fire("Cliente notificado", `${client.name} recebeu uma notificação operacional mockada.`) },
+                    {
+                      label: "Notificar",
+                      icon: BellRing,
+                      onClick: () =>
+                        fire("Notificações em preparação", `As notificações para ${client.name} serão ativadas com TravelPro Go e WhatsApp operacional.`),
+                    },
                     {
                       label: "Excluir",
                       icon: Trash2,
@@ -1247,7 +1252,7 @@ export function AgencyClientsPage() {
             setEditorValues(buildClientFormValues())
           }
         }}
-        mode={editingClientId === "new" ? "create" : "edit"}
+        mode="edit"
         values={editorValues}
         onChange={(field, value) => setEditorValues((current) => ({ ...current, [field]: value }))}
         onConfirm={handleSaveClient}

@@ -18,6 +18,7 @@ export default function NewClientWorkspacePage() {
       aiActionDescription="O assistente IA poderá transformar briefing e mensagens em cadastro estruturado."
       primaryActionLabel="Salvar cliente"
       draftActionDescription="Rascunhos de clientes ainda não são persistidos. Use “Salvar cliente” para criar o registro real no Supabase."
+      previewActionDescription="O preview completo do cliente será conectado a uma visão operacional mais rica em uma próxima etapa."
       initialValues={{
         name: "Marina Costa",
         email: "marina@cliente.com",

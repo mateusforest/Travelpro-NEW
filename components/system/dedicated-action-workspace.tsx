@@ -46,6 +46,7 @@ type DedicatedActionWorkspaceProps = {
   primaryActionDescription?: string
   draftActionDescription?: string
   hideDraftAction?: boolean
+  previewActionDescription?: string
   previewTitle: string
   previewDescription: string
   renderPreview: (values: Record<string, string>) => ReactNode
@@ -123,6 +124,7 @@ export function DedicatedActionWorkspace({
   primaryActionDescription = "A ação principal foi preparada em modo mockado.",
   draftActionDescription = "Os rascunhos deste workspace serão habilitados em uma próxima etapa.",
   hideDraftAction = false,
+  previewActionDescription = "O preview completo deste workspace será conectado em uma próxima etapa.",
   previewTitle,
   previewDescription,
   renderPreview,
@@ -211,7 +213,23 @@ export function DedicatedActionWorkspace({
       <OperationalWorkspaceLayout
         sidebar={
           <>
-            <LivePreviewPanel title={previewTitle} description={previewDescription} footer={<SecondaryButton onClick={() => toast({ title: "Preview preparado", description: "A leitura pública ou operacional foi preparada em modo mockado." })}><Globe className="h-4 w-4" />Abrir preview</SecondaryButton>}>
+            <LivePreviewPanel
+              title={previewTitle}
+              description={previewDescription}
+              footer={
+                <SecondaryButton
+                  onClick={() =>
+                    toast({
+                      title: "Preview em preparação",
+                      description: previewActionDescription,
+                    })
+                  }
+                >
+                  <Globe className="h-4 w-4" />
+                  Abrir preview
+                </SecondaryButton>
+              }
+            >
               {renderPreview(values)}
             </LivePreviewPanel>
             {sidebarInfo ? <WorkspaceSidebarInfo title={sidebarInfo.title} description={sidebarInfo.description} items={sidebarItems} /> : null}
