@@ -44,6 +44,7 @@ export type PublicTripExperienceData = {
   status: TripShareLinkStatus
   token: string
   share_url: string
+  view_count: number
   trip: {
     destination: string
     status: string
