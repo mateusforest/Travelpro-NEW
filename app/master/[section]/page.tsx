@@ -3,7 +3,7 @@ import { masterPages } from "@/lib/services/portal-pages"
 import { PortalPage } from "@/components/system/portal-page"
 import {
   MasterAgenciesPage as MasterAgenciesRealPage,
-  MasterDashboardPage as MasterDashboardRealPage,
+  MasterDashboardPremiumPage as MasterDashboardRealPage,
   MasterFinancePage as MasterFinanceRealPage,
   MasterUsersPage as MasterUsersRealPage,
 } from "@/components/master/master-real-pages"

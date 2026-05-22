@@ -41,6 +41,70 @@ export async function GET() {
       reports_total: reports.summary.total,
       templates_active: templates.summary.active,
       templates_official: templates.summary.official,
+      agencies_with_subscription: agencies.summary.with_subscription,
+      total_credit_balance: agencies.summary.total_credit_balance,
+      active_subscriptions: finance.totals.active_subscriptions,
+      revenue_records_total: finance.totals.revenue_records_total,
+      expense_records_total: finance.totals.expense_records_total,
+      billing_status: finance.billing_status,
+      top_agencies: agencies.items
+        .slice()
+        .sort((left, right) => {
+          if (right.payments_total !== left.payments_total) return right.payments_total - left.payments_total
+          return right.credits_consumed - left.credits_consumed
+        })
+        .slice(0, 5)
+        .map((item) => ({
+          id: item.id,
+          name: item.name,
+          status: item.status,
+          current_plan: item.current_plan,
+          members_count: item.members_count,
+          credits_consumed: item.credits_consumed,
+          credits_balance: item.credits_balance,
+          payments_total: item.payments_total,
+        })),
+      recent_payments: finance.recent_payments.slice(0, 5).map((item) => ({
+        id: item.id,
+        agency_name: item.agency_name,
+        amount: Number(item.amount || 0),
+        status: item.status,
+        paid_at: item.paid_at,
+        payment_method: item.payment_method,
+      })),
+      recent_reports: reports.recent_reports.slice(0, 5).map((item) => ({
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        status: item.status,
+        agency_name: item.agency_name,
+        created_at: item.created_at,
+      })),
+      credit_logs: aiCredits.logs.slice(0, 5).map((item) => ({
+        id: item.id,
+        title: item.title,
+        detail: item.detail,
+        agency_name: item.agency_name,
+        source: item.source,
+        status: item.status,
+        created_at: item.created_at,
+      })),
+      whatsapp_agencies: whatsapp.agencies.slice(0, 5).map((item) => ({
+        agency_id: item.agency_id,
+        agency_name: item.agency_name,
+        whatsapp_status: item.whatsapp_status,
+        go_status: item.go_status,
+        agent_status: item.agent_status,
+        last_event_at: item.last_event_at,
+      })),
+      report_mix: reports.by_type.slice(0, 6).map((item) => ({
+        label: item.label,
+        value: item.count,
+      })),
+      template_mix: templates.by_type.slice(0, 6).map((item) => ({
+        label: item.label,
+        value: item.count,
+      })),
     }
 
     return NextResponse.json(data)

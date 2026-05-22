@@ -1,18 +1,24 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   AlertTriangle,
   ArrowRightLeft,
+  BarChart3,
   BellRing,
+  Bot,
   Building2,
   CreditCard,
   Eye,
   FilePenLine,
   HandCoins,
+  LineChart,
+  MessageSquareText,
   RefreshCcw,
+  ShieldAlert,
   ShieldCheck,
+  Sparkles,
   UserCog,
   Users,
   Wallet,
@@ -21,6 +27,7 @@ import { DashboardCard } from "@/components/system/dashboard-card"
 import { EmptyState } from "@/components/system/empty-state"
 import { FilterTabs } from "@/components/system/filter-tabs"
 import { MetricCard } from "@/components/system/metric-card"
+import { MockChart } from "@/components/system/mock-chart"
 import { PageShell } from "@/components/system/page-shell"
 import { SearchInput } from "@/components/system/search-input"
 import { SectionHeader } from "@/components/system/section-header"
@@ -402,6 +409,448 @@ export function MasterDashboardPage() {
             <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/whatsapp">Abrir WhatsApp</Link></Button>
             <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/relatorios">Abrir relatorios</Link></Button>
             <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/templates">Abrir templates</Link></Button>
+          </div>
+        </DashboardCard>
+      </div>
+    </PageShell>
+  )
+}
+
+export function MasterDashboardPremiumPage() {
+  const [overview, setOverview] = useState<MasterDashboardOverview | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const topAgencies = overview?.top_agencies ?? []
+  const recentPayments = overview?.recent_payments ?? []
+  const recentReports = overview?.recent_reports ?? []
+  const creditLogs = overview?.credit_logs ?? []
+  const whatsappAgencies = overview?.whatsapp_agencies ?? []
+
+  useEffect(() => {
+    let active = true
+    const load = async () => {
+      setIsLoading(true)
+      setLoadError(null)
+      try {
+        const data = await requestJson<MasterDashboardOverview>("/api/master/dashboard/overview")
+        if (!active) return
+        setOverview(data)
+      } catch (error) {
+        if (!active) return
+        setOverview(null)
+        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar o dashboard master.")
+      } finally {
+        if (active) setIsLoading(false)
+      }
+    }
+    void load()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const executiveSeries = useMemo(
+    () => [
+      { label: "Agências", value: overview?.agencies_total ?? 0 },
+      { label: "Assinaturas", value: overview?.active_subscriptions ?? 0 },
+      { label: "Usuários", value: overview?.users_total ?? 0 },
+      { label: "Relatórios", value: overview?.reports_total ?? 0 },
+      { label: "Templates", value: overview?.templates_active ?? 0 },
+      { label: "WhatsApp", value: overview?.whatsapp_connected_agencies ?? 0 },
+    ],
+    [overview],
+  )
+
+  const financeSeries = useMemo(
+    () => [
+      {
+        label: "Receita",
+        value: overview?.paid_total ?? 0,
+        expenses: overview?.expense_records_total ?? 0,
+        profit: Math.max((overview?.paid_total ?? 0) - (overview?.expense_records_total ?? 0), 0),
+      },
+      {
+        label: "Cobrado",
+        value: overview?.payments_total ?? 0,
+        expenses: Math.max((overview?.payments_total ?? 0) - (overview?.paid_total ?? 0), 0),
+        profit: overview?.paid_total ?? 0,
+      },
+      {
+        label: "Créditos",
+        value: overview?.credits_sold ?? 0,
+        expenses: overview?.credits_consumed ?? 0,
+        profit: Math.max((overview?.credits_sold ?? 0) - (overview?.credits_consumed ?? 0), 0),
+      },
+    ],
+    [overview],
+  )
+
+  const moduleMixSeries = useMemo(() => {
+    const reportItems = overview?.report_mix ?? []
+    const templateItems = overview?.template_mix ?? []
+    const labels = Array.from(new Set([...reportItems.map((item) => item.label), ...templateItems.map((item) => item.label)])).slice(0, 6)
+    return labels.map((label) => ({
+      label,
+      value: reportItems.find((item) => item.label === label)?.value ?? 0,
+      expenses: templateItems.find((item) => item.label === label)?.value ?? 0,
+      profit: Math.max((reportItems.find((item) => item.label === label)?.value ?? 0) - (templateItems.find((item) => item.label === label)?.value ?? 0), 0),
+    }))
+  }, [overview])
+
+  const executiveAlerts = useMemo(() => {
+    const alerts: Array<{ id: string; title: string; description: string; severity: string; href: string }> = []
+
+    if ((overview?.billing_status.overdue ?? 0) > 0) {
+      alerts.push({
+        id: "billing-overdue",
+        title: "Cobranças em atraso",
+        description: `${overview?.billing_status.overdue ?? 0} registros exigem atenção no financeiro master.`,
+        severity: "Alta",
+        href: "/master/financeiro",
+      })
+    }
+
+    if ((overview?.ai_related_logs ?? 0) > 0) {
+      alerts.push({
+        id: "ai-logs",
+        title: "Sinais operacionais de IA",
+        description: `${overview?.ai_related_logs ?? 0} logs reais já apareceram nos módulos de IA e créditos.`,
+        severity: "Média",
+        href: "/master/ia-creditos/logs-ia",
+      })
+    }
+
+    if ((overview?.whatsapp_connected_agencies ?? 0) === 0) {
+      alerts.push({
+        id: "whatsapp-empty",
+        title: "WhatsApp ainda sem agências configuradas",
+        description: "O módulo segue preparado, mas ainda sem agências conectadas de forma rastreável.",
+        severity: "Observação",
+        href: "/master/whatsapp",
+      })
+    }
+
+    if ((overview?.templates_official ?? 0) === 0) {
+      alerts.push({
+        id: "templates-official",
+        title: "Biblioteca oficial sem templates publicados",
+        description: "Vale reforçar a base oficial da plataforma para padronização operacional.",
+        severity: "Média",
+        href: "/master/templates",
+      })
+    }
+
+    if ((overview?.agencies_total ?? 0) === 0) {
+      alerts.push({
+        id: "agencies-empty",
+        title: "Sem agências na base",
+        description: "O Master está pronto, mas ainda não há contas registradas para leitura executiva.",
+        severity: "Observação",
+        href: "/master/agencias",
+      })
+    }
+
+    return alerts.slice(0, 4)
+  }, [overview])
+
+  const executiveSignals = useMemo(
+    () => [
+      {
+        label: "Receita líquida observável",
+        value: formatMoney(Math.max((overview?.paid_total ?? 0) - (overview?.expense_records_total ?? 0), 0)),
+      },
+      {
+        label: "Agências com assinatura",
+        value: `${overview?.agencies_with_subscription ?? 0} de ${overview?.agencies_total ?? 0}`,
+      },
+      {
+        label: "Saldo agregado de créditos",
+        value: `${overview?.total_credit_balance ?? 0} créditos`,
+      },
+      {
+        label: "Maior consumo atual",
+        value: overview?.top_credit_agency_name ? `${overview.top_credit_agency_name} • ${overview.top_credit_agency_consumption} créditos` : "Sem consumo relevante ainda",
+      },
+    ],
+    [overview],
+  )
+
+  return (
+    <PageShell>
+      <SectionHeader
+        title="Dashboard Master"
+        description="Cockpit executivo do ecossistema com sinais reais de agências, billing, créditos, relatórios e operação da plataforma."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button asChild className="rounded-full"><Link href="/master/agencias">Abrir agências</Link></Button>
+            <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/financeiro">Abrir financeiro</Link></Button>
+            <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/ia-creditos">IA e créditos</Link></Button>
+          </div>
+        }
+      />
+
+      {loadError ? (
+        <div className="rounded-[28px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+          <p className="font-medium">Não foi possível carregar o dashboard master agora.</p>
+          <p className="mt-1 text-amber-100/80">{loadError}</p>
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+        <MetricCard label="Agências" value={isLoading ? "--" : String(overview?.agencies_total ?? 0)} change={isLoading ? "Carregando..." : `${overview?.agencies_active ?? 0} ativas`} tone="success" icon={Building2} />
+        <MetricCard label="Usuários" value={isLoading ? "--" : String(overview?.users_total ?? 0)} change="Perfis reais do Supabase" tone="info" icon={Users} />
+        <MetricCard label="Receita paga" value={isLoading ? "--" : formatMoney(overview?.paid_total ?? 0)} change={isLoading ? "Carregando..." : `Total registrado ${formatMoney(overview?.payments_total ?? 0)}`} tone="success" icon={Wallet} />
+        <MetricCard label="Créditos" value={isLoading ? "--" : `${overview?.credits_sold ?? 0}`} change={isLoading ? "Carregando..." : `${overview?.credits_consumed ?? 0} consumidos`} tone="warning" icon={CreditCard} />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <DashboardCard title="Camada executiva" description="Resumo premium do que está acontecendo agora na plataforma, com prioridade para densidade operacional e leitura de decisão.">
+          <div className="rounded-[30px] border border-primary/15 bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.18),_transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-5">
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+              <div className="max-w-2xl">
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary/80">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  TravelPro Master Live
+                </div>
+                <h2 className="mt-4 text-2xl font-semibold text-foreground md:text-[2rem]">
+                  Centro operacional da plataforma com leitura real de billing, créditos, agências e atividade executiva.
+                </h2>
+                <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
+                  O backend continua 100% real. Esta camada recoloca o peso visual do cockpit enterprise sem perder integridade de dados, rotas ou services.
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 xl:min-w-[320px] xl:max-w-[360px]">
+                {executiveSignals.map((signal) => (
+                  <div key={signal.label} className="rounded-[24px] border border-white/8 bg-black/20 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-primary/70">{signal.label}</p>
+                    <p className="mt-2 text-sm font-medium text-foreground">{isLoading ? "Carregando..." : signal.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DashboardCard>
+
+        <DashboardCard title="Alertas executivos" description="Sinais prioritários reais ou zero-state honesto quando a plataforma ainda não gerou tensão suficiente.">
+          <div className="space-y-3">
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, index) => <div key={`master-alert-skeleton-${index}`} className="h-24 animate-pulse rounded-[24px] bg-white/[0.03]" />)
+            ) : executiveAlerts.length > 0 ? (
+              executiveAlerts.map((item) => (
+                <Link key={item.id} href={item.href} className="block rounded-[24px] border border-white/8 bg-white/[0.03] p-4 transition-all hover:border-primary/15 hover:bg-white/[0.05]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{item.title}</p>
+                        <StatusPill label={item.severity} />
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                    </div>
+                    <ShieldAlert className="mt-0.5 h-4 w-4 text-primary/80" />
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <EmptyState title="Sem alertas críticos por agora" description="O cockpit segue monitorando billing, IA, templates e canais. Assim que surgirem sinais reais, eles aparecem aqui com prioridade." />
+            )}
+          </div>
+        </DashboardCard>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+        <MockChart title="Escala da plataforma" description="Distribuição real entre agências, assinaturas, usuários, relatórios, templates e canais preparados." series={executiveSeries} />
+        <MockChart title="Financeiro e créditos" description="Leitura viva entre receita paga, volume cobrado, saldo de créditos e pressão operacional." series={financeSeries} />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <DashboardCard title="Agências em destaque" description="Contas com mais peso financeiro ou maior consumo de créditos no ecossistema.">
+          <div className="space-y-3">
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, index) => <div key={`master-agency-highlight-${index}`} className="h-28 animate-pulse rounded-[24px] bg-white/[0.03]" />)
+            ) : topAgencies.length > 0 ? (
+              topAgencies.map((agency) => (
+                <div key={agency.id} className="rounded-[28px] border border-white/8 bg-white/[0.03] p-4">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{agency.name}</p>
+                        <StatusPill label={normalizeStatusLabel(agency.status)} />
+                        {agency.current_plan ? <StatusPill label={agency.current_plan} /> : null}
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {agency.members_count} membros • {agency.credits_consumed} créditos consumidos • saldo {agency.credits_balance}
+                      </p>
+                      <p className="mt-2 text-xs uppercase tracking-[0.16em] text-primary/70">
+                        Receita consolidada {formatMoney(agency.payments_total)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+                        <Link href="/master/agencias">Ver agência</Link>
+                      </Button>
+                      <Button asChild className="rounded-full">
+                        <Link href="/master/ia-creditos">Ver consumo</Link>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <EmptyState title="Sem agências para destacar" description="Quando a base real ganhar contas com uso, billing ou consumo relevante, elas aparecerão aqui." />
+            )}
+          </div>
+        </DashboardCard>
+
+        <DashboardCard title="Mistura de relatórios e templates" description="Leitura por tipo para reforçar profundidade operacional sem adicionar ruído visual.">
+          {isLoading ? (
+            <div className="h-[380px] animate-pulse rounded-[24px] bg-white/[0.03]" />
+          ) : moduleMixSeries.length > 0 ? (
+            <MockChart title="Produção por tipo" description="Linha principal para relatórios e comparativo para templates ativos por categoria." series={moduleMixSeries} />
+          ) : (
+            <EmptyState title="Sem mix suficiente ainda" description="Os gráficos ganham corpo assim que relatórios e templates começarem a ser usados de forma mais consistente." />
+          )}
+        </DashboardCard>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[0.96fr_1.04fr]">
+        <DashboardCard title="Radar de IA e WhatsApp" description="Status vivo das camadas preparadas da plataforma, com zero state honesto e atividade recente quando houver.">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-[26px] border border-white/8 bg-white/[0.03] p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl border border-white/10 bg-primary/10 p-2.5 text-primary">
+                  <Bot className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">IA e créditos</p>
+                  <p className="text-xs text-muted-foreground">{overview?.ai_status_label ?? "Em breve"} • {overview?.ai_related_logs ?? 0} sinais reais</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-[26px] border border-white/8 bg-white/[0.03] p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl border border-white/10 bg-primary/10 p-2.5 text-primary">
+                  <MessageSquareText className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">WhatsApp e Go</p>
+                  <p className="text-xs text-muted-foreground">{overview?.whatsapp_status_label ?? "Em breve"} • {overview?.whatsapp_connected_agencies ?? 0} agências com sinal</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {creditLogs.map((item) => (
+              <div key={item.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-medium text-foreground">{item.title}</p>
+                  <StatusPill label={normalizeStatusLabel(item.status)} />
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">{item.agency_name || "TravelPro Master"} • {item.detail}</p>
+                <p className="mt-2 text-xs uppercase tracking-[0.16em] text-primary/70">{item.source} • {formatDateLabel(item.created_at)}</p>
+              </div>
+            ))}
+            {!isLoading && creditLogs.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                Ainda não há logs suficientes para IA e créditos, mas a estrutura já está pronta para capturar a operação real.
+              </div>
+            ) : null}
+          </div>
+        </DashboardCard>
+
+        <DashboardCard title="Fluxo operacional recente" description="Pagamentos, relatórios e canais aparecem aqui como widgets vivos, sem simplificar a leitura executiva.">
+          <div className="space-y-5">
+            <div>
+              <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-primary/70">
+                <HandCoins className="h-3.5 w-3.5" />
+                Últimos pagamentos
+              </div>
+              <div className="space-y-3">
+                {recentPayments.map((item) => (
+                  <div key={item.id} className="flex flex-col gap-3 rounded-[24px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{item.agency_name || "Agência sem nome"}</p>
+                        <StatusPill label={normalizeStatusLabel(item.status)} />
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">{formatMoney(item.amount)} • {item.payment_method || "Sem método definido"}</p>
+                    </div>
+                    <p className="text-xs uppercase tracking-[0.16em] text-primary/70">{formatDateLabel(item.paid_at)}</p>
+                  </div>
+                ))}
+                {!isLoading && recentPayments.length === 0 ? <p className="text-sm text-muted-foreground">Sem pagamentos recentes por enquanto.</p> : null}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-primary/70">
+                <BarChart3 className="h-3.5 w-3.5" />
+                Relatórios recentes
+              </div>
+              <div className="space-y-3">
+                {recentReports.map((item) => (
+                  <div key={item.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">{item.name}</p>
+                      <StatusPill label={normalizeStatusLabel(item.status)} />
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{item.type} • {item.agency_name || "TravelPro Master"}</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.16em] text-primary/70">{formatDateLabel(item.created_at)}</p>
+                  </div>
+                ))}
+                {!isLoading && recentReports.length === 0 ? <p className="text-sm text-muted-foreground">Sem relatórios recentes por enquanto.</p> : null}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-primary/70">
+                <LineChart className="h-3.5 w-3.5" />
+                Canais preparados
+              </div>
+              <div className="space-y-3">
+                {whatsappAgencies.map((item) => (
+                  <div key={item.agency_id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">{item.agency_name}</p>
+                      <StatusPill label={item.whatsapp_status} />
+                      <StatusPill label={item.go_status} />
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">Agent {item.agent_status}</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.16em] text-primary/70">
+                      {item.last_event_at ? `Último evento em ${formatDateLabel(item.last_event_at)}` : "Sem eventos rastreáveis ainda"}
+                    </p>
+                  </div>
+                ))}
+                {!isLoading && whatsappAgencies.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma agência com sinal de WhatsApp ainda.</p> : null}
+              </div>
+            </div>
+          </div>
+        </DashboardCard>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <DashboardCard title="Ações rápidas" description="Atalhos executivos para seguir navegando no Master sem perder a sensação de cockpit.">
+          <div className="space-y-3">
+            <Button asChild className="w-full rounded-full"><Link href="/master/agencias">Gerenciar agências</Link></Button>
+            <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/usuarios">Revisar usuários</Link></Button>
+            <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/financeiro">Abrir financeiro</Link></Button>
+            <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/ia-creditos">Abrir IA e créditos</Link></Button>
+            <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/whatsapp">Abrir WhatsApp</Link></Button>
+            <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/relatorios">Abrir relatórios</Link></Button>
+            <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/templates">Abrir templates</Link></Button>
+          </div>
+        </DashboardCard>
+
+        <DashboardCard title="Estado do ecossistema" description="Widgets resumidos para dar profundidade visual sem poluir o dashboard.">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <InfoCard label="Billing pago" value={String(overview?.billing_status.paid ?? 0)} />
+            <InfoCard label="Billing pendente" value={String(overview?.billing_status.pending ?? 0)} />
+            <InfoCard label="Billing atrasado" value={String(overview?.billing_status.overdue ?? 0)} />
+            <InfoCard label="Templates oficiais" value={String(overview?.templates_official ?? 0)} />
+            <InfoCard label="Relatórios totais" value={String(overview?.reports_total ?? 0)} />
+            <InfoCard label="Receitas operacionais" value={formatMoney(overview?.revenue_records_total ?? 0)} />
+            <InfoCard label="Despesas operacionais" value={formatMoney(overview?.expense_records_total ?? 0)} />
+            <InfoCard label="IA / WhatsApp" value={`${overview?.ai_status_label ?? "Em breve"} • ${overview?.whatsapp_status_label ?? "Em breve"}`} />
           </div>
         </DashboardCard>
       </div>

@@ -148,6 +148,62 @@ export type MasterDashboardOverview = {
   reports_total: number
   templates_active: number
   templates_official: number
+  agencies_with_subscription: number
+  total_credit_balance: number
+  active_subscriptions: number
+  revenue_records_total: number
+  expense_records_total: number
+  billing_status: {
+    paid: number
+    pending: number
+    overdue: number
+    other: number
+  }
+  top_agencies: Array<{
+    id: string
+    name: string
+    status: string
+    current_plan: string | null
+    members_count: number
+    credits_consumed: number
+    credits_balance: number
+    payments_total: number
+  }>
+  recent_payments: Array<{
+    id: string
+    agency_name: string | null
+    amount: number
+    status: string
+    paid_at: string | null
+    payment_method: string | null
+  }>
+  recent_reports: Array<{
+    id: string
+    name: string
+    type: string
+    status: string
+    agency_name: string | null
+    created_at: string
+  }>
+  credit_logs: Array<{
+    id: string
+    title: string
+    detail: string
+    agency_name: string | null
+    source: string
+    status: string
+    created_at: string
+  }>
+  whatsapp_agencies: Array<{
+    agency_id: string
+    agency_name: string
+    whatsapp_status: string
+    go_status: string
+    agent_status: string
+    last_event_at: string | null
+  }>
+  report_mix: Array<{ label: string; value: number }>
+  template_mix: Array<{ label: string; value: number }>
 }
 
 export type MasterAiCreditAgencyItem = {
