@@ -425,7 +425,7 @@ function InternalMessages({ initialMessages }: { initialMessages: MessageRecord[
       { id: `msg-${current.length + 1}`, sender: "agency", text: draft.trim(), time: "Agora", status: "Enviado" },
     ])
     setDraft("")
-    toast({ title: "Mensagem enviada", description: "A mensagem foi adicionada localmente em modo mockado." })
+    toast({ title: "Mensagem registrada", description: "A mensagem foi registrada nesta sessão enquanto o fluxo completo de conversas chega em uma próxima etapa." })
   }
 
   return (
@@ -2606,6 +2606,7 @@ export function AgencyTasksPage() {
 export function AgencyReportsPage() {
   const [overview, setOverview] = useState<ReportsOverviewData | null>(null)
   const [selectedReport, setSelectedReport] = useState<ReportRow | null>(null)
+  const [showAllRecentReports, setShowAllRecentReports] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isDownloadingId, setIsDownloadingId] = useState<string | null>(null)
   const [isRegeneratingId, setIsRegeneratingId] = useState<string | null>(null)
@@ -2693,6 +2694,8 @@ export function AgencyReportsPage() {
   const previewLines = selectedReport
     ? (parseReportFilters(selectedReport.filters).preview as { lines?: string[] } | undefined)?.lines ?? []
     : overview?.preview.lines ?? []
+  const recentReports = overview?.recent_reports ?? []
+  const visibleRecentReports = showAllRecentReports ? recentReports : recentReports.slice(0, 4)
 
   return (
     <PageShell>
@@ -2762,12 +2765,12 @@ export function AgencyReportsPage() {
                   <p className="mt-1 text-amber-100/80">{loadError}</p>
                 </div>
               ) : null}
-              {(overview?.recent_reports ?? []).length === 0 && !isLoading ? (
+              {recentReports.length === 0 && !isLoading ? (
                 <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
                   Nenhum relatório salvo ainda. Gere o primeiro relatório operacional real da agência.
                 </div>
               ) : null}
-              {(overview?.recent_reports ?? []).map((report) => (
+              {visibleRecentReports.map((report) => (
                 <div key={report.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -2794,6 +2797,15 @@ export function AgencyReportsPage() {
                   </div>
                 </div>
               ))}
+              {recentReports.length > 4 ? (
+                <Button
+                  variant="outline"
+                  className="w-full rounded-full border-white/10 bg-white/[0.03]"
+                  onClick={() => setShowAllRecentReports((current) => !current)}
+                >
+                  {showAllRecentReports ? "Recolher histórico" : `Ver mais ${recentReports.length - 4} relatórios`}
+                </Button>
+              ) : null}
             </div>
           </DashboardCard>
 
@@ -3262,7 +3274,7 @@ export function AgencyTeamPage() {
                     onClick: () =>
                       setConfirmAction({
                         title: "Excluir membro",
-                        description: `Deseja confirmar a exclusão mockada de ${item.name}?`,
+                        description: `Deseja remover ${item.name} desta lista de preparação?`,
                         confirmLabel: "Excluir membro",
                         onConfirm: async () => {
                           try {
@@ -3690,7 +3702,7 @@ export function AgencyTravelProGoPage() {
         actions={
           <div className="flex flex-wrap gap-2">
             <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir regras, permissões e comandos úteis para o TravelPro Go." />
-            <Button className="rounded-full" onClick={() => fire("TravelPro Go atualizado", "O número foi ativado ou pausado em modo mockado.")}>Ativar / pausar</Button>
+            <Button className="rounded-full" onClick={() => fire("TravelPro Go em breve", "O controle operacional do número será liberado quando a integração real de WhatsApp entrar na próxima fase.")}>Ativar / pausar</Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem aberta", "O histórico completo do TravelPro Go foi preparado.")}>Abrir origem</Button>
           </div>
         }
@@ -3719,7 +3731,7 @@ export function AgencyTravelProGoPage() {
                 <p className="mt-2 text-sm text-muted-foreground">{entry.response}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem aberta", `A origem de ${entry.title} foi aberta em modo mockado.`)}>Abrir origem</Button>
+                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem em breve", `A trilha completa de ${entry.title} será exibida quando o histórico real do Go estiver disponível.`)}>Abrir origem</Button>
                 <Button className="rounded-full" onClick={() => fire("Detalhes abertos", `Os detalhes de ${entry.title} foram preparados.`)}>Abrir detalhes</Button>
               </div>
             </div>
@@ -3744,7 +3756,7 @@ export function AgencyAgentPage() {
         actions={
           <div className="flex flex-wrap gap-2">
             <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir estilo de atendimento, regras e escalonamento para o Agent." />
-            <Button className="rounded-full" onClick={() => fire("Agent atualizado", "O Agent foi ativado ou pausado em modo mockado.")}>Pausar / ativar</Button>
+            <Button className="rounded-full" onClick={() => fire("Agent em breve", "O controle fino do Agent será liberado quando a operação conversacional entrar na próxima fase.")}>Pausar / ativar</Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setStyleOpen(true)}>Editar estilo de atendimento</Button>
           </div>
         }
@@ -3777,17 +3789,17 @@ export function AgencyAgentPage() {
               </div>
               <ActionMenu
                 items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => fire("Atendimento aberto", `${item.name} foi aberto em modo mockado.`) },
-                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Atendimento em edição", `${item.name} foi aberto para edição mockada.`) },
+                  { label: "Visualizar", icon: Eye, onClick: () => fire("Atendimento em breve", `${item.name} entra na leitura real quando o módulo conversacional for conectado.`) },
+                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Edição em breve", `A edição segura do atendimento de ${item.name} será liberada na próxima etapa do Agent.`) },
                   {
                     label: "Excluir",
                     icon: Trash2,
                     onClick: () =>
                       setConfirmAction({
                         title: "Excluir atendimento",
-                        description: `Deseja confirmar a exclusão mockada do atendimento de ${item.name}?`,
+                        description: `Deseja remover ${item.name} desta fila de preparação do Agent?`,
                         confirmLabel: "Excluir atendimento",
-                        onConfirm: () => fire("Atendimento excluído", `${item.name} foi removido em modo mockado.`),
+                        onConfirm: () => fire("Atendimento removido", `${item.name} saiu desta visão de preparação do Agent.`),
                       }),
                     danger: true,
                   },
@@ -3809,7 +3821,7 @@ export function AgencyAgentPage() {
           { label: "Escalonamento", value: "Leads quentes e objeções complexas" },
         ]}
         confirmLabel="Salvar estilo"
-        onConfirm={() => fire("Estilo salvo", "O estilo de atendimento foi atualizado em modo mockado.")}
+        onConfirm={() => fire("Estilo salvo", "O estilo de atendimento foi registrado nesta interface e será conectado à operação real do Agent em uma próxima etapa.")}
       />
       <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
     </PageShell>
@@ -3834,7 +3846,7 @@ export function AgencyMarketingPage() {
         actions={
           <div className="flex flex-wrap gap-2">
             <SmartActionButton label="Criar campanha com IA" description="A IA poderá gerar campanhas, calendário e CTA com base no pacote e público." />
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Calendário aberto", "O calendário promocional foi preparado em modo mockado.")}>Abrir calendário</Button>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Calendário em breve", "O calendário promocional completo será conectado quando o módulo de campanhas sair da fase preparatória.")}>Abrir calendário</Button>
             <Button asChild className="rounded-full">
               <Link href="/app/marketing/campanhas/nova">Nova campanha</Link>
             </Button>
@@ -3862,17 +3874,17 @@ export function AgencyMarketingPage() {
               </div>
               <ActionMenu
                 items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => fire("Campanha aberta", `${item.title} foi aberta em modo mockado.`) },
-                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Campanha em edição", `${item.title} foi aberta para edição mockada.`) },
+                  { label: "Visualizar", icon: Eye, onClick: () => fire("Campanha em breve", `${item.title} entra na leitura real quando o módulo de campanhas for conectado.`) },
+                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Edição em breve", `A edição segura de ${item.title} será liberada na próxima etapa do Marketing IA.`) },
                   {
                     label: "Excluir",
                     icon: Trash2,
                     onClick: () =>
                       setConfirmAction({
                         title: "Excluir campanha",
-                        description: `Deseja confirmar a exclusão mockada da campanha ${item.title}?`,
+                        description: `Deseja remover ${item.title} desta lista de preparação?`,
                         confirmLabel: "Excluir campanha",
-                        onConfirm: () => fire("Campanha excluída", `${item.title} foi removida em modo mockado.`),
+                        onConfirm: () => fire("Campanha removida", `${item.title} saiu desta visão preparatória do Marketing IA.`),
                       }),
                     danger: true,
                   },
@@ -3894,7 +3906,7 @@ export function AgencyMarketingPage() {
           { label: "Objetivo", value: "Gerar leads qualificados" },
         ]}
         confirmLabel="Salvar campanha"
-        onConfirm={() => fire("Campanha criada", "A nova campanha foi preparada em modo mockado.")}
+        onConfirm={() => fire("Campanha preparada", "A campanha ficou registrada nesta interface enquanto a execução real de campanhas entra em uma próxima fase.")}
       />
       <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
     </PageShell>
@@ -3962,7 +3974,7 @@ export function AgencyAtlasAdvisorPage() {
           { label: "Objetivo", value: "Retomar conversa com script premium" },
         ]}
         confirmLabel="Enviar consulta"
-        onConfirm={() => fire("Consulta criada", "A nova consulta foi preparada em modo mockado.")}
+        onConfirm={() => fire("Consulta preparada", "A consulta ficou registrada nesta interface enquanto o Atlas Advisor avança para a próxima fase operacional.")}
       />
     </PageShell>
   )
@@ -3986,7 +3998,7 @@ export function AgencyAutomationsPage() {
         actions={
           <div className="flex flex-wrap gap-2">
             <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir fluxos, regras e gatilhos para automações premium." />
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Histórico aberto", "O histórico das automações foi preparado em modo mockado.")}>Ver histórico</Button>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Histórico em breve", "O histórico real das automações será liberado quando os fluxos saírem da fase preparatória.")}>Ver histórico</Button>
             <Button className="rounded-full" onClick={() => setCreateOpen(true)}>Novo fluxo</Button>
           </div>
         }
@@ -4009,17 +4021,17 @@ export function AgencyAutomationsPage() {
               </div>
               <ActionMenu
                 items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => fire("Fluxo aberto", `${flow.title} foi aberto em modo mockado.`) },
-                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Fluxo em edição", `${flow.title} foi aberto para edição mockada.`) },
+                  { label: "Visualizar", icon: Eye, onClick: () => fire("Fluxo em breve", `${flow.title} entra na leitura real quando a camada operacional de automações for conectada.`) },
+                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Edição em breve", `A edição segura de ${flow.title} será liberada quando o módulo sair da fase preparatória.`) },
                   {
                     label: "Excluir",
                     icon: Trash2,
                     onClick: () =>
                       setConfirmAction({
                         title: "Excluir automação",
-                        description: `Deseja confirmar a exclusão mockada da automação ${flow.title}?`,
+                        description: `Deseja remover ${flow.title} desta visão de preparação?`,
                         confirmLabel: "Excluir automação",
-                        onConfirm: () => fire("Automação excluída", `${flow.title} foi removida em modo mockado.`),
+                        onConfirm: () => fire("Automação removida", `${flow.title} saiu desta visão preparatória.`),
                       }),
                     danger: true,
                   },
@@ -4041,7 +4053,7 @@ export function AgencyAutomationsPage() {
           { label: "Objetivo", value: "Retomar conversa e avançar etapa" },
         ]}
         confirmLabel="Salvar fluxo"
-        onConfirm={() => fire("Fluxo criado", "A nova automação foi preparada em modo mockado.")}
+        onConfirm={() => fire("Fluxo preparado", "O fluxo ficou registrado nesta interface enquanto a automação real entra em uma próxima etapa.")}
       />
       <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
     </PageShell>
@@ -4403,6 +4415,7 @@ export function AgencyInsightsPage() {
 
 export function AgencyCreditsPage() {
   const [overview, setOverview] = useState<CreditsOverviewData | null>(null)
+  const [showAllHistory, setShowAllHistory] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const fire = (title: string, description: string) => toast({ title, description })
@@ -4431,6 +4444,9 @@ export function AgencyCreditsPage() {
       active = false
     }
   }, [])
+
+  const history = overview?.history ?? []
+  const visibleHistory = showAllHistory ? history : history.slice(0, 6)
 
   return (
     <PageShell>
@@ -4487,7 +4503,7 @@ export function AgencyCreditsPage() {
               ))
             ) : (
               <>
-                {(overview?.history ?? []).map((row) => (
+                {visibleHistory.map((row) => (
                   <div key={row.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -4501,7 +4517,16 @@ export function AgencyCreditsPage() {
                     </Button>
                   </div>
                 ))}
-                {(overview?.history ?? []).length === 0 ? (
+                {history.length > 6 ? (
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-full border-white/10 bg-white/[0.03]"
+                    onClick={() => setShowAllHistory((current) => !current)}
+                  >
+                    {showAllHistory ? "Recolher histórico" : `Ver mais ${history.length - 6} movimentos`}
+                  </Button>
+                ) : null}
+                {history.length === 0 ? (
                   <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
                     Ainda não há consumo de créditos registrado. Quando relatórios e ações futuras gerarem consumo operacional, o histórico aparece aqui.
                   </div>

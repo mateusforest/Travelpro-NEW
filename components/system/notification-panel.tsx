@@ -134,7 +134,7 @@ export function NotificationPanel({
                           type="button"
                           onClick={() =>
                             toast({
-                              title: "Origem em preparação",
+                              title: "Origem em breve",
                               description: "A origem desta notificação será conectada na próxima etapa do TravelPro.",
                             })
                           }

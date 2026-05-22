@@ -301,6 +301,15 @@ function CatalogPackageWorkspace() {
 
   const publicHref = agencyProfile?.public_url || `/catalogo/${slugify(agencyProfile?.display_name || "agencia-travelpro")}`
 
+  const handleOpenPreview = () => {
+    if (draft.status !== "Publicado") {
+      fire("Preview público após publicação", "Publique o pacote para abrir a vitrine pública com este item disponível.")
+      return
+    }
+
+    router.push(publicHref)
+  }
+
   const addGalleryImages = (files: FileList | null) => {
     if (!files?.length) return
     const additions = Array.from(files).map((file, index) => ({
@@ -435,11 +444,9 @@ function CatalogPackageWorkspace() {
               description="Uma mini landing page pronta para catálogo e distribuição comercial da agência."
               footer={
                 <div className="flex flex-wrap gap-3">
-                  <SecondaryButton asChild>
-                    <Link href={publicHref}>
-                      <Globe className="h-4 w-4" />
-                      Abrir preview
-                    </Link>
+                  <SecondaryButton onClick={handleOpenPreview}>
+                    <Globe className="h-4 w-4" />
+                    Abrir preview
                   </SecondaryButton>
                   <PrimaryButton onClick={() => fire("CTA comercial em breve", "O CTA comercial público seguirá simples até a integração de canais futuros.")}>
                     <MessageSquareText className="h-4 w-4" />

@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { CreditCard, HelpCircle } from "lucide-react"
 import { FeatureExplanationCard } from "@/components/system/feature-explanation-card"
 import { OperationalWorkspaceLayout } from "@/components/system/operational-workspace-layout"
@@ -11,21 +12,31 @@ import { SectionHeader } from "@/components/system/section-header"
 import { SetupStatusCard } from "@/components/system/setup-status-card"
 import { SmartActionButton } from "@/components/system/smart-action-button"
 import { WorkspaceSidebarInfo } from "@/components/system/workspace-sidebar-info"
+import { toast } from "@/components/ui/use-toast"
 
 export default function AgencyPlansWorkspacePage() {
+  const router = useRouter()
+
   return (
     <PageShell>
       <SectionHeader
         title="Planos, pacotes e expansões"
-        description="Uma visão mais clara de plano atual, limites, extras, créditos e add-ons do ecossistema TravelPro."
+        description="Uma visão mais clara do plano atual, limites, extras, créditos e add-ons do ecossistema TravelPro."
         actions={
           <>
             <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir plano, add-ons e créditos com base no uso da agência." />
-            <SecondaryButton>
+            <SecondaryButton
+              onClick={() =>
+                toast({
+                  title: "FAQ em breve",
+                  description: "A central de perguntas frequentes desta área será publicada em uma próxima etapa.",
+                })
+              }
+            >
               <HelpCircle className="h-4 w-4" />
               Ver perguntas frequentes
             </SecondaryButton>
-            <PrimaryButton>
+            <PrimaryButton onClick={() => router.push("/app/creditos")}>
               <CreditCard className="h-4 w-4" />
               Comprar créditos
             </PrimaryButton>
