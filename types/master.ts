@@ -1,0 +1,142 @@
+import type { AuditLogRow, PaymentRow } from "@/types/database"
+
+export type MasterStatusTone = "success" | "warning" | "danger" | "info" | "default"
+
+export type MasterAgencyMemberSummary = {
+  id: string
+  full_name: string
+  email: string
+  role: string
+  status: string
+}
+
+export type MasterAgencyActivity = {
+  id: string
+  action: string
+  entity: string
+  status: string
+  created_at: string
+}
+
+export type MasterAgencyListItem = {
+  id: string
+  name: string
+  slug: string | null
+  owner_name: string | null
+  owner_email: string | null
+  phone: string | null
+  status: string
+  city: string | null
+  requested_plan: string | null
+  current_plan: string | null
+  subscription_status: string | null
+  subscription_price: number | null
+  renews_at: string | null
+  members_count: number
+  members: MasterAgencyMemberSummary[]
+  credits_balance: number
+  credits_consumed: number
+  payments_total: number
+  last_payment_status: string | null
+  created_at: string
+  updated_at: string
+  recent_activity: MasterAgencyActivity[]
+}
+
+export type MasterAgencyDetail = MasterAgencyListItem & {
+  audit_logs: AuditLogRow[]
+}
+
+export type MasterAgencyInput = {
+  name: string
+  owner_name?: string | null
+  owner_email?: string | null
+  phone?: string | null
+  status?: string | null
+  city?: string | null
+  requested_plan?: string | null
+  modules?: string | null
+  notes?: string | null
+}
+
+export type MasterAgencyOverview = {
+  items: MasterAgencyListItem[]
+  summary: {
+    total: number
+    active: number
+    inactive: number
+    with_subscription: number
+    total_credit_balance: number
+  }
+}
+
+export type MasterUserListItem = {
+  id: string
+  user_id: string
+  full_name: string | null
+  email: string
+  role: string
+  status: string
+  phone: string | null
+  agency_id: string | null
+  agency_name: string | null
+  member_role: string | null
+  member_status: string | null
+  last_activity_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type MasterUserDetail = MasterUserListItem & {
+  audit_logs: AuditLogRow[]
+}
+
+export type MasterUserInput = {
+  role?: string | null
+  status?: string | null
+}
+
+export type MasterUserOverview = {
+  items: MasterUserListItem[]
+  summary: {
+    total: number
+    active: number
+    masters: number
+    agency_linked: number
+  }
+}
+
+export type MasterFinancePaymentItem = PaymentRow & {
+  agency_name: string | null
+  plan_code: string | null
+}
+
+export type MasterFinanceOverview = {
+  totals: {
+    payments_count: number
+    payments_total: number
+    paid_total: number
+    active_subscriptions: number
+    revenue_records_total: number
+    expense_records_total: number
+    credits_sold: number
+    credits_consumed: number
+  }
+  billing_status: {
+    paid: number
+    pending: number
+    overdue: number
+    other: number
+  }
+  recent_payments: MasterFinancePaymentItem[]
+}
+
+export type MasterDashboardOverview = {
+  agencies_total: number
+  agencies_active: number
+  users_total: number
+  payments_total: number
+  paid_total: number
+  credits_sold: number
+  credits_consumed: number
+}

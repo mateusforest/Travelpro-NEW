@@ -566,6 +566,7 @@ export type BaseRow = {
 
 export type ClientRow = PublicTable<"clients">
 export type AgencyRow = PublicTable<"agencies">
+export type ProfileRow = PublicTable<"profiles">
 export type LeadRow = PublicTable<"leads">
 export type TripRow = PublicTable<"trips">
 export type ItineraryRow = PublicTable<"itineraries">

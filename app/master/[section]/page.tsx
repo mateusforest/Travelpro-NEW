@@ -2,17 +2,19 @@ import { notFound } from "next/navigation"
 import { masterPages } from "@/lib/services/portal-pages"
 import { PortalPage } from "@/components/system/portal-page"
 import {
-  MasterAgenciesPage,
+  MasterAgenciesPage as MasterAgenciesRealPage,
+  MasterDashboardPage as MasterDashboardRealPage,
+  MasterFinancePage as MasterFinanceRealPage,
+  MasterUsersPage as MasterUsersRealPage,
+} from "@/components/master/master-real-pages"
+import {
   MasterAtlasPage,
-  MasterDashboardPage,
-  MasterFinancePage,
   MasterLogsPage,
   MasterMarketplacePage,
   MasterPlansPage,
   MasterReportsPage,
   MasterSettingsPage,
   MasterTemplatesPage,
-  MasterUsersPage,
   MasterWhatsAppPage,
 } from "@/components/master/master-pages"
 
@@ -26,10 +28,10 @@ export default async function MasterSectionPage({ params }: { params: Promise<{ 
 
   if (!config) notFound()
 
-  if (section === "dashboard") return <MasterDashboardPage />
-  if (section === "agencias") return <MasterAgenciesPage />
-  if (section === "financeiro") return <MasterFinancePage />
-  if (section === "usuarios") return <MasterUsersPage />
+  if (section === "dashboard") return <MasterDashboardRealPage />
+  if (section === "agencias") return <MasterAgenciesRealPage />
+  if (section === "financeiro") return <MasterFinanceRealPage />
+  if (section === "usuarios") return <MasterUsersRealPage />
   if (section === "marketplace") return <MasterMarketplacePage />
   if (section === "templates") return <MasterTemplatesPage />
   if (section === "planos") return <MasterPlansPage />
