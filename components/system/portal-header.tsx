@@ -16,30 +16,30 @@ type PortalHeaderProps = {
 }
 
 const masterNotifications: NotificationItem[] = [
-  { id: "m-1", title: "Inadimplência crítica", description: "Serra Azul Turismo está com cobrança em atraso há 3 dias.", time: "há 6 min", tone: "danger", href: "/master/financeiro" },
-  { id: "m-2", title: "Uso excessivo de IA", description: "Horizonte Viagens passou 28% da média esperada do plano.", time: "há 14 min", tone: "warning", href: "/master/ia" },
-  { id: "m-3", title: "Chamado Atlas escalado", description: "Atlas não resolveu uma dúvida operacional da Atlântico Premium.", time: "há 22 min", tone: "info", href: "/master/atlas" },
-  { id: "m-4", title: "Falha no WhatsApp", description: "Um número de agência perdeu conexão no último ciclo.", time: "há 31 min", tone: "warning", href: "/master/whatsapp" },
-  { id: "m-5", title: "Marketplace em moderação", description: "Pacote denunciado no Match aguarda revisão humana.", time: "hoje", tone: "danger", href: "/master/marketplace" },
-  { id: "m-6", title: "Novo cadastro aprovado", description: "Uma nova agência concluiu onboarding e entrou em período ativo.", time: "hoje", tone: "success", href: "/master/agencias" },
+  { id: "m-1", title: "Inadimplencia critica", description: "Serra Azul Turismo esta com cobranca em atraso ha 3 dias.", time: "ha 6 min", tone: "danger", href: "/master/financeiro" },
+  { id: "m-2", title: "Uso excessivo de IA", description: "Horizonte Viagens passou 28% da media esperada do plano.", time: "ha 14 min", tone: "warning", href: "/master/ia-creditos/uso-ia" },
+  { id: "m-3", title: "Chamado Atlas escalado", description: "Atlas nao resolveu uma duvida operacional da Atlantico Premium.", time: "ha 22 min", tone: "info", href: "/master/atlas" },
+  { id: "m-4", title: "Falha no WhatsApp", description: "Um numero de agencia perdeu conexao no ultimo ciclo.", time: "ha 31 min", tone: "warning", href: "/master/whatsapp" },
+  { id: "m-5", title: "Marketplace em moderacao", description: "Pacote denunciado no Match aguarda revisao humana.", time: "hoje", tone: "danger", href: "/master/marketplace" },
+  { id: "m-6", title: "Novo cadastro aprovado", description: "Uma nova agencia concluiu onboarding e entrou em periodo ativo.", time: "hoje", tone: "success", href: "/master/agencias" },
 ]
 
 const agencyNotifications: NotificationItem[] = [
-  { id: "a-1", title: "Lead quente recebido", description: "Camila pediu cotação premium para Maldivas.", time: "há 3 min", tone: "success", href: "/app/leads" },
-  { id: "a-2", title: "Contrato assinado", description: "Ana Martins concluiu a assinatura da viagem.", time: "há 18 min", tone: "info", href: "/app/documentos/contratos" },
-  { id: "a-3", title: "Viagem próxima", description: "João Ribeiro embarca em 3 dias.", time: "há 41 min", tone: "warning", href: "/app/viagens" },
-  { id: "a-4", title: "Cobrança pendente", description: "Uma assinatura entrou em alerta financeiro.", time: "há 58 min", tone: "danger", href: "/app/financeiro" },
+  { id: "a-1", title: "Lead quente recebido", description: "Camila pediu cotacao premium para Maldivas.", time: "ha 3 min", tone: "success", href: "/app/leads" },
+  { id: "a-2", title: "Contrato assinado", description: "Ana Martins concluiu a assinatura da viagem.", time: "ha 18 min", tone: "info", href: "/app/documentos/contratos" },
+  { id: "a-3", title: "Viagem proxima", description: "Joao Ribeiro embarca em 3 dias.", time: "ha 41 min", tone: "warning", href: "/app/viagens" },
+  { id: "a-4", title: "Cobranca pendente", description: "Uma assinatura entrou em alerta financeiro.", time: "ha 58 min", tone: "danger", href: "/app/financeiro" },
   { id: "a-5", title: "Atlas sugeriu ajuste", description: "Novo script de atendimento para leads frios.", time: "hoje", tone: "default", href: "/app/atlas-advisor" },
   { id: "a-6", title: "TravelPro Go executado", description: "Pacote publicado e pronto para compartilhar.", time: "hoje", tone: "success", href: "/app/travelpro-go" },
 ]
 
 const clientNotifications: NotificationItem[] = [
-  { id: "c-1", title: "Novo documento disponível", description: "Seu voucher do hotel já pode ser aberto e baixado.", time: "agora", tone: "success", href: "/cliente/documentos" },
-  { id: "c-2", title: "Roteiro atualizado", description: "A agência ajustou o horário do passeio do segundo dia.", time: "há 14 min", tone: "info", href: "/cliente/roteiro" },
-  { id: "c-3", title: "Mensagem da agência", description: "Seu transfer para o aeroporto foi confirmado.", time: "há 28 min", tone: "default", href: "/cliente/mensagens" },
-  { id: "c-4", title: "Pagamento pendente", description: "Há uma etapa do pagamento aguardando confirmação.", time: "há 1 h", tone: "warning", href: "/cliente/viagem" },
-  { id: "c-5", title: "Viagem próxima", description: "Faltam 12 dias para o embarque para Cancún.", time: "hoje", tone: "info", href: "/cliente/dashboard" },
-  { id: "c-6", title: "Voucher enviado", description: "O voucher do transfer foi anexado à sua viagem.", time: "hoje", tone: "success", href: "/cliente/documentos" },
+  { id: "c-1", title: "Novo documento disponivel", description: "Seu voucher do hotel ja pode ser aberto e baixado.", time: "agora", tone: "success", href: "/cliente/documentos" },
+  { id: "c-2", title: "Roteiro atualizado", description: "A agencia ajustou o horario do passeio do segundo dia.", time: "ha 14 min", tone: "info", href: "/cliente/roteiro" },
+  { id: "c-3", title: "Mensagem da agencia", description: "Seu transfer para o aeroporto foi confirmado.", time: "ha 28 min", tone: "default", href: "/cliente/mensagens" },
+  { id: "c-4", title: "Pagamento pendente", description: "Ha uma etapa do pagamento aguardando confirmacao.", time: "ha 1 h", tone: "warning", href: "/cliente/viagem" },
+  { id: "c-5", title: "Viagem proxima", description: "Faltam 12 dias para o embarque para Cancun.", time: "hoje", tone: "info", href: "/cliente/dashboard" },
+  { id: "c-6", title: "Voucher enviado", description: "O voucher do transfer foi anexado a sua viagem.", time: "hoje", tone: "success", href: "/cliente/documentos" },
 ]
 
 function getWelcomeTitle(portal: PortalKey, profile: UserProfile) {
@@ -77,7 +77,7 @@ export function PortalHeader({ portal, title, profile }: PortalHeaderProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    aria-label="Ações rápidas"
+                    aria-label="Acoes rapidas"
                     className="hidden h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.025] text-foreground transition-all hover:border-primary/20 hover:bg-white/[0.05] md:inline-flex"
                   >
                     <Plus className="h-3.5 w-3.5 text-primary" />
@@ -92,10 +92,10 @@ export function PortalHeader({ portal, title, profile }: PortalHeaderProps) {
                     <Link href={portal === "master" ? "/master/agencias/nova" : "/app/viagens/nova"}>Abrir fluxo principal</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-2xl px-3 py-2.5">
-                    <Link href={portal === "master" ? "/master/atlas" : "/app/atlas-advisor"}>Abrir módulo premium</Link>
+                    <Link href={portal === "master" ? "/master/atlas" : "/app/atlas-advisor"}>Abrir modulo premium</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-2xl px-3 py-2.5">
-                    <Link href={portal === "master" ? "/master/relatorios" : "/app/central-operacional"}>Ver prioridade do dia</Link>
+                    <Link href={portal === "master" ? "/master/ia-creditos" : "/app/central-operacional"}>Ver prioridade do dia</Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -103,21 +103,21 @@ export function PortalHeader({ portal, title, profile }: PortalHeaderProps) {
 
             <NotificationPanel
               items={notificationItems}
-              title={isClientPortal ? "Notificações da viagem" : isMasterPortal ? "Alertas Master" : "Notificações"}
+              title={isClientPortal ? "Notificacoes da viagem" : isMasterPortal ? "Alertas Master" : "Notificacoes"}
               description={
                 isClientPortal
-                  ? "Atualizações importantes da sua viagem, documentos e mensagens da agência."
+                  ? "Atualizacoes importantes da sua viagem, documentos e mensagens da agencia."
                   : isMasterPortal
-                    ? "Inadimplência, IA, Atlas, WhatsApp, marketplace e novos eventos da plataforma."
-                    : "Leads, operações e sinais importantes do TravelPro."
+                    ? "Inadimplencia, IA, Atlas, WhatsApp, marketplace e novos eventos da plataforma."
+                    : "Leads, operacoes e sinais importantes do TravelPro."
               }
-              emptyTitle={isClientPortal ? "Sua viagem está em dia." : isMasterPortal ? "Sem alertas críticos." : "Tudo em dia."}
+              emptyTitle={isClientPortal ? "Sua viagem esta em dia." : isMasterPortal ? "Sem alertas criticos." : "Tudo em dia."}
               emptyDescription={
                 isClientPortal
-                  ? "Quando a agência enviar novidades, elas aparecerão aqui."
+                  ? "Quando a agencia enviar novidades, elas aparecerao aqui."
                   : isMasterPortal
-                    ? "Nenhum evento prioritário exige ação imediata no momento."
-                    : "Nenhuma notificação pendente no momento."
+                    ? "Nenhum evento prioritario exige acao imediata no momento."
+                    : "Nenhuma notificacao pendente no momento."
               }
             />
             <ProfileMenu portal={portal} profile={profile} />

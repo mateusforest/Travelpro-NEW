@@ -1,4 +1,4 @@
-import type { AuditLogRow, PaymentRow } from "@/types/database"
+import type { AuditLogRow, CreditTransactionRow, NotificationRow, PaymentRow } from "@/types/database"
 
 export type MasterStatusTone = "success" | "warning" | "danger" | "info" | "default"
 
@@ -139,4 +139,71 @@ export type MasterDashboardOverview = {
   paid_total: number
   credits_sold: number
   credits_consumed: number
+  top_credit_agency_name: string | null
+  top_credit_agency_consumption: number
+  ai_status_label: string
+  ai_related_logs: number
+  whatsapp_status_label: string
+  whatsapp_connected_agencies: number
+}
+
+export type MasterAiCreditAgencyItem = {
+  agency_id: string
+  agency_name: string
+  agency_status: string
+  plan_code: string | null
+  credit_balance: number
+  credits_granted: number
+  credits_consumed: number
+  transactions_count: number
+  last_transaction_at: string | null
+  top_feature: string | null
+}
+
+export type MasterAiCreditLogItem = {
+  id: string
+  agency_id: string | null
+  agency_name: string | null
+  title: string
+  detail: string
+  source: "audit" | "notification" | "report"
+  status: string
+  created_at: string
+}
+
+export type MasterAiCreditOverview = {
+  summary: {
+    agencies_with_usage: number
+    total_balance: number
+    credits_sold: number
+    credits_consumed: number
+    estimated_cost_total: number | null
+    ai_related_logs: number
+  }
+  ranking: MasterAiCreditAgencyItem[]
+  recent_transactions: Array<CreditTransactionRow & { agency_name: string | null; plan_code: string | null }>
+  logs: MasterAiCreditLogItem[]
+}
+
+export type MasterWhatsAppAgencyItem = {
+  agency_id: string
+  agency_name: string
+  agency_status: string
+  whatsapp_status: string
+  go_status: string
+  agent_status: string
+  contact_number: string | null
+  last_event_at: string | null
+}
+
+export type MasterWhatsAppOverview = {
+  summary: {
+    configured_agencies: number
+    agencies_with_events: number
+    notifications_count: number
+    audit_logs_count: number
+  }
+  agencies: MasterWhatsAppAgencyItem[]
+  notifications: NotificationRow[]
+  logs: AuditLogRow[]
 }

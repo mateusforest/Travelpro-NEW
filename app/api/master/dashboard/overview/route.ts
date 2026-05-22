@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server"
 import { AuthSessionError, AuthorizationError, getAccessContext } from "@/lib/auth"
-import { getMasterFinanceOverview, listMasterAgencies, listMasterUsers } from "@/lib/services"
+import {
+  getMasterAiCreditOverview,
+  getMasterFinanceOverview,
+  getMasterWhatsAppOverview,
+  listMasterAgencies,
+  listMasterUsers,
+} from "@/lib/services"
 import type { MasterDashboardOverview } from "@/types/master"
 
 export async function GET() {
   try {
     await getAccessContext(["master"])
-    const [agencies, users, finance] = await Promise.all([
+    const [agencies, users, finance, aiCredits, whatsapp] = await Promise.all([
       listMasterAgencies(),
       listMasterUsers(),
       getMasterFinanceOverview(),
+      getMasterAiCreditOverview(),
+      getMasterWhatsAppOverview(),
     ])
 
     const data: MasterDashboardOverview = {
@@ -20,6 +28,12 @@ export async function GET() {
       paid_total: finance.totals.paid_total,
       credits_sold: finance.totals.credits_sold,
       credits_consumed: finance.totals.credits_consumed,
+      top_credit_agency_name: aiCredits.ranking[0]?.agency_name ?? null,
+      top_credit_agency_consumption: aiCredits.ranking[0]?.credits_consumed ?? 0,
+      ai_status_label: aiCredits.logs.length > 0 ? "Leitura operacional" : "Em breve",
+      ai_related_logs: aiCredits.summary.ai_related_logs,
+      whatsapp_status_label: whatsapp.summary.configured_agencies > 0 ? "Preparado" : "Em breve",
+      whatsapp_connected_agencies: whatsapp.summary.configured_agencies,
     }
 
     return NextResponse.json(data)

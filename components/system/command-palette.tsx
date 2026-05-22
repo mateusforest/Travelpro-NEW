@@ -12,7 +12,7 @@ const premiumShortcuts: Record<PortalKey, { id: string; label: string; href: str
   master: [
     { id: "master-marketplace", label: "Abrir Marketplace", href: "/master/marketplace", icon: Target },
     { id: "master-financeiro", label: "Abrir financeiro", href: "/master/financeiro", icon: HandCoins },
-    { id: "master-ia", label: "Abrir IA", href: "/master/ia", icon: Bot },
+    { id: "master-ia", label: "Abrir IA e creditos", href: "/master/ia-creditos", icon: Bot },
   ],
   agency: [
     { id: "agency-criar-viagem", label: "Criar viagem", href: "/app/viagens/nova", icon: Sparkles },
