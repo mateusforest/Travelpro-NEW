@@ -510,6 +510,35 @@ export type Database = {
         }
         Update: Partial<Database["public"]["Tables"]["reports"]["Insert"]>
       }
+      trip_share_links: {
+        Row: {
+          id: string
+          agency_id: string
+          trip_id: string
+          client_id: string | null
+          token: string
+          is_active: boolean
+          expires_at: string | null
+          view_count: number
+          last_viewed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          agency_id: string
+          trip_id: string
+          client_id?: string | null
+          token: string
+          is_active?: boolean
+          expires_at?: string | null
+          view_count?: number
+          last_viewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database["public"]["Tables"]["trip_share_links"]["Insert"]>
+      }
       audit_logs: {
         Row: {
           id: string
@@ -580,4 +609,5 @@ export type CreditTransactionRow = PublicTable<"credit_transactions">
 export type NotificationRow = PublicTable<"notifications">
 export type TaskRow = PublicTable<"tasks">
 export type ReportRow = PublicTable<"reports">
+export type TripShareLinkRow = PublicTable<"trip_share_links">
 export type AuditLogRow = PublicTable<"audit_logs">

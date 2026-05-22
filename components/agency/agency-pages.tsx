@@ -66,6 +66,7 @@ import type { AgencyDashboardData } from "@/types/dashboard"
 import type { CentralOperationalData } from "@/types/operational-center"
 import type { CreditsOverviewData } from "@/types/credits-overview"
 import type { ReportsOverviewData } from "@/types/reports-overview"
+import type { TripShareLinkSummary } from "@/types/trip-share"
 
 type ClientRecord = {
   id: string
@@ -1680,6 +1681,7 @@ export function AgencyTripsPage() {
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
   const [editingTripId, setEditingTripId] = useState<string | null>(null)
   const [tripFormValues, setTripFormValues] = useState<TripFormValues>(buildTripFormValues())
+  const [shareLinks, setShareLinks] = useState<Record<string, TripShareLinkSummary>>({})
   const [searchTerm, setSearchTerm] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isSavingTrip, setIsSavingTrip] = useState(false)
@@ -1747,6 +1749,66 @@ export function AgencyTripsPage() {
   const openTripEditor = (trip: TripRecord) => {
     setEditingTripId(trip.id)
     setTripFormValues(buildTripFormValues(trip))
+  }
+
+  const buildAbsoluteShareUrl = (publicUrl: string) => {
+    if (typeof window === "undefined") return publicUrl
+    if (/^https?:\/\//i.test(publicUrl)) return publicUrl
+    return new URL(publicUrl, window.location.origin).toString()
+  }
+
+  const requestTripShareLink = async (tripId: string) => {
+    const link = await requestJson<TripShareLinkSummary>(`/api/trips/${tripId}/share-link`, { method: "POST" })
+    setShareLinks((current) => ({ ...current, [tripId]: link }))
+    return link
+  }
+
+  const copyTripShareLink = async (trip: TripRecord) => {
+    try {
+      const link = shareLinks[trip.id] && shareLinks[trip.id].is_active ? shareLinks[trip.id] : await requestTripShareLink(trip.id)
+      const targetUrl = buildAbsoluteShareUrl(link.public_url)
+      await navigator.clipboard.writeText(targetUrl)
+      fire("Link copiado", `O link compartilhável de ${trip.destination} foi copiado com sucesso.`)
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[AgencyTripsPage] failed to copy share link", error)
+      }
+      fire("Falha ao copiar", error instanceof Error ? error.message : "Não foi possível copiar o link compartilhável.")
+    }
+  }
+
+  const openTripShareLink = async (trip: TripRecord) => {
+    try {
+      const link = shareLinks[trip.id] && shareLinks[trip.id].is_active ? shareLinks[trip.id] : await requestTripShareLink(trip.id)
+      window.open(buildAbsoluteShareUrl(link.public_url), "_blank", "noopener,noreferrer")
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[AgencyTripsPage] failed to open share link", error)
+      }
+      fire("Falha ao abrir", error instanceof Error ? error.message : "Não foi possível abrir a experiência compartilhável.")
+    }
+  }
+
+  const deactivateTripShareLink = async (trip: TripRecord) => {
+    try {
+      const currentLink = shareLinks[trip.id] ?? (await requestJson<TripShareLinkSummary>(`/api/trips/${trip.id}/share-link`))
+      if (!currentLink?.is_active) {
+        fire("Link já inativo", `A viagem para ${trip.destination} já está com o compartilhamento desativado.`)
+        return
+      }
+
+      const updated = await requestJson<TripShareLinkSummary>(`/api/trips/${trip.id}/share-link`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: false }),
+      })
+      setShareLinks((current) => ({ ...current, [trip.id]: updated }))
+      fire("Compartilhamento desativado", `O link público de ${trip.destination} foi desativado com segurança.`)
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[AgencyTripsPage] failed to deactivate share link", error)
+      }
+      fire("Falha ao desativar", error instanceof Error ? error.message : "Não foi possível desativar o link compartilhável.")
+    }
   }
 
   const handleSaveTrip = async () => {
@@ -1841,6 +1903,24 @@ export function AgencyTripsPage() {
                   items={[
                     { label: "Visualizar", icon: Eye, onClick: () => setSelected(trip) },
                     { label: "Editar", icon: FilePenLine, onClick: () => openTripEditor(trip) },
+                    {
+                      label: "Compartilhar viagem",
+                      icon: ExternalLink,
+                      onClick: async () => {
+                        try {
+                          const link = await requestTripShareLink(trip.id)
+                          fire("Link gerado", `A experiência compartilhável de ${trip.destination} já está pronta em ${buildAbsoluteShareUrl(link.public_url)}.`)
+                        } catch (error) {
+                          if (process.env.NODE_ENV !== "production") {
+                            console.error("[AgencyTripsPage] failed to create share link", error)
+                          }
+                          fire("Falha ao compartilhar", error instanceof Error ? error.message : "Não foi possível gerar o link compartilhável.")
+                        }
+                      },
+                    },
+                    { label: "Copiar link", icon: Copy, onClick: () => void copyTripShareLink(trip) },
+                    { label: "Abrir link", icon: ExternalLink, onClick: () => void openTripShareLink(trip) },
+                    { label: "Desativar link", icon: BellRing, onClick: () => void deactivateTripShareLink(trip) },
                     { label: "Notificar cliente", icon: BellRing, onClick: () => fire("Notificações em preparação", `As notificações da viagem de ${trip.client} serão ativadas com TravelPro Go e WhatsApp operacional.`) },
                     {
                       label: "Abrir cliente vinculado",
