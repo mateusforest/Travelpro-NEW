@@ -71,6 +71,7 @@ export function CommandPalette({ portal }: { portal: PortalKey }) {
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
         className="hidden h-8 min-w-[240px] items-center justify-between rounded-full border border-white/10 bg-white/[0.025] px-3 text-sm text-muted-foreground transition-all hover:border-primary/20 hover:bg-white/[0.05] md:flex"
       >

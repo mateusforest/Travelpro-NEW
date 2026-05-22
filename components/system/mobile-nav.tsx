@@ -22,6 +22,7 @@ function hasActiveChild(item: NavItem, pathname: string) {
 export function MobileNav({ portal, title }: MobileNavProps) {
   const items = getNavigationByPortal(portal)
   const pathname = usePathname()
+  const [open, setOpen] = useState(false)
   const defaultExpanded = useMemo(
     () =>
       items.reduce<Record<string, boolean>>((acc, item) => {
@@ -41,8 +42,14 @@ export function MobileNav({ portal, title }: MobileNavProps) {
       <Drawer
         title={title}
         description="Navegação principal do portal."
+        open={open}
+        onOpenChange={setOpen}
         trigger={
-          <button className="rounded-full border border-white/10 bg-white/[0.03] p-3 text-foreground transition-all hover:border-primary/20 hover:bg-white/[0.06]">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="rounded-full border border-white/10 bg-white/[0.03] p-3 text-foreground transition-all hover:border-primary/20 hover:bg-white/[0.06]"
+          >
             <Menu className="h-4 w-4" />
           </button>
         }

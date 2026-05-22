@@ -77,6 +77,7 @@ export function PortalHeader({ portal, title, profile }: PortalHeaderProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
+                    type="button"
                     aria-label="Acoes rapidas"
                     className="hidden h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.025] text-foreground transition-all hover:border-primary/20 hover:bg-white/[0.05] md:inline-flex"
                   >

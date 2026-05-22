@@ -100,7 +100,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="rounded-full outline-none">
+          <button type="button" className="rounded-full outline-none">
             <div className="flex items-center gap-2">
               <UserAvatar profile={profile} />
               <span className="hidden rounded-full border border-white/10 bg-white/[0.03] p-2 text-muted-foreground md:inline-flex">
