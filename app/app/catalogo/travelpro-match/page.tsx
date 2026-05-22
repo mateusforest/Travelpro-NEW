@@ -22,11 +22,11 @@ export default function AgencyCatalogMatchPage() {
         actions={
           <>
             <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir score, distribuição e melhorias para os pacotes do Match." />
-            <SecondaryButton onClick={() => fire("Desempenho preparado", "A leitura de desempenho do Match foi aberta em modo mockado.")}>
+            <SecondaryButton onClick={() => fire("Desempenho em breve", "A leitura operacional do Match será conectada quando a camada pública do marketplace estiver ativa.")}>
               <BarChart3 className="h-4 w-4" />
               Ver desempenho
             </SecondaryButton>
-            <SecondaryButton onClick={() => fire("Destaque preparado", "O fluxo de destaque do Match foi preparado.")}>
+            <SecondaryButton onClick={() => fire("Destaque em breve", "O destaque do Match será liberado quando a distribuição comercial entrar na próxima fase.")}>
               <Sparkles className="h-4 w-4" />
               Configurar destaque
             </SecondaryButton>
@@ -36,7 +36,7 @@ export default function AgencyCatalogMatchPage() {
                 Ver marketplace
               </Link>
             </SecondaryButton>
-            <PrimaryButton onClick={() => fire("Match ativado", "A ativação do TravelPro Match foi executada em modo mockado.")}>
+            <PrimaryButton onClick={() => fire("Match em breve", "A ativação do TravelPro Match continua planejada para a fase pública do marketplace.")}>
               <Target className="h-4 w-4" />
               Ativar no Match
             </PrimaryButton>
@@ -154,11 +154,11 @@ export default function AgencyCatalogMatchPage() {
             </div>
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
-            <PrimaryButton onClick={() => fire("Pacotes enviados", "Os pacotes foram preparados para publicação no Match em modo mockado.")}>
+            <PrimaryButton onClick={() => fire("Envio em breve", "O envio de pacotes ao Match será liberado quando a distribuição pública estiver ativa.")}>
               <Sparkles className="h-4 w-4" />
               Enviar pacotes ao Match
             </PrimaryButton>
-            <SecondaryButton onClick={() => fire("Destaque configurado", "O destaque dos pacotes foi preparado em modo mockado.")}>
+            <SecondaryButton onClick={() => fire("Destaque em breve", "O destaque dos pacotes no Match será liberado na próxima fase comercial.")}>
               <Target className="h-4 w-4" />
               Configurar destaque
             </SecondaryButton>

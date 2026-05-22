@@ -31,7 +31,7 @@ export default async function PublicCatalogPage({
   const agencyLogo = data.agency.logo_url || defaultLogo
 
   return (
-    <main className="min-h-screen bg-background px-6 py-10 text-foreground">
+    <main id="top" className="min-h-screen bg-background px-6 py-10 text-foreground">
       <div className="mx-auto max-w-6xl">
         <div className="overflow-hidden rounded-[36px] border border-white/10 bg-white/[0.03] shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
           <div className="relative min-h-[300px] border-b border-white/8 px-6 py-8 md:px-8 md:py-10">
@@ -40,7 +40,7 @@ export default async function PublicCatalogPage({
 
             <div className="relative z-10 flex flex-wrap items-center gap-3">
               <Link
-                href="/app/catalogo"
+                href="#pacotes"
                 className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-white/75 transition-colors hover:text-white"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -113,7 +113,7 @@ export default async function PublicCatalogPage({
                 </div>
               )}
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div id="pacotes" className="grid gap-4 md:grid-cols-2">
                 {data.packages.length === 0 ? (
                   <>
                     {[
@@ -193,7 +193,7 @@ export default async function PublicCatalogPage({
               </div>
 
               <Link
-                href="/app/catalogo"
+                href="#top"
                 className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
               >
                 Voltar para o catálogo da agência

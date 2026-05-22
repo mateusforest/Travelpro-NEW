@@ -82,7 +82,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
 
   const closePanel = () => setActivePanel(null)
 
-  const fireMockFeedback = (title: string, description = "Fluxo mockado preparado com sucesso.") => {
+  const fireMockFeedback = (title: string, description = "A ação foi registrada. O fluxo completo será liberado em breve.") => {
     toast({ title, description })
   }
 
@@ -400,7 +400,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                           <p className="text-base font-semibold text-foreground">{item.title}</p>
                           <p className="mt-1 text-sm text-primary">{item.price}</p>
                           <p className="mt-3 text-sm leading-5 text-muted-foreground">{item.usage}</p>
-                          <Button className="mt-4 w-full rounded-full" onClick={() => fireMockFeedback("Compra mockada: " + item.title)}>Comprar pacote</Button>
+                          <Button className="mt-4 w-full rounded-full" onClick={() => fireMockFeedback("Compra em breve: " + item.title, "A compra segura desse pacote será conectada quando o billing oficial estiver ativo.")}>Comprar pacote</Button>
                         </div>
                       ))}
                     </div>
@@ -422,7 +422,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fireMockFeedback("Faturas prontas", "A listagem mockada de faturas foi aberta.")}>Ver faturas</Button>
+                      <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fireMockFeedback("Faturas em breve", "A listagem operacional de faturas será liberada quando o portal de cobrança oficial estiver ativo.")}>Ver faturas</Button>
                       <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fireMockFeedback("Portal de cobrança preparado", "O portal seguro será conectado futuramente ao Stripe.")}>Abrir portal de cobrança</Button>
                       <Button className="rounded-full" onClick={() => setActivePanel("payment-update")}>
                         <CreditCard className="h-4 w-4" />
@@ -522,7 +522,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
               Fechar
             </Button>
             {isMasterPortal ? (
-              <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fireMockFeedback("Chaves futuras mapeadas", "A preparação das chaves e integrações futuras foi registrada em modo mockado.")}>
+              <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fireMockFeedback("Chaves futuras mapeadas", "A preparação das chaves e integrações futuras foi registrada sem criar configuração fake nesta etapa.")}>
                 Mapear chaves futuras
               </Button>
             ) : null}

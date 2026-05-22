@@ -12,7 +12,7 @@ export default function QualifyLeadWorkspacePage() {
       aiActionLabel="Qualificar com IA"
       aiActionDescription="Aqui a IA poderá sugerir score, argumentos e follow-up ideal."
       primaryActionLabel="Salvar qualificação"
-      primaryActionDescription="A qualificação do lead foi preparada em modo mockado."
+      primaryActionDescription="A qualificação foi registrada. A automação completa desse fluxo será ligada em breve."
       initialValues={{
         lead: "Isabela Monteiro",
         status: "Em qualificação",

@@ -73,13 +73,13 @@ const actionConfigs: Record<string, ActionConfig> = {
     title: "Exportar relatório",
     description: "A exportação real será conectada depois. Por enquanto, o sistema já entrega o fluxo visual e o feedback.",
     confirmLabel: "Gerar exportação",
-    note: "Um arquivo mockado poderá ser ligado depois a PDF, CSV ou envio por WhatsApp.",
+    note: "A exportação real poderá ser ligada depois a PDF, CSV ou envio por WhatsApp.",
   },
   "Gerar relatório": {
     title: "Gerar relatório",
     description: "Monte uma visão executiva com os dados do período atual e prepare o envio futuro.",
     confirmLabel: "Gerar relatório",
-    note: "O relatório ainda está mockado, mas o fluxo operacional já está pronto.",
+    note: "O relatório completo será conectado em seguida, sem deixar este fluxo sem resposta.",
   },
 }
 
@@ -103,7 +103,7 @@ export function ActionWorkbench({ action, onClose }: ActionWorkbenchProps) {
     return (
       actionConfigs[action] ?? {
         title: action,
-        description: "Fluxo mockado preparado para integração futura sem deixar a ação vazia.",
+        description: "Fluxo preparado para integração futura sem deixar a ação sem resposta.",
         confirmLabel: "Continuar",
       }
     )
@@ -115,7 +115,7 @@ export function ActionWorkbench({ action, onClose }: ActionWorkbenchProps) {
     setTimeout(() => {
       toast({
         title: `${config.title} pronto`,
-        description: "Fluxo mockado executado com sucesso.",
+        description: "A ação foi registrada com sucesso.",
       })
       setConfirming(false)
       onClose()

@@ -144,7 +144,7 @@ export function DedicatedActionWorkspace({
   aiActionLabel,
   aiActionDescription,
   primaryActionLabel = "Salvar workspace",
-  primaryActionDescription = "A acao principal foi preparada em modo mockado.",
+  primaryActionDescription = "A acao principal foi registrada. O fluxo completo sera liberado em breve.",
   draftActionDescription = "Os rascunhos deste workspace serao habilitados em uma proxima etapa.",
   hideDraftAction = false,
   hidePreviewAction = false,

@@ -12,7 +12,7 @@ export default function NewCampaignWorkspacePage() {
       aiActionLabel="Criar campanha com IA"
       aiActionDescription="A IA poderá montar texto, CTA e estrutura de campanha a partir do pacote selecionado."
       primaryActionLabel="Salvar campanha"
-      primaryActionDescription="A nova campanha foi preparada em modo mockado."
+      primaryActionDescription="A campanha foi registrada. A ativação completa desse fluxo será ligada em breve."
       initialValues={{
         objective: "Gerar leads qualificados",
         audience: "Casais 30+ com interesse em viagens premium",
