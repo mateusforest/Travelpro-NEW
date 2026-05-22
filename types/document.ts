@@ -1,8 +1,9 @@
 import type { DocumentRow } from "@/types/database"
+import type { DocumentKind } from "@/lib/documents/document-kind"
 
 export type DocumentInput = {
   title: string
-  type: string
+  type: DocumentKind | string
   status?: string
   client_id?: string | null
   trip_id?: string | null

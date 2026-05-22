@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin"
+import { decorateDocumentMetadata, normalizeDocumentType } from "@/lib/documents/document-kind"
 import type { AgencyAccessContext, DocumentRow } from "@/types/database"
 import type { DocumentInput } from "@/types/document"
 
@@ -36,6 +37,7 @@ export async function getDocumentById(context: AgencyAccessContext, id: string) 
 export async function createDocument(context: AgencyAccessContext, input: DocumentInput) {
   ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
+  const canonicalType = normalizeDocumentType(input.type)
   const { data, error } = await supabase
     .from("documents")
     .insert({
@@ -44,11 +46,11 @@ export async function createDocument(context: AgencyAccessContext, input: Docume
       client_id: input.client_id ?? null,
       trip_id: input.trip_id ?? null,
       title: input.title,
-      type: input.type,
+      type: canonicalType,
       status: input.status ?? "Rascunho",
       storage_bucket: input.storage_bucket ?? null,
       storage_path: input.storage_path ?? null,
-      metadata: input.metadata ?? {},
+      metadata: decorateDocumentMetadata(input.metadata, canonicalType),
     })
     .select("*")
     .single()
@@ -59,17 +61,18 @@ export async function createDocument(context: AgencyAccessContext, input: Docume
 export async function updateDocument(context: AgencyAccessContext, id: string, input: Partial<DocumentInput>) {
   ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
+  const canonicalType = input.type !== undefined ? normalizeDocumentType(input.type) : undefined
   let query = supabase
     .from("documents")
     .update({
       ...(input.title !== undefined ? { title: input.title } : {}),
-      ...(input.type !== undefined ? { type: input.type } : {}),
+      ...(canonicalType !== undefined ? { type: canonicalType } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
       ...(input.client_id !== undefined ? { client_id: input.client_id } : {}),
       ...(input.trip_id !== undefined ? { trip_id: input.trip_id } : {}),
       ...(input.storage_bucket !== undefined ? { storage_bucket: input.storage_bucket } : {}),
       ...(input.storage_path !== undefined ? { storage_path: input.storage_path } : {}),
-      ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+      ...(input.metadata !== undefined ? { metadata: decorateDocumentMetadata(input.metadata, canonicalType ?? "Documento geral") } : {}),
     })
     .eq("id", id)
   query = withAgencyScope(query, context)

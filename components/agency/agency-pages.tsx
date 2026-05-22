@@ -60,6 +60,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { MockChart } from "@/components/system/mock-chart"
 import { toast } from "@/components/ui/use-toast"
+import { matchesDocumentSection, normalizeDocumentType } from "@/lib/documents/document-kind"
 import type { ClientRow, DocumentRow, FinancialRecordRow, LeadRow, ReportRow, TaskRow, TeamMemberRow, TripRow } from "@/types/database"
 import type { ClientInput, ClientTravelerProfile } from "@/types/client"
 import type { AgencyDashboardData } from "@/types/dashboard"
@@ -320,9 +321,10 @@ function mapDocumentRowToRecord(
   return {
     ...row,
     name: row.title,
+    type: normalizeDocumentType(row.type),
     client: linkedClient?.name ?? (row.client_id ? `Cliente ${row.client_id.slice(0, 8)}` : "Sem cliente vinculado"),
     trip: linkedTrip?.destination ?? (row.trip_id ? `Viagem ${row.trip_id.slice(0, 8)}` : "Sem viagem vinculada"),
-    preview: previewFromMetadata || row.storage_path || `Documento ${row.type.toLowerCase()} salvo em ${formatDateLabel(row.updated_at)}.`,
+    preview: previewFromMetadata || row.storage_path || `Documento ${normalizeDocumentType(row.type).toLowerCase()} salvo em ${formatDateLabel(row.updated_at)}.`,
   }
 }
 
@@ -2199,17 +2201,21 @@ function DocumentHub({
     return documentRows.map((row, index) => mapDocumentRowToRecord(row, index, { clientsById, tripsById }))
   }, [clientsById, documentRows, tripsById])
 
+  const scopedDocuments = useMemo(() => {
+    return mappedDocuments.filter((item) => matchesDocumentSection(item.type, mode, filterType))
+  }, [filterType, mappedDocuments, mode])
+
   const availableFilters = useMemo(() => {
     const base = filterType ? ["Todos", filterType] : ["Todos"]
-    const dynamic = Array.from(new Set(mappedDocuments.map((item) => item.type))).sort()
+    const dynamic = Array.from(new Set(scopedDocuments.map((item) => item.type))).sort()
     return Array.from(new Set([...base, ...dynamic]))
-  }, [filterType, mappedDocuments])
+  }, [filterType, scopedDocuments])
 
   const filteredDocuments = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
-    return mappedDocuments.filter((document) => {
-      if (filterType && document.type !== filterType) return false
+    return scopedDocuments.filter((document) => {
+      if (filterType && document.type !== normalizeDocumentType(filterType)) return false
       if (activeFilter !== "Todos" && document.type !== activeFilter) return false
 
       if (!normalizedSearch) return true
@@ -2227,20 +2233,20 @@ function DocumentHub({
         .toLowerCase()
         .includes(normalizedSearch)
     })
-  }, [activeFilter, filterType, mappedDocuments, searchTerm])
+  }, [activeFilter, filterType, scopedDocuments, searchTerm])
 
   const metrics = useMemo(() => {
-    const readyCount = mappedDocuments.filter((item) => item.status.toLowerCase().includes("pronto") || item.status.toLowerCase().includes("enviado")).length
-    const draftCount = mappedDocuments.filter((item) => item.status.toLowerCase().includes("rascunho")).length
-    const linkedCount = mappedDocuments.filter((item) => item.client_id || item.trip_id).length
+    const readyCount = scopedDocuments.filter((item) => item.status.toLowerCase().includes("pronto") || item.status.toLowerCase().includes("enviado")).length
+    const draftCount = scopedDocuments.filter((item) => item.status.toLowerCase().includes("rascunho")).length
+    const linkedCount = scopedDocuments.filter((item) => item.client_id || item.trip_id).length
 
     return [
-      { label: "Total", value: `${mappedDocuments.length}`, change: "Documentos reais no Supabase", tone: "info" as const, icon: FileText },
+      { label: "Total", value: `${scopedDocuments.length}`, change: "Registros reais no Supabase", tone: "info" as const, icon: FileText },
       { label: "Prontos", value: `${readyCount}`, change: "Itens prontos ou enviados", tone: "success" as const, icon: CheckCheck },
-      { label: "Rascunhos", value: `${draftCount}`, change: "Em elaboracao", tone: "warning" as const, icon: Save },
+      { label: "Rascunhos", value: `${draftCount}`, change: "Em elaboração", tone: "warning" as const, icon: Save },
       { label: "Vinculados", value: `${linkedCount}`, change: "Com cliente ou viagem", tone: "success" as const, icon: Route },
     ]
-  }, [mappedDocuments])
+  }, [scopedDocuments])
 
   return (
     <PageShell>
@@ -3331,6 +3337,7 @@ export function AgencyDocumentsPage() {
       title="Documentos"
       description="Hub documental da agência com visualização, download, envio e ações por item."
       createLabel="Novo documento"
+      createHref="/app/documentos/novo?type=Documento%20geral"
     />
   )
 }
@@ -3341,6 +3348,8 @@ export function AgencyContractsPage() {
       title="Contratos"
       description="Contratos com branding, status e ações rápidas para compartilhar ou revisar."
       createLabel="Criar contrato"
+      createHref="/app/documentos/novo?type=Contrato"
+      editHref={(record) => `/app/documentos/novo?type=Contrato&id=${record.id}`}
     />
   )
 }
@@ -3351,6 +3360,8 @@ export function AgencyVouchersPage() {
       title="Vouchers"
       description="Vouchers de hotel, transfer e serviços com visualização rápida."
       createLabel="Novo voucher"
+      createHref="/app/documentos/novo?type=Voucher"
+      editHref={(record) => `/app/documentos/novo?type=Voucher&id=${record.id}`}
     />
   )
 }
@@ -3361,6 +3372,8 @@ export function AgencyReceiptsPage() {
       title="Recibos"
       description="Comprovantes financeiros organizados por cliente e viagem."
       createLabel="Novo recibo"
+      createHref="/app/documentos/novo?type=Recibo"
+      editHref={(record) => `/app/documentos/novo?type=Recibo&id=${record.id}`}
     />
   )
 }
@@ -3371,6 +3384,8 @@ export function AgencyTicketsPage() {
       title="Passagens"
       description="Trechos e emissões organizados com ações de visualização, envio e download."
       createLabel="Nova passagem"
+      createHref="/app/documentos/novo?type=Passagem"
+      editHref={(record) => `/app/documentos/novo?type=Passagem&id=${record.id}`}
     />
   )
 }
