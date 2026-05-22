@@ -1785,6 +1785,30 @@ export function AgencyTripsPage() {
     }
   }
 
+  useEffect(() => {
+    let active = true
+
+    const loadSelectedShareLink = async () => {
+      if (!selected?.id || shareLinks[selected.id]) return
+
+      try {
+        const currentLink = await requestJson<TripShareLinkSummary>(`/api/trips/${selected.id}/share-link`)
+        if (!active || !currentLink) return
+        setShareLinks((current) => ({ ...current, [selected.id]: currentLink }))
+      } catch (error) {
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[AgencyTripsPage] failed to load share link state", error)
+        }
+      }
+    }
+
+    void loadSelectedShareLink()
+
+    return () => {
+      active = false
+    }
+  }, [selected?.id, shareLinks])
+
   const handleSaveTrip = async () => {
     if (!editingTripId) return
     try {
@@ -1863,15 +1887,20 @@ export function AgencyTripsPage() {
               </Button>
             </div>
           ) : (
-            visibleTrips.map((trip) => (
+            visibleTrips.map((trip) => {
+              const shareLink = shareLinks[trip.id]
+
+              return (
             <div key={trip.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
               <button type="button" onClick={() => setSelected(trip)} className="min-w-0 text-left">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-medium text-foreground">{trip.client} • {trip.destination}</p>
                   <StatusPill label={trip.stage} />
+                  {shareLink ? <StatusPill label={shareLink.is_active ? "Link ativo" : "Link inativo"} /> : null}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{trip.dates}</p>
                 <p className="mt-2 text-xs text-muted-foreground">{trip.documents} • {trip.finance} • {trip.itinerary}</p>
+                {shareLink ? <p className="mt-2 text-xs text-muted-foreground">Vitrine pública {shareLink.is_active ? "ativa" : "inativa"} • {shareLink.view_count} visualizações</p> : null}
               </button>
                 <ActionMenu
                   items={[
@@ -1931,7 +1960,7 @@ export function AgencyTripsPage() {
                 ]}
                 />
               </div>
-            ))
+            )})
           )}
         </div>
       </DashboardCard>
@@ -1977,6 +2006,14 @@ export function AgencyTripsPage() {
                     <InfoCard label="Documentos" value={selected.documents} />
                     <InfoCard label="Roteiro" value={selected.itinerary} />
                     <InfoCard label="Progresso da viagem" value={`${selected.dayProgress}%`} />
+                    <InfoCard
+                      label="Link compartilhável"
+                      value={
+                        shareLinks[selected.id]
+                          ? `${shareLinks[selected.id].is_active ? "Ativo" : "Inativo"} • ${shareLinks[selected.id].view_count} visualizações`
+                          : "Ainda não gerado"
+                      }
+                    />
                   </TabsContent>
                   <TabsContent value="roteiro" className="space-y-4">
                     {selected.stage === "Em andamento" ? (

@@ -29,6 +29,13 @@ function parseMetadata(value: Json | null | undefined) {
   return value as Record<string, Json | undefined>
 }
 
+function normalize(value?: string | null) {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+}
+
 function buildShareUrl(token: string) {
   return `/v/${token}`
 }
@@ -86,13 +93,13 @@ function isSafePublicUrl(value: string | null | undefined) {
 }
 
 function isPublicDocumentStatus(status: string) {
-  const normalized = status.toLowerCase()
-  return !normalized.includes("draft") && !normalized.includes("rascun")
+  const normalizedStatus = normalize(status)
+  return !normalizedStatus.includes("draft") && !normalizedStatus.includes("rascun")
 }
 
 function isPublicDocumentType(type: string) {
-  const normalized = type.toLowerCase()
-  return ["voucher", "passagem", "seguro", "recibo", "contrato", "documento", "roteiro"].some((item) => normalized.includes(item))
+  const normalizedType = normalize(type)
+  return ["voucher", "passagem", "seguro", "roteiro", "contrato", "proposta", "cotacao"].some((item) => normalizedType.includes(item))
 }
 
 function buildDocumentNote(document: DocumentRow) {
@@ -101,11 +108,13 @@ function buildDocumentNote(document: DocumentRow) {
   if (typeof metadata.summary === "string" && metadata.summary.trim()) return metadata.summary.trim()
   if (typeof metadata.variables === "string" && metadata.variables.trim()) return metadata.variables.trim()
 
-  const normalizedType = document.type.toLowerCase()
+  const normalizedType = normalize(document.type)
   if (normalizedType.includes("voucher")) return "Voucher liberado para consulta e apresentação durante a viagem."
   if (normalizedType.includes("passagem")) return "Passagem vinculada à viagem e pronta para consulta."
   if (normalizedType.includes("seguro")) return "Cobertura e dados essenciais do seguro disponíveis para conferência."
   if (normalizedType.includes("contrato")) return "Documento contratual disponível para consulta."
+  if (normalizedType.includes("roteiro")) return "Roteiro compartilhado pela agência para acompanhar a viagem."
+  if (normalizedType.includes("proposta") || normalizedType.includes("cotacao")) return "Proposta compartilhada pela agência neste link seguro."
   return "Documento disponível nesta experiência compartilhável."
 }
 
@@ -406,11 +415,11 @@ export async function getPublicTripExperienceByToken(token: string, options?: { 
   const trip = (tripResult.data as TripRow | null) ?? null
   const agency = (agencyResult.data as AgencyRow | null) ?? null
   const client = (clientResult.data as ClientRow | null) ?? null
-  const itinerary = ((itineraryResult.data ?? []) as ItineraryRow[])
+  const itinerary = (itineraryResult.data ?? []) as ItineraryRow[]
   const publicDocuments = ((documentsResult.data ?? []) as DocumentRow[]).filter(
     (document) => isPublicDocumentStatus(document.status) && isPublicDocumentType(document.type),
   )
-  const logs = ((logsResult.data ?? []) as AuditLogRow[])
+  const logs = (logsResult.data ?? []) as AuditLogRow[]
 
   if (!trip || trip.agency_id !== link.agency_id) {
     return {
@@ -451,6 +460,8 @@ export async function getPublicTripExperienceByToken(token: string, options?: { 
       period_label: buildPeriodLabel(trip),
       summary: trip.summary,
       origin: trip.origin,
+      starts_at: trip.starts_at,
+      ends_at: trip.ends_at,
     },
     client: {
       name: client?.name ?? null,

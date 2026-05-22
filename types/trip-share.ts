@@ -50,6 +50,8 @@ export type PublicTripExperienceData = {
     period_label: string
     summary: string | null
     origin: string | null
+    starts_at: string | null
+    ends_at: string | null
   } | null
   client: {
     name: string | null

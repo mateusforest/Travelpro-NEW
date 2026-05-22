@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react"
-import { CalendarClock, CheckCheck, FileBadge, Mail, MapPinned, Phone, PlaneTakeoff, Sparkles } from "lucide-react"
+import { CalendarClock, CheckCheck, FileBadge, Mail, MapPinned, MessageCircle, Phone, PlaneTakeoff, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { PublicTripExperienceData } from "@/types/trip-share"
 
@@ -24,6 +24,29 @@ function InfoCard({ label, value }: { label: string; value: string }) {
       <p className="mt-2 text-sm leading-6 text-foreground">{value}</p>
     </div>
   )
+}
+
+function buildCountdownLabel(value?: string | null) {
+  if (!value) return "Data em definição"
+  const start = new Date(value)
+  if (Number.isNaN(start.getTime())) return "Data em definição"
+
+  const now = new Date()
+  const diff = start.getTime() - now.getTime()
+  const day = 24 * 60 * 60 * 1000
+  const days = Math.ceil(diff / day)
+
+  if (days > 1) return `Faltam ${days} dias`
+  if (days === 1) return "Falta 1 dia"
+  if (days === 0) return "Começa hoje"
+  return "Viagem em andamento ou concluída"
+}
+
+function buildWhatsAppHref(phone?: string | null) {
+  if (!phone) return null
+  const digits = phone.replace(/\D/g, "")
+  if (!digits) return null
+  return `https://wa.me/${digits}`
 }
 
 export function PublicTripUnavailable({ status }: { status: PublicTripExperienceData["status"] }) {
@@ -58,6 +81,8 @@ export function PublicTripExperience({ data }: { data: PublicTripExperienceData 
   const agency = data.agency
   const client = data.client
   const accentColor = agency?.primary_color || "#f97316"
+  const whatsappHref = buildWhatsAppHref(agency?.phone)
+  const countdownLabel = buildCountdownLabel(trip?.starts_at)
 
   if (!trip || !agency) {
     return <PublicTripUnavailable status={data.status} />
@@ -87,6 +112,9 @@ export function PublicTripExperience({ data }: { data: PublicTripExperienceData 
                   </div>
                   <span className={`rounded-full border px-2.5 py-1 text-[10px] font-medium tracking-[0.18em] ${statusClasses(trip.status)}`}>
                     {trip.status}
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium tracking-[0.18em] text-muted-foreground">
+                    {countdownLabel}
                   </span>
                 </div>
                 <div className="mt-5 flex items-center gap-3">
@@ -259,11 +287,19 @@ export function PublicTripExperience({ data }: { data: PublicTripExperienceData 
                     {agency.owner_name ? `${agency.owner_name} acompanha esta jornada pela agência.` : "A agência está usando o TravelPro para organizar sua experiência."}
                   </p>
                 </div>
-                {agency.phone ? (
+                {whatsappHref ? (
                   <Button asChild className="w-full rounded-full">
+                    <a href={whatsappHref} target="_blank" rel="noreferrer">
+                      <MessageCircle className="h-4 w-4" />
+                      Falar no WhatsApp
+                    </a>
+                  </Button>
+                ) : null}
+                {agency.phone ? (
+                  <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]">
                     <a href={`tel:${agency.phone}`}>
                       <Phone className="h-4 w-4" />
-                      Falar com a agência
+                      Ligar para a agência
                     </a>
                   </Button>
                 ) : null}
