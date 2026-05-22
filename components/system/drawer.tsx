@@ -1,6 +1,6 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import {
   Drawer as DrawerRoot,
   DrawerContent,
@@ -18,9 +18,13 @@ type AppDrawerProps = {
 }
 
 export function Drawer({ trigger, title, description, children }: AppDrawerProps) {
+  const [open, setOpen] = useState(false)
+
   return (
-    <DrawerRoot direction="right">
-      <DrawerTrigger asChild>{trigger}</DrawerTrigger>
+    <DrawerRoot direction="right" open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild onClick={() => setOpen(true)}>
+        {trigger}
+      </DrawerTrigger>
       <DrawerContent className="glass-card border-white/10 bg-card text-foreground">
         <DrawerHeader>
           <DrawerTitle>{title}</DrawerTitle>
