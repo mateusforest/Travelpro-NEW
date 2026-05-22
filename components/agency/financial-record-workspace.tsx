@@ -11,6 +11,15 @@ import {
 import { DashboardCard } from "@/components/system/dashboard-card"
 import { PageShell } from "@/components/system/page-shell"
 import { toast } from "@/components/ui/use-toast"
+import {
+  FINANCE_PLAN_OPTIONS,
+  FINANCE_STATUS_OPTIONS,
+  FINANCE_TYPE_OPTIONS,
+  getFinanceCategoryOptions,
+  normalizeFinanceStatus,
+  normalizeFinanceType,
+  type FinancePlanMode,
+} from "@/lib/finance/agency-finance"
 import type { ClientRow, FinancialRecordRow, TripRow } from "@/types/database"
 
 const EMPTY_CLIENT = ""
@@ -27,7 +36,7 @@ async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> 
 
   const payload = (await response.json().catch(() => null)) as { error?: string } | T | null
   if (!response.ok) {
-    throw new Error((payload as { error?: string } | null)?.error || "Nao foi possivel concluir a operacao.")
+    throw new Error((payload as { error?: string } | null)?.error || "Não foi possível concluir a operação.")
   }
 
   return payload as T
@@ -41,32 +50,42 @@ function toDateInput(value?: string | null) {
 }
 
 function buildFinancialValues(record?: FinancialRecordRow): Record<string, string> {
+  const nextType = normalizeFinanceType(record?.type)
+
   return {
-    type: record?.type ?? "Receita",
-    status: record?.status ?? "Pendente",
+    type: nextType,
+    status: normalizeFinanceStatus(record?.status),
     clientId: record?.client_id ?? EMPTY_CLIENT,
     tripId: record?.trip_id ?? EMPTY_TRIP,
-    category: record?.category ?? "",
+    category: record?.category ?? getFinanceCategoryOptions(nextType)[0],
     amount: record?.amount != null ? String(record.amount) : "",
     occurredAt: toDateInput(record?.occurred_at),
     description: record?.description ?? "",
+    planMode: "Único",
+    installments: "3",
+    recurrenceCount: "12",
   }
 }
 
 function parseAmount(value: string) {
   const normalized = value.replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".")
   const parsed = Number(normalized)
-  if (!Number.isFinite(parsed)) {
-    throw new Error("Informe um valor numerico valido para o lancamento.")
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error("Informe um valor numérico válido para o lançamento.")
   }
   return parsed
+}
+
+function parsePositiveInt(value: string, fallback: number) {
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
 
 function toIsoOrNull(value: string) {
   if (!value.trim()) return null
   const parsed = new Date(`${value.trim()}T00:00:00`)
   if (Number.isNaN(parsed.getTime())) {
-    throw new Error("Informe uma data valida para o lancamento.")
+    throw new Error("Informe uma data válida para o lançamento.")
   }
   return parsed.toISOString()
 }
@@ -105,7 +124,7 @@ export function FinancialRecordWorkspace() {
         if (process.env.NODE_ENV !== "production") {
           console.error("[FinancialRecordWorkspace] failed to load workspace", error)
         }
-        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar o workspace financeiro.")
+        setLoadError(error instanceof Error ? error.message : "Não foi possível carregar o workspace financeiro.")
       } finally {
         if (active) {
           setIsLoading(false)
@@ -127,6 +146,7 @@ export function FinancialRecordWorkspace() {
     ],
     [clients],
   )
+
   const tripOptions = useMemo<WorkspaceSelectOption[]>(
     () => [
       { label: "Sem viagem vinculada", value: EMPTY_TRIP },
@@ -138,27 +158,53 @@ export function FinancialRecordWorkspace() {
   const sections: WorkspaceSectionConfig[] = useMemo(
     () => [
       {
-        title: "Dados do lancamento",
-        description: "Base real do financeiro conectada a cliente, viagem e periodo.",
+        title: "Dados do lançamento",
+        description: "Base real do financeiro conectada a cliente, viagem e competência do registro.",
         fields: [
-          { key: "type", label: "Tipo", type: "select", options: ["Receita", "Despesa"] },
-          { key: "status", label: "Status", type: "select", options: ["Pendente", "Pago", "A receber", "Cancelado"] },
-          { key: "clientId", label: "Cliente", type: "select", options: clientOptions },
-          { key: "tripId", label: "Viagem", type: "select", options: tripOptions },
-          { key: "category", label: "Categoria" },
+          { key: "type", label: "Tipo", type: "select", options: [...FINANCE_TYPE_OPTIONS] },
+          {
+            key: "category",
+            label: "Categoria",
+            type: "select",
+            options: (values) => getFinanceCategoryOptions(values.type || record?.type || "Receita"),
+          },
           { key: "amount", label: "Valor" },
-          { key: "occurredAt", label: "Data do lancamento" },
-          { key: "description", label: "Descricao", type: "textarea", rows: 5, colSpan: 2 },
+          { key: "occurredAt", label: "Data do lançamento/competência", placeholder: "AAAA-MM-DD" },
+          { key: "status", label: "Status", type: "select", options: [...FINANCE_STATUS_OPTIONS] },
+          { key: "clientId", label: "Cliente vinculado", type: "select", options: clientOptions },
+          { key: "tripId", label: "Viagem vinculada", type: "select", options: tripOptions },
+          { key: "description", label: "Descrição", type: "textarea", rows: 5, colSpan: 2 },
+        ],
+      },
+      {
+        title: "Planejamento financeiro",
+        description: "Escolha se o lançamento é único, parcelado ou recorrente. Os registros futuros são criados automaticamente.",
+        fields: [
+          { key: "planMode", label: "Modo de lançamento", type: "select", options: [...FINANCE_PLAN_OPTIONS], readOnly: isEditing },
+          {
+            key: "installments",
+            label: "Parcelas",
+            placeholder: "Ex.: 6",
+            hidden: (values) => values.planMode !== "Parcelado" || isEditing,
+            description: "O valor total será dividido em lançamentos mensais com datas futuras.",
+          },
+          {
+            key: "recurrenceCount",
+            label: "Repetições mensais",
+            placeholder: "Ex.: 12",
+            hidden: (values) => values.planMode !== "Recorrente mensal" || isEditing,
+            description: "Cada repetição cria um novo lançamento mensal com o mesmo valor.",
+          },
         ],
       },
     ],
-    [clientOptions, tripOptions],
+    [clientOptions, isEditing, record?.type, tripOptions],
   )
 
   if (isLoading) {
     return (
       <PageShell>
-        <DashboardCard title="Carregando financeiro" description="Sincronizando clientes, viagens e dados reais do lancamento.">
+        <DashboardCard title="Carregando financeiro" description="Sincronizando clientes, viagens e dados reais do lançamento.">
           <div className="space-y-3">
             <div className="h-4 w-48 animate-pulse rounded-full bg-white/10" />
             <div className="h-4 w-64 animate-pulse rounded-full bg-white/10" />
@@ -172,7 +218,7 @@ export function FinancialRecordWorkspace() {
   if (loadError) {
     return (
       <PageShell>
-        <DashboardCard title="Nao foi possivel abrir o lancamento" description={loadError}>
+        <DashboardCard title="Não foi possível abrir o lançamento" description={loadError}>
           <Button className="rounded-full" onClick={() => router.replace("/app/financeiro")}>
             Voltar para financeiro
           </Button>
@@ -183,43 +229,71 @@ export function FinancialRecordWorkspace() {
 
   return (
     <DedicatedActionWorkspace
-      title={isEditing ? "Editar lancamento" : "Novo lancamento"}
-      description="Registre receitas e despesas com dados reais, contexto operacional e leitura pronta para o modulo."
+      title={isEditing ? "Editar lançamento" : "Novo lançamento"}
+      description="Registre receitas e despesas com dados reais, contexto operacional e leitura pronta para o módulo."
       backHref="/app/financeiro"
       backLabel="Voltar para financeiro"
       aiActionLabel="Analisar com IA"
-      aiActionDescription="A categorizacao automatica com IA ainda esta em planejamento para este modulo."
-      primaryActionLabel={isEditing ? "Salvar lancamento" : "Criar lancamento agora"}
+      aiActionDescription="A categorização automática com IA ainda está em planejamento para este módulo."
+      primaryActionLabel={isEditing ? "Salvar lançamento" : "Criar lançamento agora"}
       hideDraftAction
-      previewActionDescription="O preview contabil detalhado ainda sera expandido em uma proxima etapa."
+      previewActionDescription="O preview contábil detalhado ainda será expandido em uma próxima etapa."
       initialValues={buildFinancialValues(record ?? undefined)}
       sections={sections}
       previewTitle="Resumo financeiro"
-      previewDescription="Leitura rapida do lancamento antes de salvar."
+      previewDescription="Leitura rápida do lançamento antes de salvar."
+      transformValues={(nextValues, changedKey) => {
+        const next = { ...nextValues }
+
+        if (changedKey === "type") {
+          const normalizedType = normalizeFinanceType(next.type)
+          next.type = normalizedType
+          if (!getFinanceCategoryOptions(normalizedType).includes(next.category as never)) {
+            next.category = getFinanceCategoryOptions(normalizedType)[0]
+          }
+          if (normalizedType === "Receita" && next.status === "Pago") {
+            next.status = "A receber"
+          }
+        }
+
+        if (changedKey === "planMode" && next.planMode === "Único") {
+          next.installments = "3"
+          next.recurrenceCount = "12"
+        }
+
+        return next
+      }}
       renderPreview={(values) => {
         const selectedClient = clients.find((client) => client.id === values.clientId)
         const selectedTrip = trips.find((trip) => trip.id === values.tripId)
 
         return (
           <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-primary/75">{values.type || "Lancamento"}</p>
-            <h2 className="mt-2 text-xl font-semibold text-foreground">{values.amount ? `R$ ${values.amount}` : "Valor nao informado"}</h2>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-primary/75">{values.type || "Lançamento"}</p>
+            <h2 className="mt-2 text-xl font-semibold text-foreground">{values.amount ? `R$ ${values.amount}` : "Valor não informado"}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              {(selectedClient?.name ?? "Sem cliente vinculado")} â€¢ {(selectedTrip?.destination ?? "Sem viagem vinculada")}
+              {(selectedClient?.name ?? "Sem cliente vinculado")} • {(selectedTrip?.destination ?? "Sem viagem vinculada")}
             </p>
             <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.04] p-4 text-sm text-muted-foreground">
-              {values.category ? `${values.category} â€¢ ${values.status || "Pendente"}` : values.description || "Descricao ainda nao preenchida."}
+              {values.category ? `${values.category} • ${values.status || "Pendente"}` : values.description || "Descrição ainda não preenchida."}
             </div>
+            {!isEditing && values.planMode !== "Único" ? (
+              <p className="mt-3 text-xs uppercase tracking-[0.18em] text-primary/80">
+                {values.planMode === "Parcelado"
+                  ? `Parcelamento em ${values.installments || "1"}x`
+                  : `Recorrência mensal por ${values.recurrenceCount || "1"} meses`}
+              </p>
+            ) : null}
           </div>
         )
       }}
       sidebarInfo={{
-        title: "Leitura contabil",
-        description: "O lancamento fica persistido no Supabase e respeita o isolamento por agencia.",
+        title: "Leitura contábil",
+        description: "O lançamento fica persistido no Supabase e respeita o isolamento por agência.",
         items: [
           { label: "Status", value: (values) => values.status || "Pendente" },
-          { label: "Categoria", value: (values) => values.category || "Nao definida" },
-          { label: "Data", value: (values) => values.occurredAt || "Nao informada" },
+          { label: "Categoria", value: (values) => values.category || "Não definida" },
+          { label: "Competência", value: (values) => values.occurredAt || "Não informada" },
         ],
       }}
       extraSidebar={
@@ -227,40 +301,68 @@ export function FinancialRecordWorkspace() {
           <Button
             variant="outline"
             className="rounded-full border-white/10 bg-white/[0.03]"
-            onClick={() => toast({ title: "Stripe em breve", description: "A conexao automatica com Stripe ainda sera integrada a este modulo." })}
+            onClick={() => toast({ title: "Stripe em breve", description: "A conexão automática com Stripe ainda será integrada a este módulo." })}
           >
             Conectar Stripe
           </Button>
           <Button
             variant="outline"
             className="rounded-full border-white/10 bg-white/[0.03]"
-            onClick={() => toast({ title: "Relatorios em breve", description: "A geracao automatica de relatorios ainda sera conectada ao financeiro." })}
+            onClick={() => toast({ title: "Relatórios em foco", description: "Salve o lançamento e use o CTA do módulo financeiro para gerar o relatório com o recorte atual." })}
           >
-            Gerar relatorio
+            Gerar relatório
           </Button>
         </div>
       }
       onPrimaryAction={async (values) => {
         const selectedClientId = values.clientId || null
         const selectedTripId = values.tripId || null
+        const occurredAt = toIsoOrNull(values.occurredAt)
 
-        await fetchJson<FinancialRecordRow>(isEditing ? `/api/financial-records/${recordId}` : "/api/financial-records", {
+        if (!values.category.trim()) {
+          throw new Error("Selecione uma categoria para o lançamento.")
+        }
+
+        if (!values.description.trim()) {
+          throw new Error("Descreva o contexto do lançamento antes de salvar.")
+        }
+
+        if (!occurredAt) {
+          throw new Error("Informe a data do lançamento/competência.")
+        }
+
+        await fetchJson<FinancialRecordRow | FinancialRecordRow[]>(isEditing ? `/api/financial-records/${recordId}` : "/api/financial-records", {
           method: isEditing ? "PATCH" : "POST",
           body: JSON.stringify({
-            type: values.type || "Receita",
+            type: normalizeFinanceType(values.type || "Receita"),
             amount: parseAmount(values.amount),
-            status: values.status || "Pendente",
+            status: normalizeFinanceStatus(values.status || "Pendente"),
             client_id: selectedClientId,
             trip_id: selectedTripId,
-            category: values.category.trim() || null,
-            description: values.description.trim() || null,
-            occurred_at: toIsoOrNull(values.occurredAt),
+            category: values.category.trim(),
+            description: values.description.trim(),
+            occurred_at: occurredAt,
+            ...(isEditing
+              ? {}
+              : {
+                  plan_mode: values.planMode as FinancePlanMode,
+                  installments: values.planMode === "Parcelado" ? parsePositiveInt(values.installments, 1) : undefined,
+                  recurrence_count: values.planMode === "Recorrente mensal" ? parsePositiveInt(values.recurrenceCount, 1) : undefined,
+                }),
           }),
         })
 
+        const successDescription = isEditing
+          ? "O lançamento foi atualizado no Supabase."
+          : values.planMode === "Parcelado"
+            ? `O lançamento foi dividido em ${parsePositiveInt(values.installments, 1)} parcelas futuras.`
+            : values.planMode === "Recorrente mensal"
+              ? `A recorrência mensal foi criada para ${parsePositiveInt(values.recurrenceCount, 1)} competências.`
+              : "O lançamento foi salvo no Supabase e já aparece na listagem."
+
         toast({
-          title: isEditing ? "Lancamento atualizado" : "Lancamento criado",
-          description: isEditing ? "O lancamento foi atualizado no Supabase." : "O lancamento foi salvo no Supabase e ja aparece na listagem.",
+          title: isEditing ? "Lançamento atualizado" : "Lançamento criado",
+          description: successDescription,
         })
 
         router.replace("/app/financeiro")

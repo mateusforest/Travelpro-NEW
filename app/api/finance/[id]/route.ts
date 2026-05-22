@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { getAccessContext, AuthSessionError, AuthorizationError } from "@/lib/auth"
+import { normalizeFinanceStatus, normalizeFinanceType } from "@/lib/finance/agency-finance"
 import { deleteFinancialRecord, getFinancialRecordById, updateFinancialRecord } from "@/lib/services"
 
 const financePatchSchema = z.object({
@@ -32,7 +33,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const context = await getAccessContext(["master", "agency_admin", "agency_user"])
     const { id } = await params
     const payload = financePatchSchema.parse(await request.json())
-    const data = await updateFinancialRecord(context, id, payload)
+    const data = await updateFinancialRecord(context, id, {
+      ...payload,
+      ...(payload.type !== undefined ? { type: normalizeFinanceType(payload.type) } : {}),
+      ...(payload.status !== undefined ? { status: normalizeFinanceStatus(payload.status) } : {}),
+    })
     return NextResponse.json(data)
   } catch (error) {
     const status = error instanceof AuthSessionError || error instanceof AuthorizationError ? error.status : 400

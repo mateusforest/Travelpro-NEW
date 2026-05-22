@@ -29,7 +29,7 @@ export type WorkspaceFieldConfig = {
   label: string
   type?: WorkspaceFieldType
   placeholder?: string
-  options?: WorkspaceSelectOption[]
+  options?: WorkspaceSelectOption[] | ((values: Record<string, string>) => WorkspaceSelectOption[])
   colSpan?: 1 | 2
   rows?: number
   description?: string
@@ -81,14 +81,17 @@ type DedicatedActionWorkspaceProps = {
 function FieldRenderer({
   field,
   value,
+  values,
   onChange,
 }: {
   field: WorkspaceFieldConfig
   value: string
+  values: Record<string, string>
   onChange: (value: string) => void
 }) {
   const wrapperClass = field.colSpan === 2 ? "space-y-2 md:col-span-2" : "space-y-2"
-  const selectOptions = (field.options ?? []).map((option) =>
+  const rawOptions = typeof field.options === "function" ? field.options(values) : (field.options ?? [])
+  const selectOptions = rawOptions.map((option) =>
     typeof option === "string" ? { label: option, value: option } : option,
   )
 
@@ -296,6 +299,7 @@ export function DedicatedActionWorkspace({
                 key={field.key}
                 field={field}
                 value={values[field.key] ?? ""}
+                values={values}
                 onChange={(nextValue) =>
                   setValues((current) => {
                     const nextValues = { ...current, [field.key]: nextValue }

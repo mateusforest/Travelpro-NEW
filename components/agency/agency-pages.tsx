@@ -61,6 +61,16 @@ import { Progress } from "@/components/ui/progress"
 import { MockChart } from "@/components/system/mock-chart"
 import { toast } from "@/components/ui/use-toast"
 import { matchesDocumentSection, normalizeDocumentType } from "@/lib/documents/document-kind"
+import {
+  buildFinanceChartSeries,
+  FINANCE_FILTERS,
+  FINANCE_PERIODS,
+  isFinancialRecordInRange,
+  matchesFinanceFilter,
+  normalizeFinanceStatus,
+  normalizeFinanceType,
+  resolveFinanceDateRange,
+} from "@/lib/finance/agency-finance"
 import type { ClientRow, DocumentRow, FinancialRecordRow, LeadRow, ReportRow, TaskRow, TeamMemberRow, TripRow } from "@/types/database"
 import type { ClientInput, ClientTravelerProfile } from "@/types/client"
 import type { AgencyDashboardData } from "@/types/dashboard"
@@ -352,44 +362,6 @@ function mapTeamRowToRecord(row: TeamMemberRow, index: number): TeamRecord {
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value)
-}
-
-const financeSeriesByPeriod = {
-  Hoje: [
-    { label: "08h", value: 1800, expenses: 420, profit: 1380 },
-    { label: "10h", value: 2400, expenses: 710, profit: 1690 },
-    { label: "12h", value: 3100, expenses: 940, profit: 2160 },
-    { label: "14h", value: 2600, expenses: 820, profit: 1780 },
-  ],
-  Semana: [
-    { label: "Seg", value: 12400, expenses: 4200, profit: 8200 },
-    { label: "Ter", value: 14900, expenses: 5200, profit: 9700 },
-    { label: "Qua", value: 13100, expenses: 4700, profit: 8400 },
-    { label: "Qui", value: 16800, expenses: 6100, profit: 10700 },
-    { label: "Sex", value: 17200, expenses: 6400, profit: 10800 },
-  ],
-  Mês: [
-    { label: "Sem 1", value: 18400, expenses: 6200, profit: 12200 },
-    { label: "Sem 2", value: 22100, expenses: 7100, profit: 15000 },
-    { label: "Sem 3", value: 19800, expenses: 5300, profit: 14500 },
-    { label: "Sem 4", value: 23900, expenses: 6800, profit: 17100 },
-  ],
-  Trimestre: [
-    { label: "Jan", value: 68400, expenses: 22100, profit: 46300 },
-    { label: "Fev", value: 74200, expenses: 24600, profit: 49600 },
-    { label: "Mar", value: 81100, expenses: 25800, profit: 55300 },
-  ],
-  Ano: [
-    { label: "Q1", value: 223700, expenses: 72500, profit: 151200 },
-    { label: "Q2", value: 247300, expenses: 80100, profit: 167200 },
-    { label: "Q3", value: 231800, expenses: 76400, profit: 155400 },
-    { label: "Q4", value: 264100, expenses: 84200, profit: 179900 },
-  ],
-  Personalizado: [
-    { label: "P1", value: 18200, expenses: 6500, profit: 11700 },
-    { label: "P2", value: 21400, expenses: 7600, profit: 13800 },
-    { label: "P3", value: 19600, expenses: 7100, profit: 12500 },
-  ],
 }
 
 function InfoCard({ label, value }: { label: string; value: string }) {
@@ -2878,7 +2850,7 @@ export function AgencyReportsPage() {
 }
 
 export function AgencyFinancePage() {
-  const periods = Object.keys(financeSeriesByPeriod) as Array<keyof typeof financeSeriesByPeriod>
+  const periods = [...FINANCE_PERIODS]
   const [period, setPeriod] = useState<(typeof periods)[number]>("Mês")
   const [records, setRecords] = useState<FinancialRecordRow[]>([])
   const [clients, setClients] = useState<ClientRow[]>([])
@@ -2886,7 +2858,11 @@ export function AgencyFinancePage() {
   const [selected, setSelected] = useState<FinancialRecordRow | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
   const [searchTerm, setSearchTerm] = useState("")
-  const [activeFilter, setActiveFilter] = useState("Todos")
+  const [activeFilter, setActiveFilter] = useState<(typeof FINANCE_FILTERS)[number]>("Todos")
+  const [customStartDate, setCustomStartDate] = useState("")
+  const [customEndDate, setCustomEndDate] = useState("")
+  const [appliedStartDate, setAppliedStartDate] = useState("")
+  const [appliedEndDate, setAppliedEndDate] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const router = useRouter()
@@ -2928,12 +2904,33 @@ export function AgencyFinancePage() {
 
   const clientsById = useMemo(() => new Map(clients.map((client) => [client.id, client])), [clients])
   const tripsById = useMemo(() => new Map(trips.map((trip) => [trip.id, trip])), [trips])
-  const openFinancialReport = (record?: FinancialRecordRow) => {
+  const dateRange = useMemo(
+    () => resolveFinanceDateRange(period, { startDate: appliedStartDate, endDate: appliedEndDate }),
+    [appliedEndDate, appliedStartDate, period],
+  )
+
+  const periodRecords = useMemo(
+    () => records.filter((record) => isFinancialRecordInRange(record, dateRange)),
+    [dateRange, records],
+  )
+
+  const filteredRecordsByView = useMemo(
+    () => periodRecords.filter((record) => matchesFinanceFilter(record, activeFilter)),
+    [activeFilter, periodRecords],
+  )
+
+  const openFinancialReport = (record?: FinancialRecordRow, exportMode?: "PDF" | "HTML" | "PDF + HTML") => {
     const params = new URLSearchParams({
       type: "Financeiro",
       period,
       financeFilter: activeFilter,
     })
+
+    if (exportMode) params.set("export", exportMode)
+    if (period === "Personalizado") {
+      if (appliedStartDate) params.set("startDate", appliedStartDate)
+      if (appliedEndDate) params.set("endDate", appliedEndDate)
+    }
 
     if (record) {
       const note = [
@@ -2953,9 +2950,7 @@ export function AgencyFinancePage() {
   const visibleRecords = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
-    return records.filter((record) => {
-      if (activeFilter !== "Todos" && record.type !== activeFilter && record.status !== activeFilter) return false
-
+    return filteredRecordsByView.filter((record) => {
       if (!normalizedSearch) return true
 
       const linkedClient = record.client_id ? clientsById.get(record.client_id)?.name ?? "" : ""
@@ -2974,18 +2969,36 @@ export function AgencyFinancePage() {
         .toLowerCase()
         .includes(normalizedSearch)
     })
-  }, [activeFilter, clientsById, records, searchTerm, tripsById])
+  }, [clientsById, filteredRecordsByView, searchTerm, tripsById])
 
-  const totalRevenue = records.filter((item) => item.type.toLowerCase().includes("receita")).reduce((sum, item) => sum + Number(item.amount || 0), 0)
-  const totalExpenses = records.filter((item) => item.type.toLowerCase().includes("despesa")).reduce((sum, item) => sum + Number(item.amount || 0), 0)
-  const totalCommissions = records.filter((item) => (item.category || "").toLowerCase().includes("comiss")).reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  const totalRevenue = filteredRecordsByView.filter((item) => normalizeFinanceType(item.type) === "Receita").reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  const totalExpenses = filteredRecordsByView.filter((item) => normalizeFinanceType(item.type) === "Despesa").reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  const totalCommissions = filteredRecordsByView.filter((item) => (item.category || "").toLowerCase().includes("comiss")).reduce((sum, item) => sum + Number(item.amount || 0), 0)
   const profit = totalRevenue - totalExpenses
   const margin = totalRevenue > 0 ? Math.round((profit / totalRevenue) * 100) : 0
+  const financeSeries = useMemo(() => buildFinanceChartSeries(filteredRecordsByView, period, dateRange), [dateRange, filteredRecordsByView, period])
 
-  const financeFilters = useMemo(() => {
-    const dynamic = Array.from(new Set(records.flatMap((item) => [item.type, item.status]).filter(Boolean))).sort()
-    return ["Todos", ...dynamic]
-  }, [records])
+  const applyFinanceFilters = () => {
+    if (period === "Personalizado" && !customStartDate && !customEndDate) {
+      fire("Defina um recorte", "Escolha ao menos uma data para aplicar o período personalizado.")
+      return
+    }
+
+    setAppliedStartDate(customStartDate)
+    setAppliedEndDate(customEndDate)
+    fire("Filtros aplicados", period === "Personalizado" ? "O recorte personalizado já está refletido no financeiro." : `O período ${period} já está ativo na leitura financeira.`)
+  }
+
+  const clearFinanceFilters = () => {
+    setSearchTerm("")
+    setActiveFilter("Todos")
+    setPeriod("Mês")
+    setCustomStartDate("")
+    setCustomEndDate("")
+    setAppliedStartDate("")
+    setAppliedEndDate("")
+    fire("Filtros limpos", "O financeiro voltou ao recorte padrão do mês atual.")
+  }
 
   return (
     <PageShell>
@@ -3002,6 +3015,7 @@ export function AgencyFinancePage() {
             </Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Stripe em breve", "A conexao automatica com Stripe ainda sera integrada a este modulo.")}>Conectar Stripe</Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openFinancialReport()}>Gerar relatório</Button>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openFinancialReport(undefined, "HTML")}>Exportar</Button>
           </div>
         }
       />
@@ -3011,8 +3025,29 @@ export function AgencyFinancePage() {
           <SearchInput placeholder="Buscar categoria, cliente, viagem ou status" value={searchTerm} onChange={setSearchTerm} />
         </div>
         <div className="flex flex-wrap gap-4">
-          <FilterTabs items={financeFilters} activeItem={activeFilter} onChange={setActiveFilter} />
+          <FilterTabs items={[...FINANCE_FILTERS]} activeItem={activeFilter} onChange={(item) => setActiveFilter(item as (typeof FINANCE_FILTERS)[number])} />
           <FilterTabs items={periods} activeItem={period} onChange={(item) => setPeriod(item as typeof period)} />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+        <div className="flex flex-wrap gap-3">
+          {period === "Personalizado" ? (
+            <>
+              <label className="space-y-2">
+                <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Data inicial</span>
+                <input value={customStartDate} onChange={(event) => setCustomStartDate(event.target.value)} placeholder="AAAA-MM-DD" className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/70" />
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Data final</span>
+                <input value={customEndDate} onChange={(event) => setCustomEndDate(event.target.value)} placeholder="AAAA-MM-DD" className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/70" />
+              </label>
+            </>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={applyFinanceFilters}>Aplicar filtros</Button>
+          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={clearFinanceFilters}>Limpar filtros</Button>
         </div>
       </div>
 
@@ -3022,18 +3057,27 @@ export function AgencyFinancePage() {
         <MetricCard label="Comissoes" value={formatMoney(totalCommissions)} change="Categorias com comissao" tone="info" icon={Users} />
         <MetricCard label="Lucro" value={formatMoney(profit)} change={`Margem ${margin}%`} tone={profit >= 0 ? "success" : "danger"} icon={TrendingUp} />
         <MetricCard label="Margem" value={`${margin}%`} change="Base real do periodo" tone="success" icon={Percent} />
-        <MetricCard label="Lancamentos" value={`${records.length}`} change="Receitas e despesas reais" tone="info" icon={HandCoins} />
+        <MetricCard label="Lancamentos" value={`${filteredRecordsByView.length}`} change="Receitas e despesas reais" tone="info" icon={HandCoins} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <MockChart title="Receitas, despesas, lucro e margem" description={`Visual do periodo ${period} enquanto a camada de relatorios detalhados continua em evolucao.`} span="full" filters={periods} series={financeSeriesByPeriod[period]} />
+        {financeSeries.length ? (
+          <MockChart title="Receitas, despesas, saldo e margem" description={`Serie real do periodo ${period}${period === "Personalizado" && (appliedStartDate || appliedEndDate) ? ` (${appliedStartDate || "inicio aberto"} ate ${appliedEndDate || "fim aberto"})` : ""}.`} series={financeSeries} />
+        ) : (
+          <DashboardCard title="Receitas, despesas, saldo e margem" description={`O grafico usa apenas financial_records reais do periodo ${period}.`}>
+            <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center">
+              <p className="text-sm font-medium text-foreground">Sem dados para este recorte.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Crie lançamentos com competência dentro do período selecionado para alimentar o gráfico real.</p>
+            </div>
+          </DashboardCard>
+        )}
         <DashboardCard title="Resumo do periodo" description="Leitura rapida do caixa com contexto operacional e vinculos reais.">
           <div className="space-y-3">
             {[
               `Periodo selecionado: ${period}`,
-              `${records.filter((item) => item.status.toLowerCase().includes("pago")).length} lancamentos pagos ou concluídos.`,
-              `${records.filter((item) => item.client_id || item.trip_id).length} lancamentos vinculados a cliente ou viagem.`,
-              "Relatorios automaticos e Stripe permanecem sinalizados como proximas etapas.",
+              `${filteredRecordsByView.filter((item) => normalizeFinanceStatus(item.status) === "Pago").length} lançamentos pagos no recorte atual.`,
+              `${filteredRecordsByView.filter((item) => item.client_id || item.trip_id).length} lançamentos vinculados a cliente ou viagem.`,
+              activeFilter !== "Todos" ? `Filtro operacional ativo: ${activeFilter}.` : "Use os filtros para isolar receitas, despesas e pendências sem perder contexto.",
             ].map((item) => (
               <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-muted-foreground">{item}</div>
             ))}
@@ -3100,7 +3144,7 @@ export function AgencyFinancePage() {
                             })
                             setRecords((current) => current.map((item) => (item.id === record.id ? updated : item)))
                             setSelected((current) => (current?.id === record.id ? updated : current))
-                            fire("Pagamento registrado", "O lancamento foi atualizado com status Pago.")
+                            fire("Pagamento registrado", "O lançamento foi atualizado com status Pago.")
                           } catch (error) {
                             fire("Falha ao atualizar", error instanceof Error ? error.message : "Nao foi possivel registrar o pagamento.")
                           }
@@ -3108,6 +3152,7 @@ export function AgencyFinancePage() {
                       },
                       { label: "Conectar Stripe", icon: ArrowRightLeft, onClick: () => fire("Stripe em breve", "A conexao automatica com Stripe ainda sera integrada a este modulo.") },
                       { label: "Gerar relatorio", icon: Download, onClick: () => openFinancialReport(record) },
+                      { label: "Exportar", icon: ExternalLink, onClick: () => openFinancialReport(record, "HTML") },
                       {
                         label: "Excluir",
                         icon: Trash2,

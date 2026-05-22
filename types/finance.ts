@@ -9,6 +9,9 @@ export type FinancialRecordInput = {
   description?: string | null
   category?: string | null
   occurred_at?: string | null
+  plan_mode?: "Único" | "Parcelado" | "Recorrente mensal"
+  installments?: number
+  recurrence_count?: number
 }
 
 export type FinancialRecordResponse = FinancialRecordRow

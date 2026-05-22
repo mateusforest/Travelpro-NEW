@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin"
+import { normalizeFinanceStatus, normalizeFinanceType } from "@/lib/finance/agency-finance"
 import type { AgencyAccessContext, FinancialRecordRow } from "@/types/database"
 import type { FinancialRecordInput } from "@/types/financial-record"
 
@@ -16,7 +17,7 @@ function ensureAgencyContext(context: AgencyAccessContext) {
 export async function listFinancialRecords(context: AgencyAccessContext) {
   ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
-  let query = supabase.from("financial_records").select("*").order("created_at", { ascending: false })
+  let query = supabase.from("financial_records").select("*").order("occurred_at", { ascending: false })
   query = withAgencyScope(query, context)
   const { data, error } = await query
   if (error) throw error
@@ -36,6 +37,8 @@ export async function getFinancialRecordById(context: AgencyAccessContext, id: s
 export async function createFinancialRecord(context: AgencyAccessContext, input: FinancialRecordInput) {
   ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
+  const nextType = normalizeFinanceType(input.type)
+  const nextStatus = normalizeFinanceStatus(input.status)
   const { data, error } = await supabase
     .from("financial_records")
     .insert({
@@ -43,9 +46,9 @@ export async function createFinancialRecord(context: AgencyAccessContext, input:
       user_id: context.userId,
       client_id: input.client_id ?? null,
       trip_id: input.trip_id ?? null,
-      type: input.type,
+      type: nextType,
       amount: input.amount,
-      status: input.status ?? "Ativo",
+      status: nextStatus,
       description: input.description ?? null,
       category: input.category ?? null,
       occurred_at: input.occurred_at ?? undefined,
@@ -59,12 +62,14 @@ export async function createFinancialRecord(context: AgencyAccessContext, input:
 export async function updateFinancialRecord(context: AgencyAccessContext, id: string, input: Partial<FinancialRecordInput>) {
   ensureAgencyContext(context)
   const supabase = getSupabaseAdminClient()
+  const nextType = input.type !== undefined ? normalizeFinanceType(input.type) : undefined
+  const nextStatus = input.status !== undefined ? normalizeFinanceStatus(input.status) : undefined
   let query = supabase
     .from("financial_records")
     .update({
-      ...(input.type !== undefined ? { type: input.type } : {}),
+      ...(nextType !== undefined ? { type: nextType } : {}),
       ...(input.amount !== undefined ? { amount: input.amount } : {}),
-      ...(input.status !== undefined ? { status: input.status } : {}),
+      ...(nextStatus !== undefined ? { status: nextStatus } : {}),
       ...(input.client_id !== undefined ? { client_id: input.client_id } : {}),
       ...(input.trip_id !== undefined ? { trip_id: input.trip_id } : {}),
       ...(input.description !== undefined ? { description: input.description } : {}),
