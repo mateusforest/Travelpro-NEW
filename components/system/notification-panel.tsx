@@ -40,10 +40,11 @@ function normalizeNotifications(items: NotificationItem[]) {
   }))
 }
 
-function NotificationTrigger({ unreadCount }: { unreadCount: number }) {
+function NotificationTrigger({ unreadCount, onClick }: { unreadCount: number; onClick?: () => void }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="relative rounded-full border border-white/10 bg-white/[0.03] p-2.5 text-foreground transition-all hover:border-primary/20 hover:bg-white/[0.06]"
     >
       <Bell className="h-3.5 w-3.5" />
@@ -62,6 +63,7 @@ export function NotificationPanel({
   emptyDescription = "Nenhuma notificação pendente no momento.",
 }: NotificationPanelProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => normalizeNotifications(items))
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   const unreadCount = useMemo(() => notifications.filter((item) => !item.read).length, [notifications])
 
@@ -70,7 +72,13 @@ export function NotificationPanel({
   }
 
   return (
-    <Drawer title={title} description={description} trigger={<NotificationTrigger unreadCount={unreadCount} />}>
+    <Drawer
+      title={title}
+      description={description}
+      open={notificationsOpen}
+      onOpenChange={setNotificationsOpen}
+      trigger={<NotificationTrigger unreadCount={unreadCount} onClick={() => setNotificationsOpen(true)} />}
+    >
       <div className="flex items-center justify-between gap-3 pb-4">
         <div className="rounded-2xl border border-primary/15 bg-primary/10 px-3 py-2 text-xs text-primary">{unreadCount} novas</div>
         <div className="flex items-center gap-2">

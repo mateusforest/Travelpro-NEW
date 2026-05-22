@@ -15,10 +15,14 @@ type AppDrawerProps = {
   title: string
   description?: string
   children: ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function Drawer({ trigger, title, description, children }: AppDrawerProps) {
-  const [open, setOpen] = useState(false)
+export function Drawer({ trigger, title, description, children, open: controlledOpen, onOpenChange }: AppDrawerProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const open = controlledOpen ?? uncontrolledOpen
+  const setOpen = onOpenChange ?? setUncontrolledOpen
 
   return (
     <DrawerRoot direction="right" open={open} onOpenChange={setOpen}>
