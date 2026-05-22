@@ -1,198 +1,156 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
-import {
-  ArrowLeft,
-  BadgeCheck,
-  Bot,
-  FileCode2,
-  Globe,
-  Plus,
-  Save,
-  Send,
-  Sparkles,
-  UploadCloud,
-  X,
-} from "lucide-react"
-import { LivePreviewPanel } from "@/components/system/live-preview-panel"
-import { OperationalWorkspaceLayout } from "@/components/system/operational-workspace-layout"
+import { useRouter } from "next/navigation"
+import { ArrowLeft, BadgeCheck, Bot, Copy, Save, Send, Sparkles, X } from "lucide-react"
+import { DashboardCard } from "@/components/system/dashboard-card"
 import { PageShell } from "@/components/system/page-shell"
-import { PrimaryButton } from "@/components/system/primary-button"
-import { SecondaryButton } from "@/components/system/secondary-button"
 import { SectionHeader } from "@/components/system/section-header"
-import { SetupGuideCard } from "@/components/system/setup-guide-card"
-import { WorkspaceSectionCard } from "@/components/system/workspace-section-card"
-import { WorkspaceSidebarInfo } from "@/components/system/workspace-sidebar-info"
-import { SmartActionButton } from "@/components/system/smart-action-button"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
+import type { MasterAgencyOverview, MasterTemplateDetail, MasterTemplateInput } from "@/types/master"
 
-const initialVariables = [
-  "{{cliente_nome}}",
-  "{{destino}}",
-  "{{embarque}}",
-  "{{retorno}}",
-  "{{valor_total}}",
-]
+type AgencyOption = { id: string; name: string }
 
-const agencyCustomizationOptions = [
-  "logo",
-  "cor principal",
-  "rodapé",
-  "assinatura",
-  "whatsapp",
-  "instagram",
-  "observações",
-  "capa",
-  "fontes",
-]
+const compatibilityOptions = ["IA", "Go", "Agent", "Atlas", "Relatorios", "Catalogo"]
+const customizableOptions = ["logo", "cor principal", "rodape", "assinatura", "whatsapp", "instagram", "capa", "fontes"]
+
+async function requestJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
+  const response = await fetch(input, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  })
+
+  const payload = (await response.json().catch(() => null)) as { error?: string } | T | null
+  if (!response.ok) {
+    throw new Error((payload as { error?: string } | null)?.error || "Nao foi possivel concluir a operacao.")
+  }
+
+  return payload as T
+}
 
 function FieldLabel({ children }: { children: ReactNode }) {
   return <span className="text-xs uppercase tracking-[0.18em] text-primary/75">{children}</span>
 }
 
 function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
-    />
-  )
+  return <input {...props} className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/70" />
 }
 
 function FieldTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <textarea
-      {...props}
-      className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
-    />
-  )
+  return <textarea {...props} className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/70" />
 }
 
-function FieldSelect({
-  value,
-  onChange,
-  options,
+function ToggleChip({
+  label,
+  active,
+  onClick,
 }: {
-  value: string
-  onChange: (value: string) => void
-  options: string[]
+  label: string
+  active: boolean
+  onClick: () => void
 }) {
   return (
-    <select
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-3 py-2 text-xs transition-all ${
+        active ? "border-primary/20 bg-primary/10 text-primary" : "border-white/10 bg-white/[0.03] text-muted-foreground"
+      }`}
     >
-      {options.map((option) => (
-        <option key={option} value={option} className="bg-background">
-          {option}
-        </option>
-      ))}
-    </select>
+      {label}
+    </button>
   )
 }
 
-function TemplateUploadCard({
-  fileName,
-  onChange,
+export function MasterTemplateWorkspace({
+  initialTemplateId,
+  initialSourceId,
 }: {
-  fileName: string
-  onChange: (fileName: string) => void
+  initialTemplateId?: string | null
+  initialSourceId?: string | null
 }) {
-  return (
-    <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.12)] md:col-span-2">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">Upload do template</p>
-          <p className="text-xs leading-5 text-muted-foreground">
-            Estrutura preparada para receber DOCX, PDF ou HTML no fluxo real.
-          </p>
-        </div>
-        <div className="rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-primary">
-          IA Ready
-        </div>
-      </div>
+  const router = useRouter()
+  const templateId = initialTemplateId || null
+  const sourceId = initialSourceId || null
+  const isEditing = Boolean(templateId)
 
-      <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed border-white/15 bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent px-6 py-10 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-primary">
-          <UploadCloud className="h-5 w-5" />
-        </div>
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">Arraste o arquivo oficial ou clique para anexar</p>
-          <p className="text-xs leading-5 text-muted-foreground">
-            O upload real será conectado depois sem alterar esta experiência.
-          </p>
-        </div>
-        <input
-          type="file"
-          accept=".doc,.docx,.pdf,.html,.htm"
-          className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0]
-            if (file) onChange(file.name)
-            event.target.value = ""
-          }}
-        />
-      </label>
-
-      <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.04] text-primary">
-            <FileCode2 className="h-4 w-4" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">{fileName}</p>
-            <p className="text-xs text-muted-foreground">Estrutura base pronta para variáveis, branding e IA.</p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-full border-white/10 bg-white/[0.04]"
-          onClick={() => onChange("Template institucional TravelPro.docx")}
-        >
-          Alterar
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-export function MasterTemplateWorkspace() {
-  const [name, setName] = useState("Template Contrato Premium Signature")
-  const [category, setCategory] = useState("Contrato")
-  const [destinationSection, setDestinationSection] = useState("Documentos")
-  const [description, setDescription] = useState(
-    "Modelo oficial para contratos premium com leitura clara, branding adaptável e campos preparados para automação.",
-  )
-  const [version, setVersion] = useState("v3.4")
+  const [agencyOptions, setAgencyOptions] = useState<AgencyOption[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [agencyId, setAgencyId] = useState("")
+  const [title, setTitle] = useState("")
+  const [templateType, setTemplateType] = useState<MasterTemplateInput["template_type"]>("Documento")
+  const [status, setStatus] = useState("Rascunho")
+  const [category, setCategory] = useState("")
+  const [description, setDescription] = useState("")
+  const [version, setVersion] = useState("v1.0")
   const [pricingTier, setPricingTier] = useState("Premium")
-  const [fileName, setFileName] = useState("Template institucional TravelPro.docx")
-  const [variables, setVariables] = useState(initialVariables)
+  const [fileName, setFileName] = useState("Template oficial TravelPro")
+  const [isOfficial, setIsOfficial] = useState(true)
+  const [compatibilities, setCompatibilities] = useState<string[]>(["Relatorios"])
+  const [customizableFields, setCustomizableFields] = useState<string[]>(["logo", "cor principal", "rodape"])
+  const [variables, setVariables] = useState<string[]>(["{{cliente_nome}}", "{{periodo}}"])
   const [nextVariable, setNextVariable] = useState("")
-  const [enabledCompatibilities, setEnabledCompatibilities] = useState<string[]>(["IA", "Go", "Agent"])
-  const [customizableFields, setCustomizableFields] = useState<string[]>([
-    "logo",
-    "cor principal",
-    "rodapé",
-    "assinatura",
-    "whatsapp",
-    "capa",
-  ])
 
-  const toggleCompatibility = (item: string) => {
-    setEnabledCompatibilities((current) =>
-      current.includes(item) ? current.filter((value) => value !== item) : [...current, item],
-    )
-  }
+  useEffect(() => {
+    let active = true
+    const load = async () => {
+      try {
+        setIsLoading(true)
+        const [agencies, template] = await Promise.all([
+          requestJson<MasterAgencyOverview>("/api/master/agencies?status=Todos"),
+          templateId || sourceId ? requestJson<MasterTemplateDetail>(`/api/master/templates/${templateId || sourceId}`) : Promise.resolve(null),
+        ])
+        if (!active) return
 
-  const toggleCustomField = (item: string) => {
-    setCustomizableFields((current) =>
-      current.includes(item) ? current.filter((value) => value !== item) : [...current, item],
-    )
+        setAgencyOptions((agencies.items ?? []).map((item) => ({ id: item.id, name: item.name })))
+
+        if (template) {
+          setAgencyId(template.agency_id)
+          setTitle(sourceId && !templateId ? `${template.title} - copia` : template.title)
+          setTemplateType(template.template_type)
+          setStatus(templateId ? template.status : "Rascunho")
+          setCategory(template.category || "")
+          setDescription(template.description || "")
+          setVersion(template.version || "v1.0")
+          setPricingTier(template.pricing_tier || "Premium")
+          setFileName(template.file_name || "Template oficial TravelPro")
+          setIsOfficial(sourceId && !templateId ? false : template.is_official)
+          setCompatibilities(template.compatibilities.length ? template.compatibilities : ["Relatorios"])
+          setCustomizableFields(template.customizable_fields.length ? template.customizable_fields : ["logo", "cor principal", "rodape"])
+          setVariables(template.variables.length ? template.variables : ["{{cliente_nome}}", "{{periodo}}"])
+        } else if (agencies.items?.[0]) {
+          setAgencyId(agencies.items[0].id)
+          setTitle("Template oficial TravelPro")
+          setDescription("Modelo oficial da plataforma pronto para distribuicao e uso operacional.")
+          setCategory("Institucional")
+        }
+      } catch (error) {
+        toast({ title: "Falha ao carregar", description: error instanceof Error ? error.message : "Nao foi possivel carregar o workspace de template." })
+      } finally {
+        if (active) setIsLoading(false)
+      }
+    }
+
+    void load()
+    return () => {
+      active = false
+    }
+  }, [sourceId, templateId])
+
+  const selectedAgencyName = useMemo(
+    () => agencyOptions.find((item) => item.id === agencyId)?.name || "Selecione a agencia base",
+    [agencyId, agencyOptions],
+  )
+
+  const toggleValue = (value: string, items: string[], setter: (items: string[]) => void) => {
+    setter(items.includes(value) ? items.filter((entry) => entry !== value) : [...items, value])
   }
 
   const addVariable = () => {
@@ -205,278 +163,237 @@ export function MasterTemplateWorkspace() {
     setNextVariable("")
   }
 
+  const saveTemplate = async (nextStatus: string) => {
+    if (!agencyId) {
+      toast({ title: "Agencia obrigatoria", description: "Selecione a agencia base para persistir o template com seguranca." })
+      return
+    }
+
+    try {
+      setIsSaving(true)
+      const payload: MasterTemplateInput = {
+        agency_id: agencyId,
+        title: title.trim(),
+        template_type: templateType,
+        status: nextStatus,
+        category: category.trim() || null,
+        description: description.trim() || null,
+        version: version.trim() || null,
+        pricing_tier: pricingTier.trim() || null,
+        file_name: fileName.trim() || null,
+        is_official: isOfficial,
+        compatibilities,
+        customizable_fields: customizableFields,
+        variables,
+      }
+
+      if (templateId) {
+        await requestJson(`/api/master/templates/${templateId}`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        })
+      } else {
+        await requestJson("/api/master/templates", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        })
+      }
+
+      toast({
+        title: templateId ? "Template atualizado" : "Template criado",
+        description: nextStatus.toLowerCase().includes("public") ? "O template foi salvo e publicado na biblioteca oficial." : "O template foi salvo com os dados reais da plataforma.",
+      })
+      router.push("/master/templates")
+      router.refresh()
+    } catch (error) {
+      toast({ title: "Falha ao salvar", description: error instanceof Error ? error.message : "Nao foi possivel salvar o template." })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <PageShell>
       <SectionHeader
-        title="Novo template oficial"
-        description="Crie um modelo TravelPro pronto para IA, Go, Agent, Atlas e operação estruturada das agências."
+        title={isEditing ? "Editar template" : sourceId ? "Duplicar template" : "Novo template oficial"}
+        description="Biblioteca oficial do TravelPro com persistencia real, sem engine de IA ou marketplace de templates nesta etapa."
         actions={
-          <>
-            <SecondaryButton asChild>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
               <Link href="/master/templates">
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar para templates
               </Link>
-            </SecondaryButton>
-            <SmartActionButton
-              label="Publicar template com IA"
-              description="A IA poderá sugerir variáveis, consistência editorial e compatibilidade operacional."
-            />
-            <SecondaryButton
-              onClick={() =>
-                toast({
-                  title: "Rascunho salvo",
-                  description: "O template oficial foi salvo localmente em modo mockado.",
-                })
-              }
-            >
-              <Save className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => toast({ title: "IA em breve", description: "A geracao inteligente de templates continua futura e sem backend fake nesta etapa." })}>
+              <Bot className="mr-2 h-4 w-4" />
+              Publicar template com IA
+            </Button>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => void saveTemplate("Rascunho")} disabled={isSaving || isLoading}>
+              <Save className="mr-2 h-4 w-4" />
               Salvar rascunho
-            </SecondaryButton>
-            <PrimaryButton
-              onClick={() =>
-                toast({
-                  title: "Template publicado",
-                  description: "O novo template oficial foi preparado em modo mockado para distribuição.",
-                })
-              }
-            >
-              <Send className="h-4 w-4" />
-              Publicar template
-            </PrimaryButton>
-          </>
+            </Button>
+            <Button className="rounded-full" onClick={() => void saveTemplate("Publicado")} disabled={isSaving || isLoading}>
+              <Send className="mr-2 h-4 w-4" />
+              {isSaving ? "Salvando..." : "Publicar template"}
+            </Button>
+          </div>
         }
       />
 
-      <OperationalWorkspaceLayout
-        sidebar={
-          <>
-            <LivePreviewPanel
-              title="Preview oficial"
-              description="Leitura lateral do documento com branding aplicado e sinalização de compatibilidade."
-              footer={
-                <SecondaryButton
-                  onClick={() =>
-                    toast({
-                      title: "Preview expandido",
-                      description: "O preview oficial foi preparado em modo mockado.",
-                    })
-                  }
-                >
-                  <Globe className="h-4 w-4" />
-                  Abrir preview
-                </SecondaryButton>
-              }
-            >
-              <div className="overflow-hidden rounded-[24px] border border-white/8 bg-black/25">
-                <div className="border-b border-white/8 bg-gradient-to-r from-primary/25 via-primary/10 to-transparent px-5 py-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-primary/75">TravelPro template</p>
-                      <h2 className="mt-1 text-lg font-semibold text-foreground">{name}</h2>
-                    </div>
-                    <div className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-primary">
-                      IA Ready
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-4 px-5 py-5">
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-muted-foreground">
-                      {category}
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-muted-foreground">
-                      {destinationSection}
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-muted-foreground">
-                      {version}
-                    </span>
-                  </div>
-                  <p className="text-sm leading-6 text-muted-foreground">{description}</p>
-                  <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
-                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <BadgeCheck className="h-4 w-4 text-primary" />
-                      Variáveis dinâmicas
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {variables.slice(0, 5).map((item) => (
-                        <span
-                          key={item}
-                          className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] text-muted-foreground"
-                        >
-                          {item}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
-                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      Branding personalizável
-                    </div>
-                    <div className="mt-3 grid gap-2">
-                      {customizableFields.slice(0, 4).map((item) => (
-                        <div key={item} className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2 text-xs text-muted-foreground">
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="space-y-6">
+          <DashboardCard title="Base operacional" description="Defina a agencia base, o tipo, a categoria e o status do template oficial.">
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="space-y-2">
+                <FieldLabel>Agencia base</FieldLabel>
+                <select value={agencyId} onChange={(event) => setAgencyId(event.target.value)} className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none">
+                  <option value="" className="bg-background">Selecione</option>
+                  {agencyOptions.map((item) => (
+                    <option key={item.id} value={item.id} className="bg-background">{item.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-2">
+                <FieldLabel>Status</FieldLabel>
+                <select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none">
+                  {["Rascunho", "Ativo", "Publicado", "Inativo"].map((item) => (
+                    <option key={item} value={item} className="bg-background">{item}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-2 md:col-span-2">
+                <FieldLabel>Nome do template</FieldLabel>
+                <FieldInput value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Template oficial TravelPro" />
+              </label>
+              <label className="space-y-2">
+                <FieldLabel>Tipo</FieldLabel>
+                <select value={templateType} onChange={(event) => setTemplateType(event.target.value as MasterTemplateInput["template_type"])} className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none">
+                  {["Documento", "Relatorio", "Roteiro", "Cotacao", "Catalogo"].map((item) => (
+                    <option key={item} value={item} className="bg-background">{item}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-2">
+                <FieldLabel>Categoria</FieldLabel>
+                <FieldInput value={category} onChange={(event) => setCategory(event.target.value)} placeholder="Institucional" />
+              </label>
+              <label className="space-y-2">
+                <FieldLabel>Versao</FieldLabel>
+                <FieldInput value={version} onChange={(event) => setVersion(event.target.value)} />
+              </label>
+              <label className="space-y-2">
+                <FieldLabel>Modelo comercial</FieldLabel>
+                <select value={pricingTier} onChange={(event) => setPricingTier(event.target.value)} className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none">
+                  {["Free", "Premium", "Enterprise"].map((item) => (
+                    <option key={item} value={item} className="bg-background">{item}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-2 md:col-span-2">
+                <FieldLabel>Descricao</FieldLabel>
+                <FieldTextarea rows={4} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Contexto editorial e operacional do template oficial." />
+              </label>
+              <label className="space-y-2 md:col-span-2">
+                <FieldLabel>Nome do arquivo base</FieldLabel>
+                <FieldInput value={fileName} onChange={(event) => setFileName(event.target.value)} placeholder="template-oficial-travelpro.docx" />
+              </label>
+            </div>
+          </DashboardCard>
+
+          <DashboardCard title="Compatibilidades e campos" description="Marque o que esse template conversa hoje e o que cada agencia pode personalizar.">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-3">
+                <FieldLabel>Compatibilidades</FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  {compatibilityOptions.map((item) => (
+                    <ToggleChip key={item} label={item} active={compatibilities.includes(item)} onClick={() => toggleValue(item, compatibilities, setCompatibilities)} />
+                  ))}
                 </div>
               </div>
-            </LivePreviewPanel>
-
-            <WorkspaceSidebarInfo
-              title="Distribuição planejada"
-              description="Leitura rápida do escopo do template dentro do ecossistema TravelPro."
-              items={[
-                { label: "Plano", value: pricingTier },
-                { label: "Compatibilidade", value: enabledCompatibilities.join(" • ") || "Definir" },
-                { label: "Campos da agência", value: `${customizableFields.length} ativos` },
-              ]}
-            />
-
-            <SetupGuideCard
-              title="Como este template será usado"
-              description="Estrutura preparada para escalar sem virar um formulário isolado."
-              steps={[
-                "O Master publica o modelo oficial com variáveis, branding e compatibilidade definida.",
-                "A agência ativa o template, aplica identidade e escolhe quando ele vira padrão.",
-                "Go, Agent, Atlas e IA podem reaproveitar a estrutura sem recriar o documento do zero.",
-              ]}
-            />
-          </>
-        }
-      >
-        <WorkspaceSectionCard
-          title="Informações principais"
-          description="Base editorial, categoria, escopo e leitura comercial do template oficial."
-        >
-          <label className="space-y-2">
-            <FieldLabel>Nome do template</FieldLabel>
-            <FieldInput value={name} onChange={(event) => setName(event.target.value)} />
-          </label>
-          <label className="space-y-2">
-            <FieldLabel>Categoria</FieldLabel>
-            <FieldSelect
-              value={category}
-              onChange={setCategory}
-              options={["Contrato", "Roteiro", "Cotação", "Voucher", "Documento operacional"]}
-            />
-          </label>
-          <label className="space-y-2">
-            <FieldLabel>Sessão destino</FieldLabel>
-            <FieldSelect
-              value={destinationSection}
-              onChange={setDestinationSection}
-              options={["Documentos", "Viagens", "Comercial", "Marketplace", "Operação"]}
-            />
-          </label>
-          <label className="space-y-2">
-            <FieldLabel>Versão</FieldLabel>
-            <FieldInput value={version} onChange={(event) => setVersion(event.target.value)} />
-          </label>
-          <label className="space-y-2 md:col-span-2">
-            <FieldLabel>Descrição</FieldLabel>
-            <FieldTextarea rows={4} value={description} onChange={(event) => setDescription(event.target.value)} />
-          </label>
-          <label className="space-y-2">
-            <FieldLabel>Modelo comercial</FieldLabel>
-            <FieldSelect value={pricingTier} onChange={setPricingTier} options={["Free", "Premium"]} />
-          </label>
-          <div className="space-y-3">
-            <FieldLabel>Compatibilidade</FieldLabel>
-            <div className="flex flex-wrap gap-2">
-              {["IA", "Go", "Agent", "Atlas"].map((item) => {
-                const active = enabledCompatibilities.includes(item)
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => toggleCompatibility(item)}
-                    className={`rounded-full border px-3 py-2 text-xs transition-all ${
-                      active
-                        ? "border-primary/20 bg-primary/10 text-primary"
-                        : "border-white/10 bg-white/[0.03] text-muted-foreground"
-                    }`}
-                  >
-                    {item}
-                  </button>
-                )
-              })}
+              <div className="space-y-3">
+                <FieldLabel>Campos personalizaveis</FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  {customizableOptions.map((item) => (
+                    <ToggleChip key={item} label={item} active={customizableFields.includes(item)} onClick={() => toggleValue(item, customizableFields, setCustomizableFields)} />
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </WorkspaceSectionCard>
+            <label className="mt-4 flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+              <input type="checkbox" checked={isOfficial} onChange={(event) => setIsOfficial(event.target.checked)} className="h-4 w-4 rounded border-white/10 bg-white/[0.03]" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Marcar como template oficial da plataforma</p>
+                <p className="text-xs text-muted-foreground">Quando ativo, o template aparece como biblioteca homologada do TravelPro.</p>
+              </div>
+            </label>
+          </DashboardCard>
 
-        <WorkspaceSectionCard
-          title="Estrutura do arquivo"
-          description="Upload elegante do template base e leitura do material que será distribuído às agências."
-        >
-          <TemplateUploadCard fileName={fileName} onChange={setFileName} />
-        </WorkspaceSectionCard>
-
-        <WorkspaceSectionCard
-          title="Variáveis dinâmicas"
-          description="Defina os campos que a operação, a IA e o Go poderão preencher automaticamente."
-        >
-          <div className="space-y-2 md:col-span-2">
-            <FieldLabel>Adicionar variável</FieldLabel>
+          <DashboardCard title="Variaveis dinamicas" description="Base para documentos, relatorios, roteiros e outras automacoes futuras.">
             <div className="flex flex-col gap-3 md:flex-row">
-              <FieldInput
-                value={nextVariable}
-                onChange={(event) => setNextVariable(event.target.value)}
-                placeholder="cliente_nome"
-              />
+              <FieldInput value={nextVariable} onChange={(event) => setNextVariable(event.target.value)} placeholder="cliente_nome" />
               <Button className="rounded-full" onClick={addVariable}>
-                <Plus className="h-4 w-4" />
-                Adicionar variável
+                <Sparkles className="mr-2 h-4 w-4" />
+                Adicionar variavel
               </Button>
             </div>
-          </div>
-          <div className="space-y-3 md:col-span-2">
-            <FieldLabel>Variáveis ativas</FieldLabel>
-            <div className="flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               {variables.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setVariables((current) => current.filter((value) => value !== item))}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-primary/15 hover:text-foreground"
-                >
+                <button key={item} type="button" onClick={() => setVariables((current) => current.filter((entry) => entry !== item))} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-muted-foreground transition-all hover:border-primary/15 hover:text-foreground">
                   {item}
                   <X className="h-3.5 w-3.5" />
                 </button>
               ))}
             </div>
-          </div>
-        </WorkspaceSectionCard>
+          </DashboardCard>
+        </div>
 
-        <WorkspaceSectionCard
-          title="Campos personalizáveis da agência"
-          description="Escolha o que cada agência poderá adaptar sem quebrar a estrutura oficial do template."
-        >
-          <div className="grid gap-3 md:col-span-2 md:grid-cols-2">
-            {agencyCustomizationOptions.map((item) => {
-              const active = customizableFields.includes(item)
-              return (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => toggleCustomField(item)}
-                  className={`flex items-center justify-between rounded-[22px] border px-4 py-3 text-left transition-all ${
-                    active
-                      ? "border-primary/20 bg-primary/10 text-foreground"
-                      : "border-white/10 bg-white/[0.03] text-muted-foreground"
-                  }`}
-                >
-                  <span className="text-sm capitalize">{item}</span>
-                  {active ? <BadgeCheck className="h-4 w-4 text-primary" /> : <Bot className="h-4 w-4" />}
-                </button>
-              )
-            })}
-          </div>
-        </WorkspaceSectionCard>
-      </OperationalWorkspaceLayout>
+        <div className="space-y-6">
+          <DashboardCard title="Preview oficial" description="Leitura lateral da estrutura que sera distribuida na biblioteca oficial.">
+            <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-base font-semibold text-foreground">{title || "Novo template"}</p>
+                {isOfficial ? <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">Oficial</span> : null}
+                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{templateType}</span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{description || "Descreva o objetivo operacional do template."}</p>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-primary/70">Agencia base</p>
+                  <p className="mt-2 text-sm font-medium text-foreground">{selectedAgencyName}</p>
+                </div>
+                <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-primary/70">Arquivo</p>
+                  <p className="mt-2 text-sm font-medium text-foreground">{fileName || "Sem arquivo"}</p>
+                </div>
+                <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-primary/70">Compatibilidades</p>
+                  <p className="mt-2 text-sm font-medium text-foreground">{compatibilities.join(" • ") || "Sem marcacao"}</p>
+                </div>
+                <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-primary/70">Personalizacao</p>
+                  <p className="mt-2 text-sm font-medium text-foreground">{customizableFields.join(" • ") || "Sem marcacao"}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {variables.slice(0, 8).map((item) => (
+                  <span key={item} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-muted-foreground">{item}</span>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => toast({ title: "Preview em foco", description: "O preview oficial ja esta visivel nesta lateral do workspace." })}>
+                <BadgeCheck className="mr-2 h-4 w-4" />
+                Abrir preview
+              </Button>
+              <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/master/templates")}>
+                <Copy className="mr-2 h-4 w-4" />
+                Voltar para biblioteca
+              </Button>
+            </div>
+          </DashboardCard>
+        </div>
+      </div>
     </PageShell>
   )
 }

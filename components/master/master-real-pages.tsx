@@ -387,6 +387,7 @@ export function MasterDashboardPage() {
               `Maior consumo atual: ${overview?.top_credit_agency_name ?? "Sem dados ainda"}${overview?.top_credit_agency_consumption ? ` (${overview.top_credit_agency_consumption} creditos)` : ""}.`,
               `IA: ${overview?.ai_status_label ?? "Em breve"} com ${overview?.ai_related_logs ?? 0} sinais reais.`,
               `WhatsApp: ${overview?.whatsapp_status_label ?? "Em breve"} em ${overview?.whatsapp_connected_agencies ?? 0} agencias.`,
+              `Relatorios salvos: ${overview?.reports_total ?? 0}. Templates ativos: ${overview?.templates_active ?? 0}, oficiais: ${overview?.templates_official ?? 0}.`,
             ].map((item) => (
               <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-muted-foreground">{item}</div>
             ))}
@@ -399,6 +400,8 @@ export function MasterDashboardPage() {
             <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/financeiro">Abrir financeiro</Link></Button>
             <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/ia-creditos">Abrir IA e creditos</Link></Button>
             <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/whatsapp">Abrir WhatsApp</Link></Button>
+            <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/relatorios">Abrir relatorios</Link></Button>
+            <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]"><Link href="/master/templates">Abrir templates</Link></Button>
           </div>
         </DashboardCard>
       </div>

@@ -145,6 +145,9 @@ export type MasterDashboardOverview = {
   ai_related_logs: number
   whatsapp_status_label: string
   whatsapp_connected_agencies: number
+  reports_total: number
+  templates_active: number
+  templates_official: number
 }
 
 export type MasterAiCreditAgencyItem = {
@@ -206,4 +209,88 @@ export type MasterWhatsAppOverview = {
   agencies: MasterWhatsAppAgencyItem[]
   notifications: NotificationRow[]
   logs: AuditLogRow[]
+}
+
+export type MasterReportItem = {
+  id: string
+  name: string
+  type: string
+  status: string
+  agency_id: string | null
+  agency_name: string | null
+  origin: string
+  created_at: string
+  updated_at: string
+  result_path: string | null
+}
+
+export type MasterReportDetail = MasterReportItem & {
+  preview_lines: string[]
+}
+
+export type MasterReportOverview = {
+  summary: {
+    total: number
+    agencies_with_reports: number
+    export_count: number
+    recent_count: number
+  }
+  by_type: Array<{ label: string; count: number }>
+  by_agency: Array<{ agency_id: string | null; agency_name: string; count: number }>
+  recent_reports: MasterReportItem[]
+  items: MasterReportItem[]
+}
+
+export type MasterTemplateType = "Documento" | "Relatorio" | "Roteiro" | "Cotacao" | "Catalogo"
+
+export type MasterTemplateItem = {
+  id: string
+  agency_id: string
+  agency_name: string | null
+  title: string
+  status: string
+  template_type: MasterTemplateType
+  category: string | null
+  description: string | null
+  version: string | null
+  pricing_tier: string | null
+  file_name: string | null
+  is_official: boolean
+  compatibilities: string[]
+  customizable_fields: string[]
+  updated_at: string
+  created_at: string
+}
+
+export type MasterTemplateDetail = MasterTemplateItem & {
+  variables: string[]
+  audit_logs: AuditLogRow[]
+}
+
+export type MasterTemplateInput = {
+  agency_id: string
+  title: string
+  status?: string
+  template_type: MasterTemplateType
+  category?: string | null
+  description?: string | null
+  version?: string | null
+  pricing_tier?: string | null
+  file_name?: string | null
+  is_official?: boolean
+  compatibilities?: string[]
+  customizable_fields?: string[]
+  variables?: string[]
+}
+
+export type MasterTemplateOverview = {
+  summary: {
+    total: number
+    active: number
+    official: number
+    agencies_using: number
+  }
+  by_type: Array<{ label: string; count: number }>
+  recent_activity: Array<{ id: string; title: string; description: string; created_at: string }>
+  items: MasterTemplateItem[]
 }

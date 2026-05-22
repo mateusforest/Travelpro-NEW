@@ -3,6 +3,8 @@ import { AuthSessionError, AuthorizationError, getAccessContext } from "@/lib/au
 import {
   getMasterAiCreditOverview,
   getMasterFinanceOverview,
+  listMasterReports,
+  listMasterTemplates,
   getMasterWhatsAppOverview,
   listMasterAgencies,
   listMasterUsers,
@@ -12,12 +14,14 @@ import type { MasterDashboardOverview } from "@/types/master"
 export async function GET() {
   try {
     await getAccessContext(["master"])
-    const [agencies, users, finance, aiCredits, whatsapp] = await Promise.all([
+    const [agencies, users, finance, aiCredits, whatsapp, reports, templates] = await Promise.all([
       listMasterAgencies(),
       listMasterUsers(),
       getMasterFinanceOverview(),
       getMasterAiCreditOverview(),
       getMasterWhatsAppOverview(),
+      listMasterReports(),
+      listMasterTemplates(),
     ])
 
     const data: MasterDashboardOverview = {
@@ -34,6 +38,9 @@ export async function GET() {
       ai_related_logs: aiCredits.summary.ai_related_logs,
       whatsapp_status_label: whatsapp.summary.configured_agencies > 0 ? "Preparado" : "Em breve",
       whatsapp_connected_agencies: whatsapp.summary.configured_agencies,
+      reports_total: reports.summary.total,
+      templates_active: templates.summary.active,
+      templates_official: templates.summary.official,
     }
 
     return NextResponse.json(data)

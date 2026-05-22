@@ -8,14 +8,13 @@ import {
   MasterUsersPage as MasterUsersRealPage,
 } from "@/components/master/master-real-pages"
 import { MasterWhatsAppRealPage } from "@/components/master/master-ai-whatsapp-pages"
+import { MasterReportsRealPage, MasterTemplatesRealPage } from "@/components/master/master-report-template-pages"
 import {
   MasterAtlasPage,
   MasterLogsPage,
   MasterMarketplacePage,
   MasterPlansPage,
-  MasterReportsPage,
   MasterSettingsPage,
-  MasterTemplatesPage,
 } from "@/components/master/master-pages"
 
 export function generateStaticParams() {
@@ -33,11 +32,11 @@ export default async function MasterSectionPage({ params }: { params: Promise<{ 
   if (section === "financeiro") return <MasterFinanceRealPage />
   if (section === "usuarios") return <MasterUsersRealPage />
   if (section === "marketplace") return <MasterMarketplacePage />
-  if (section === "templates") return <MasterTemplatesPage />
+  if (section === "templates") return <MasterTemplatesRealPage />
   if (section === "planos") return <MasterPlansPage />
   if (section === "whatsapp") return <MasterWhatsAppRealPage />
   if (section === "atlas") return <MasterAtlasPage />
-  if (section === "relatorios") return <MasterReportsPage />
+  if (section === "relatorios") return <MasterReportsRealPage />
   if (section === "logs") return <MasterLogsPage />
   if (section === "configuracoes") return <MasterSettingsPage />
 
