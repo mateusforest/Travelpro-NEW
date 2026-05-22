@@ -46,11 +46,6 @@ type ConfirmAction = {
   onConfirm: () => void
 } | null
 
-const defaultLogo =
-  "https://images.unsplash.com/photo-1527631746610-bca00a040d60?auto=format&fit=crop&w=320&q=80"
-const defaultBanner =
-  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80"
-
 function CatalogField({
   label,
   value,
@@ -142,6 +137,17 @@ function fileToPreview(file: File | null) {
   return URL.createObjectURL(file)
 }
 
+async function fileToDataUrl(file: File | null) {
+  if (!file) return null
+
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "")
+    reader.onerror = () => reject(new Error("Nao foi possivel preparar a imagem para salvar."))
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function AgencyCatalogPage() {
   const [items, setItems] = useState<CatalogListItem[]>([])
   const [agencyProfile, setAgencyProfile] = useState<CatalogAgencyProfile | null>(null)
@@ -153,11 +159,12 @@ export default function AgencyCatalogPage() {
   const [primaryColor, setPrimaryColor] = useState("")
   const [visualStyle, setVisualStyle] = useState("Premium clássico")
   const [catalogDescription, setCatalogDescription] = useState("")
-  const [logoPreview, setLogoPreview] = useState<string | null>(defaultLogo)
-  const [bannerPreview, setBannerPreview] = useState<string | null>(defaultBanner)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const [isPreparingMedia, setIsPreparingMedia] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const fire = (title: string, description: string) => toast({ title, description })
 
@@ -182,8 +189,8 @@ export default function AgencyCatalogPage() {
         setPrimaryColor(profileData.primary_color || "Laranja TravelPro")
         setVisualStyle(profileData.visual_style || "Premium clássico")
         setCatalogDescription(profileData.description || "Especialistas em viagens premium, escapadas românticas e experiências com curadoria.")
-        setLogoPreview(profileData.logo_url || defaultLogo)
-        setBannerPreview(profileData.banner_url || defaultBanner)
+        setLogoPreview(profileData.logo_url || null)
+        setBannerPreview(profileData.banner_url || null)
         setItems(itemsData.map(mapCatalogRow))
       } catch (error) {
         if (!active) return
@@ -210,6 +217,62 @@ export default function AgencyCatalogPage() {
     () => items.find((item) => isPublished(item.status)) ?? items[0] ?? null,
     [items],
   )
+  const updateMediaPreview = async (kind: "logo" | "banner", file: File | null) => {
+    if (!file) return
+
+    try {
+      setIsPreparingMedia(true)
+      const persistedValue = await fileToDataUrl(file)
+      if (!persistedValue) {
+        throw new Error("Nao foi possivel preparar a imagem para salvar.")
+      }
+
+      if (kind === "logo") {
+        setLogoPreview(persistedValue)
+      } else {
+        setBannerPreview(persistedValue)
+      }
+
+      fire("Midia pronta para salvar", "A identidade visual foi preparada e sera persistida ao salvar as alteracoes.")
+    } catch (error) {
+      fire("Falha ao preparar midia", error instanceof Error ? error.message : "Nao foi possivel processar a imagem.")
+    } finally {
+      setIsPreparingMedia(false)
+    }
+  }
+
+  const removeProfileMedia = async (kind: "logo" | "banner") => {
+    const nextPayload = kind === "logo" ? { logo_url: null } : { banner_url: null }
+
+    try {
+      setIsSavingProfile(true)
+      if (isPreparingMedia) {
+        throw new Error("Aguarde a preparacao do logo ou banner terminar antes de salvar.")
+      }
+
+      if (isPreparingMedia) {
+        throw new Error("Aguarde a preparacao do logo ou banner terminar antes de salvar.")
+      }
+
+      const profile = await requestJson<CatalogAgencyProfile>("/api/catalog/agency", {
+        method: "PATCH",
+        body: JSON.stringify(nextPayload),
+      })
+
+      setAgencyProfile(profile)
+      if (kind === "logo") {
+        setLogoPreview(null)
+      } else {
+        setBannerPreview(null)
+      }
+
+      fire(kind === "logo" ? "Logo removida" : "Banner removido", "A identidade visual foi atualizada e a vitrine publica ja reflete a alteracao.")
+    } catch (error) {
+      fire("Falha ao remover", error instanceof Error ? error.message : "Nao foi possivel remover a midia da agencia.")
+    } finally {
+      setIsSavingProfile(false)
+    }
+  }
 
   const copyPublicLink = async () => {
     const absoluteUrl = typeof window !== "undefined" ? `${window.location.origin}${publicHref}` : publicHref
@@ -243,13 +306,15 @@ export default function AgencyCatalogPage() {
           primary_color: primaryColor.trim() || null,
           visual_style: visualStyle.trim() || null,
           description: catalogDescription.trim() || null,
-          logo_url: logoPreview && !logoPreview.startsWith("blob:") ? logoPreview : agencyProfile?.logo_url || null,
-          banner_url: bannerPreview && !bannerPreview.startsWith("blob:") ? bannerPreview : agencyProfile?.banner_url || null,
+          logo_url: logoPreview || null,
+          banner_url: bannerPreview || null,
           cta_label: "Falar com consultor",
         }),
       })
 
       setAgencyProfile(profile)
+      setLogoPreview(profile.logo_url || null)
+      setBannerPreview(profile.banner_url || null)
       fire("Catálogo salvo", "As configurações públicas da agência foram atualizadas.")
     } catch (error) {
       fire("Falha ao salvar", error instanceof Error ? error.message : "Não foi possível salvar o catálogo.")
@@ -363,13 +428,15 @@ export default function AgencyCatalogPage() {
                 orientation="square"
                 preview={logoPreview}
                 onSelect={(file) => {
+                  void updateMediaPreview("logo", file)
+                  return
                   const preview = fileToPreview(file)
                   if (preview) {
                     setLogoPreview(preview)
                     fire("Preview local atualizado", "A persistência de mídia da agência ainda será conectada sem mudar este layout.")
                   }
                 }}
-                onRemove={() => setLogoPreview(defaultLogo)}
+                onRemove={() => void removeProfileMedia("logo")}
               />
               <MediaUploadCard
                 title="Banner ou capa da agência"
@@ -377,13 +444,15 @@ export default function AgencyCatalogPage() {
                 orientation="landscape"
                 preview={bannerPreview}
                 onSelect={(file) => {
+                  void updateMediaPreview("banner", file)
+                  return
                   const preview = fileToPreview(file)
                   if (preview) {
                     setBannerPreview(preview)
                     fire("Preview local atualizado", "A persistência de mídia da agência ainda será conectada sem mudar este layout.")
                   }
                 }}
-                onRemove={() => setBannerPreview(defaultBanner)}
+                onRemove={() => void removeProfileMedia("banner")}
               />
             </div>
           </div>

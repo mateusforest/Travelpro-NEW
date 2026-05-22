@@ -3,14 +3,18 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { DedicatedActionWorkspace, type WorkspaceSectionConfig } from "@/components/system/dedicated-action-workspace"
+import {
+  DedicatedActionWorkspace,
+  type WorkspaceSectionConfig,
+  type WorkspaceSelectOption,
+} from "@/components/system/dedicated-action-workspace"
 import { DashboardCard } from "@/components/system/dashboard-card"
 import { PageShell } from "@/components/system/page-shell"
 import { toast } from "@/components/ui/use-toast"
 import type { ClientRow, FinancialRecordRow, TripRow } from "@/types/database"
 
-const EMPTY_CLIENT = "Sem cliente vinculado"
-const EMPTY_TRIP = "Sem viagem vinculada"
+const EMPTY_CLIENT = ""
+const EMPTY_TRIP = ""
 
 async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const response = await fetch(input, {
@@ -40,8 +44,8 @@ function buildFinancialValues(record?: FinancialRecordRow): Record<string, strin
   return {
     type: record?.type ?? "Receita",
     status: record?.status ?? "Pendente",
-    clientId: record?.client_id ? `${record.client_id}` : EMPTY_CLIENT,
-    tripId: record?.trip_id ? `${record.trip_id}` : EMPTY_TRIP,
+    clientId: record?.client_id ?? EMPTY_CLIENT,
+    tripId: record?.trip_id ?? EMPTY_TRIP,
     category: record?.category ?? "",
     amount: record?.amount != null ? String(record.amount) : "",
     occurredAt: toDateInput(record?.occurred_at),
@@ -116,8 +120,20 @@ export function FinancialRecordWorkspace() {
     }
   }, [recordId])
 
-  const clientOptions = useMemo(() => [EMPTY_CLIENT, ...clients.map((client) => `${client.id}::${client.name}`)], [clients])
-  const tripOptions = useMemo(() => [EMPTY_TRIP, ...trips.map((trip) => `${trip.id}::${trip.destination}`)], [trips])
+  const clientOptions = useMemo<WorkspaceSelectOption[]>(
+    () => [
+      { label: "Sem cliente vinculado", value: EMPTY_CLIENT },
+      ...clients.map((client) => ({ label: client.name, value: client.id })),
+    ],
+    [clients],
+  )
+  const tripOptions = useMemo<WorkspaceSelectOption[]>(
+    () => [
+      { label: "Sem viagem vinculada", value: EMPTY_TRIP },
+      ...trips.map((trip) => ({ label: trip.destination, value: trip.id })),
+    ],
+    [trips],
+  )
 
   const sections: WorkspaceSectionConfig[] = useMemo(
     () => [
@@ -181,18 +197,18 @@ export function FinancialRecordWorkspace() {
       previewTitle="Resumo financeiro"
       previewDescription="Leitura rapida do lancamento antes de salvar."
       renderPreview={(values) => {
-        const selectedClient = clients.find((client) => `${client.id}::${client.name}` === values.clientId)
-        const selectedTrip = trips.find((trip) => `${trip.id}::${trip.destination}` === values.tripId)
+        const selectedClient = clients.find((client) => client.id === values.clientId)
+        const selectedTrip = trips.find((trip) => trip.id === values.tripId)
 
         return (
           <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
             <p className="text-[11px] uppercase tracking-[0.18em] text-primary/75">{values.type || "Lancamento"}</p>
             <h2 className="mt-2 text-xl font-semibold text-foreground">{values.amount ? `R$ ${values.amount}` : "Valor nao informado"}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              {(selectedClient?.name ?? "Sem cliente vinculado")} • {(selectedTrip?.destination ?? "Sem viagem vinculada")}
+              {(selectedClient?.name ?? "Sem cliente vinculado")} â€¢ {(selectedTrip?.destination ?? "Sem viagem vinculada")}
             </p>
             <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.04] p-4 text-sm text-muted-foreground">
-              {values.category ? `${values.category} • ${values.status || "Pendente"}` : values.description || "Descricao ainda nao preenchida."}
+              {values.category ? `${values.category} â€¢ ${values.status || "Pendente"}` : values.description || "Descricao ainda nao preenchida."}
             </div>
           </div>
         )
@@ -225,8 +241,8 @@ export function FinancialRecordWorkspace() {
         </div>
       }
       onPrimaryAction={async (values) => {
-        const selectedClientId = values.clientId && values.clientId !== EMPTY_CLIENT ? values.clientId.split("::")[0] : null
-        const selectedTripId = values.tripId && values.tripId !== EMPTY_TRIP ? values.tripId.split("::")[0] : null
+        const selectedClientId = values.clientId || null
+        const selectedTripId = values.tripId || null
 
         await fetchJson<FinancialRecordRow>(isEditing ? `/api/financial-records/${recordId}` : "/api/financial-records", {
           method: isEditing ? "PATCH" : "POST",

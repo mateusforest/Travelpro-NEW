@@ -2,9 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { DedicatedActionWorkspace, type WorkspaceSectionConfig } from "@/components/system/dedicated-action-workspace"
+import {
+  DedicatedActionWorkspace,
+  type WorkspaceSectionConfig,
+  type WorkspaceSelectOption,
+} from "@/components/system/dedicated-action-workspace"
 import { toast } from "@/components/ui/use-toast"
 import type { ClientRow } from "@/types/database"
+
+const EMPTY_CLIENT = ""
 
 export default function NewTripWorkspacePage() {
   const router = useRouter()
@@ -16,7 +22,7 @@ export default function NewTripWorkspacePage() {
       .then(async (response) => {
         const payload = (await response.json().catch(() => null)) as { error?: string } | ClientRow[] | null
         if (!response.ok) {
-          throw new Error((payload as { error?: string } | null)?.error || "Não foi possível carregar os clientes.")
+          throw new Error((payload as { error?: string } | null)?.error || "NÃ£o foi possÃ­vel carregar os clientes.")
         }
         return payload as ClientRow[]
       })
@@ -37,12 +43,18 @@ export default function NewTripWorkspacePage() {
     }
   }, [])
 
-  const clientOptions = useMemo(() => ["Sem cliente vinculado", ...clients.map((client) => `${client.id}::${client.name}`)], [clients])
+  const clientOptions = useMemo<WorkspaceSelectOption[]>(
+    () => [
+      { label: "Sem cliente vinculado", value: EMPTY_CLIENT },
+      ...clients.map((client) => ({ label: client.name, value: client.id })),
+    ],
+    [clients],
+  )
 
   const sections: WorkspaceSectionConfig[] = [
     {
       title: "Base da jornada",
-      description: "Elementos centrais para abrir a viagem dentro da operação.",
+      description: "Elementos centrais para abrir a viagem dentro da operaÃ§Ã£o.",
       fields: [
         { key: "clientId", label: "Cliente", type: "select", options: clientOptions },
         { key: "destination", label: "Destino" },
@@ -54,7 +66,7 @@ export default function NewTripWorkspacePage() {
       title: "Datas e contexto",
       description: "Defina janelas e o resumo operacional da viagem.",
       fields: [
-        { key: "startDate", label: "Data de início" },
+        { key: "startDate", label: "Data de inÃ­cio" },
         { key: "endDate", label: "Data de fim" },
         { key: "summary", label: "Resumo da viagem", type: "textarea", rows: 5, colSpan: 2 },
       ],
@@ -64,10 +76,10 @@ export default function NewTripWorkspacePage() {
   const toIsoOrNull = (value: string) => {
     if (!value.trim()) return null
     const normalized = value.trim()
-    const match = normalized.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})$/)
+    const match = normalized.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/)
     const parsed = match ? new Date(`${match[3]}-${match[2]}-${match[1]}T00:00:00`) : new Date(normalized)
     if (Number.isNaN(parsed.getTime())) {
-      throw new Error("Use datas válidas para início e fim da viagem. Você pode usar AAAA-MM-DD ou DD/MM/AAAA.")
+      throw new Error("Use datas vÃ¡lidas para inÃ­cio e fim da viagem. VocÃª pode usar AAAA-MM-DD ou DD/MM/AAAA.")
     }
     return parsed.toISOString()
   }
@@ -79,12 +91,12 @@ export default function NewTripWorkspacePage() {
       backHref="/app/viagens"
       backLabel="Voltar para viagens"
       aiActionLabel="Montar viagem com IA"
-      aiActionDescription="A IA poderá sugerir estrutura inicial, blocos de jornada e próximos documentos."
+      aiActionDescription="A IA poderÃ¡ sugerir estrutura inicial, blocos de jornada e prÃ³ximos documentos."
       primaryActionLabel="Salvar viagem"
-      draftActionDescription="Rascunhos de viagens serão ativados em uma próxima etapa."
-      previewActionDescription="O preview completo da jornada será expandido em uma próxima etapa."
+      draftActionDescription="Rascunhos de viagens serÃ£o ativados em uma prÃ³xima etapa."
+      previewActionDescription="O preview completo da jornada serÃ¡ expandido em uma prÃ³xima etapa."
       initialValues={{
-        clientId: "Sem cliente vinculado",
+        clientId: EMPTY_CLIENT,
         destination: "",
         origin: "",
         startDate: "",
@@ -94,41 +106,41 @@ export default function NewTripWorkspacePage() {
       }}
       sections={sections}
       previewTitle="Resumo da jornada"
-      previewDescription="Uma leitura rápida da viagem antes de abrir o fluxo completo."
+      previewDescription="Uma leitura rÃ¡pida da viagem antes de abrir o fluxo completo."
       renderPreview={(values) => {
-        const selectedClient = clients.find((client) => `${client.id}::${client.name}` === values.clientId)
+        const selectedClient = clients.find((client) => client.id === values.clientId)
         return (
           <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
             <p className="text-[11px] uppercase tracking-[0.18em] text-primary/75">{values.status || "Planejamento"}</p>
             <h2 className="mt-2 text-xl font-semibold text-foreground">{selectedClient?.name || "Viagem sem cliente vinculado"}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              {values.destination || "Destino em definição"} • {values.startDate || "Início a definir"} {values.endDate ? `- ${values.endDate}` : ""}
+              {values.destination || "Destino em definiÃ§Ã£o"} â€¢ {values.startDate || "InÃ­cio a definir"} {values.endDate ? `- ${values.endDate}` : ""}
             </p>
             <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.04] p-4 text-sm text-muted-foreground">
-              {values.summary || "Resumo operacional ainda não preenchido."}
+              {values.summary || "Resumo operacional ainda nÃ£o preenchido."}
             </div>
           </div>
         )
       }}
       sidebarInfo={{
         title: "Leitura operacional",
-        description: "Abertura clara para roteiros, documentos, financeiro e notificações.",
+        description: "Abertura clara para roteiros, documentos, financeiro e notificaÃ§Ãµes.",
         items: [
           { label: "Status", value: (values) => values.status || "Planejamento" },
-          { label: "Origem", value: (values) => values.origin || "Não informada" },
+          { label: "Origem", value: (values) => values.origin || "NÃ£o informada" },
           {
             label: "Cliente",
-            value: (values) => clients.find((client) => `${client.id}::${client.name}` === values.clientId)?.name || "Sem vínculo",
+            value: (values) => clients.find((client) => client.id === values.clientId)?.name || "Sem vÃ­nculo",
           },
         ],
       }}
       onPrimaryAction={async (values) => {
         try {
           if (!values.destination.trim() || values.destination.trim().length < 2) {
-            throw new Error("Informe um destino válido para a viagem antes de salvar.")
+            throw new Error("Informe um destino vÃ¡lido para a viagem antes de salvar.")
           }
 
-          const selectedClientId = values.clientId && values.clientId !== "Sem cliente vinculado" ? values.clientId.split("::")[0] : null
+          const selectedClientId = values.clientId || null
 
           const response = await fetch("/api/trips", {
             method: "POST",
@@ -149,12 +161,12 @@ export default function NewTripWorkspacePage() {
           const payload = (await response.json().catch(() => null)) as { error?: string } | null
 
           if (!response.ok) {
-            throw new Error(payload?.error || "Não foi possível salvar a viagem.")
+            throw new Error(payload?.error || "NÃ£o foi possÃ­vel salvar a viagem.")
           }
 
           toast({
             title: "Viagem salva",
-            description: "A viagem foi criada no Supabase e já está disponível na operação.",
+            description: "A viagem foi criada no Supabase e jÃ¡ estÃ¡ disponÃ­vel na operaÃ§Ã£o.",
           })
 
           router.replace("/app/viagens")

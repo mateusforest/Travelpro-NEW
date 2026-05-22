@@ -4266,7 +4266,13 @@ export function AgencyInsightsPage() {
         description="Leituras operacionais reais com base em clientes, leads, viagens, documentos, financeiro e créditos."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/relatorios")}>Abrir relatórios</Button>
+            <Button
+              variant="outline"
+              className="rounded-full border-white/10 bg-white/[0.03]"
+              onClick={() => router.push("/app/central-operacional/relatorios/novo?type=Operacao%20geral")}
+            >
+              Gerar relatório
+            </Button>
             <Button className="rounded-full" onClick={() => fire("Em breve", "A distribuição inteligente desses insights será conectada a IA, WhatsApp e Advisor em uma próxima etapa.")}>Distribuir insights</Button>
           </div>
         }

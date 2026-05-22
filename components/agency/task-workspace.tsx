@@ -3,14 +3,18 @@
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { DedicatedActionWorkspace, type WorkspaceSectionConfig } from "@/components/system/dedicated-action-workspace"
+import {
+  DedicatedActionWorkspace,
+  type WorkspaceSectionConfig,
+  type WorkspaceSelectOption,
+} from "@/components/system/dedicated-action-workspace"
 import { DashboardCard } from "@/components/system/dashboard-card"
 import { PageShell } from "@/components/system/page-shell"
 import { toast } from "@/components/ui/use-toast"
 import type { ClientRow, TaskRow, TripRow } from "@/types/database"
 
-const EMPTY_CLIENT = "Sem cliente vinculado"
-const EMPTY_TRIP = "Sem viagem vinculada"
+const EMPTY_CLIENT = ""
+const EMPTY_TRIP = ""
 
 async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const response = await fetch(input, {
@@ -39,7 +43,7 @@ function toIsoOrNull(value: string) {
   if (!value.trim()) return null
   const parsed = new Date(`${value.trim()}T00:00:00`)
   if (Number.isNaN(parsed.getTime())) {
-    throw new Error("Informe uma data válida para a tarefa.")
+    throw new Error("Informe uma data vÃ¡lida para a tarefa.")
   }
   return parsed.toISOString()
 }
@@ -51,8 +55,8 @@ function buildTaskValues(task?: TaskRow): Record<string, string> {
     priority: task?.priority ?? "Alta",
     status: task?.status ?? "Aberta",
     dueAt: toDateInput(task?.due_at),
-    clientId: task?.client_id ? `${task.client_id}` : EMPTY_CLIENT,
-    tripId: task?.trip_id ? `${task.trip_id}` : EMPTY_TRIP,
+    clientId: task?.client_id ?? EMPTY_CLIENT,
+    tripId: task?.trip_id ?? EMPTY_TRIP,
   }
 }
 
@@ -98,18 +102,30 @@ function TaskWorkspaceInner() {
     }
   }, [taskId])
 
-  const clientOptions = useMemo(() => [EMPTY_CLIENT, ...clients.map((client) => `${client.id}::${client.name}`)], [clients])
-  const tripOptions = useMemo(() => [EMPTY_TRIP, ...trips.map((trip) => `${trip.id}::${trip.destination}`)], [trips])
+  const clientOptions = useMemo<WorkspaceSelectOption[]>(
+    () => [
+      { label: "Sem cliente vinculado", value: EMPTY_CLIENT },
+      ...clients.map((client) => ({ label: client.name, value: client.id })),
+    ],
+    [clients],
+  )
+  const tripOptions = useMemo<WorkspaceSelectOption[]>(
+    () => [
+      { label: "Sem viagem vinculada", value: EMPTY_TRIP },
+      ...trips.map((trip) => ({ label: trip.destination, value: trip.id })),
+    ],
+    [trips],
+  )
 
   const sections: WorkspaceSectionConfig[] = useMemo(
     () => [
       {
-        title: "Configuração da tarefa",
+        title: "ConfiguraÃ§Ã£o da tarefa",
         description: "Base real da tarefa operacional conectada a cliente, viagem e prioridade.",
         fields: [
-          { key: "title", label: "Título da tarefa" },
-          { key: "priority", label: "Prioridade", type: "select", options: ["Baixa", "Média", "Alta"] },
-          { key: "status", label: "Status", type: "select", options: ["Aberta", "Hoje", "Urgente", "Follow-up", "Concluída"] },
+          { key: "title", label: "TÃ­tulo da tarefa" },
+          { key: "priority", label: "Prioridade", type: "select", options: ["Baixa", "MÃ©dia", "Alta"] },
+          { key: "status", label: "Status", type: "select", options: ["Aberta", "Hoje", "Urgente", "Follow-up", "ConcluÃ­da"] },
           { key: "dueAt", label: "Prazo" },
           { key: "clientId", label: "Cliente", type: "select", options: clientOptions },
           { key: "tripId", label: "Viagem", type: "select", options: tripOptions },
@@ -148,46 +164,46 @@ function TaskWorkspaceInner() {
   return (
     <DedicatedActionWorkspace
       title={isEditing ? "Editar tarefa operacional" : "Nova tarefa operacional"}
-      description="Lance uma tarefa real com responsável contextual, prazo e prioridade conectados à operação."
+      description="Lance uma tarefa real com responsÃ¡vel contextual, prazo e prioridade conectados Ã  operaÃ§Ã£o."
       backHref="/app/central-operacional/tarefas"
       backLabel="Voltar para tarefas"
-      aiActionLabel="Lançar com IA"
-      aiActionDescription="A priorização automática com IA ainda será integrada a este módulo."
+      aiActionLabel="LanÃ§ar com IA"
+      aiActionDescription="A priorizaÃ§Ã£o automÃ¡tica com IA ainda serÃ¡ integrada a este mÃ³dulo."
       primaryActionLabel={isEditing ? "Salvar tarefa" : "Criar tarefa agora"}
       hideDraftAction
       previewTitle="Resumo da tarefa"
-      previewDescription="Leitura rápida antes de salvar na central operacional."
+      previewDescription="Leitura rÃ¡pida antes de salvar na central operacional."
       initialValues={buildTaskValues(task ?? undefined)}
       sections={sections}
       renderPreview={(values) => {
-        const selectedClient = clients.find((client) => `${client.id}::${client.name}` === values.clientId)
-        const selectedTrip = trips.find((trip) => `${trip.id}::${trip.destination}` === values.tripId)
+        const selectedClient = clients.find((client) => client.id === values.clientId)
+        const selectedTrip = trips.find((trip) => trip.id === values.tripId)
         return (
           <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
-            <h2 className="text-xl font-semibold text-foreground">{values.title || "Tarefa sem título"}</h2>
-            <p className="mt-2 text-sm text-muted-foreground">{selectedClient?.name || "Sem cliente"} • {selectedTrip?.destination || "Sem viagem"}</p>
+            <h2 className="text-xl font-semibold text-foreground">{values.title || "Tarefa sem tÃ­tulo"}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{selectedClient?.name || "Sem cliente"} â€¢ {selectedTrip?.destination || "Sem viagem"}</p>
             <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.04] p-4 text-sm text-muted-foreground">
-              {values.dueAt || "Sem prazo"} • {values.priority || "Alta"} • {values.status || "Aberta"}
+              {values.dueAt || "Sem prazo"} â€¢ {values.priority || "Alta"} â€¢ {values.status || "Aberta"}
             </div>
           </div>
         )
       }}
       sidebarInfo={{
         title: "Leitura operacional",
-        description: "A tarefa fica salva na base real da agência.",
+        description: "A tarefa fica salva na base real da agÃªncia.",
         items: [
           { label: "Prioridade", value: (values) => values.priority || "Alta" },
           { label: "Status", value: (values) => values.status || "Aberta" },
-          { label: "Prazo", value: (values) => values.dueAt || "Não informado" },
+          { label: "Prazo", value: (values) => values.dueAt || "NÃ£o informado" },
         ],
       }}
       onPrimaryAction={async (values) => {
         if (!values.title.trim() || values.title.trim().length < 2) {
-          throw new Error("Informe um título válido para a tarefa.")
+          throw new Error("Informe um tÃ­tulo vÃ¡lido para a tarefa.")
         }
 
-        const clientId = values.clientId && values.clientId !== EMPTY_CLIENT ? values.clientId.split("::")[0] : null
-        const tripId = values.tripId && values.tripId !== EMPTY_TRIP ? values.tripId.split("::")[0] : null
+        const clientId = values.clientId || null
+        const tripId = values.tripId || null
 
         await fetchJson<TaskRow>(isEditing ? `/api/tasks/${taskId}` : "/api/tasks", {
           method: isEditing ? "PATCH" : "POST",
@@ -204,7 +220,7 @@ function TaskWorkspaceInner() {
 
         toast({
           title: isEditing ? "Tarefa atualizada" : "Tarefa criada",
-          description: isEditing ? "A tarefa foi atualizada na central operacional." : "A tarefa foi criada e já aparece na central.",
+          description: isEditing ? "A tarefa foi atualizada na central operacional." : "A tarefa foi criada e jÃ¡ aparece na central.",
         })
 
         router.replace("/app/central-operacional/tarefas")

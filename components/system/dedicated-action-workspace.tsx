@@ -17,12 +17,19 @@ import { toast } from "@/components/ui/use-toast"
 
 export type WorkspaceFieldType = "text" | "textarea" | "select"
 
+export type WorkspaceSelectOption =
+  | string
+  | {
+      label: string
+      value: string
+    }
+
 export type WorkspaceFieldConfig = {
   key: string
   label: string
   type?: WorkspaceFieldType
   placeholder?: string
-  options?: string[]
+  options?: WorkspaceSelectOption[]
   colSpan?: 1 | 2
   rows?: number
   description?: string
@@ -81,6 +88,9 @@ function FieldRenderer({
   onChange: (value: string) => void
 }) {
   const wrapperClass = field.colSpan === 2 ? "space-y-2 md:col-span-2" : "space-y-2"
+  const selectOptions = (field.options ?? []).map((option) =>
+    typeof option === "string" ? { label: option, value: option } : option,
+  )
 
   return (
     <label className={wrapperClass}>
@@ -101,9 +111,9 @@ function FieldRenderer({
           onChange={(event) => onChange(event.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
         >
-          {(field.options ?? []).map((option) => (
-            <option key={option} value={option} className="bg-background">
-              {option}
+          {selectOptions.map((option, index) => (
+            <option key={`${option.value}-${index}`} value={option.value} className="bg-background">
+              {option.label}
             </option>
           ))}
         </select>
