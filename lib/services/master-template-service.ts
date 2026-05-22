@@ -49,6 +49,10 @@ function buildTemplateMetadata(input: MasterTemplateInput) {
     compatibilities: input.compatibilities ?? [],
     customizable_fields: input.customizable_fields ?? [],
     variables: input.variables ?? [],
+    preview_image_url: input.preview_image_url ?? null,
+    cover_image_url: input.cover_image_url ?? null,
+    branding_assets: input.branding_assets ?? [],
+    attachments: input.attachments ?? [],
   }
 }
 
@@ -169,6 +173,17 @@ export async function getMasterTemplateById(id: string): Promise<MasterTemplateD
   return {
     ...mapTemplateItem(row, agenciesById),
     variables: Array.isArray(metadata.variables) ? metadata.variables.filter((item): item is string => typeof item === "string") : [],
+    preview_image_url: typeof metadata.preview_image_url === "string" ? metadata.preview_image_url : null,
+    cover_image_url: typeof metadata.cover_image_url === "string" ? metadata.cover_image_url : null,
+    branding_assets: Array.isArray(metadata.branding_assets) ? metadata.branding_assets.filter((item): item is string => typeof item === "string") : [],
+    attachments: Array.isArray(metadata.attachments)
+      ? metadata.attachments.flatMap((item) => {
+          if (!item || typeof item !== "object" || Array.isArray(item)) return []
+          const entry = item as Record<string, Json | undefined>
+          if (typeof entry.name !== "string" || typeof entry.url !== "string") return []
+          return [{ name: entry.name, url: entry.url, content_type: typeof entry.content_type === "string" ? entry.content_type : null }]
+        })
+      : [],
     audit_logs: (auditsResult.data ?? []) as AuditLogRow[],
   }
 }
@@ -215,6 +230,10 @@ export async function updateMasterTemplate(id: string, input: Partial<MasterTemp
     ...(input.compatibilities !== undefined ? { compatibilities: input.compatibilities } : {}),
     ...(input.customizable_fields !== undefined ? { customizable_fields: input.customizable_fields } : {}),
     ...(input.variables !== undefined ? { variables: input.variables } : {}),
+    ...(input.preview_image_url !== undefined ? { preview_image_url: input.preview_image_url } : {}),
+    ...(input.cover_image_url !== undefined ? { cover_image_url: input.cover_image_url } : {}),
+    ...(input.branding_assets !== undefined ? { branding_assets: input.branding_assets } : {}),
+    ...(input.attachments !== undefined ? { attachments: input.attachments } : {}),
   }
 
   const { data, error } = await supabase

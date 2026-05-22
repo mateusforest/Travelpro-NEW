@@ -464,10 +464,10 @@ export function MasterDashboardPremiumPage() {
   const financeSeries = useMemo(
     () => [
       {
-        label: "Receita",
+        label: "Receita paga",
         value: overview?.paid_total ?? 0,
-        expenses: overview?.expense_records_total ?? 0,
-        profit: Math.max((overview?.paid_total ?? 0) - (overview?.expense_records_total ?? 0), 0),
+        expenses: Math.max((overview?.payments_total ?? 0) - (overview?.paid_total ?? 0), 0),
+        profit: overview?.paid_total ?? 0,
       },
       {
         label: "Cobrado",
@@ -556,8 +556,8 @@ export function MasterDashboardPremiumPage() {
   const executiveSignals = useMemo(
     () => [
       {
-        label: "Receita líquida observável",
-        value: formatMoney(Math.max((overview?.paid_total ?? 0) - (overview?.expense_records_total ?? 0), 0)),
+        label: "Receita paga consolidada",
+        value: formatMoney(overview?.paid_total ?? 0),
       },
       {
         label: "Agências com assinatura",
@@ -848,8 +848,8 @@ export function MasterDashboardPremiumPage() {
             <InfoCard label="Billing atrasado" value={String(overview?.billing_status.overdue ?? 0)} />
             <InfoCard label="Templates oficiais" value={String(overview?.templates_official ?? 0)} />
             <InfoCard label="Relatórios totais" value={String(overview?.reports_total ?? 0)} />
-            <InfoCard label="Receitas operacionais" value={formatMoney(overview?.revenue_records_total ?? 0)} />
-            <InfoCard label="Despesas operacionais" value={formatMoney(overview?.expense_records_total ?? 0)} />
+            <InfoCard label="Receita de assinaturas" value={formatMoney(overview?.paid_total ?? 0)} />
+            <InfoCard label="Pendente de recebimento" value={formatMoney(Math.max((overview?.payments_total ?? 0) - (overview?.paid_total ?? 0), 0))} />
             <InfoCard label="IA / WhatsApp" value={`${overview?.ai_status_label ?? "Em breve"} • ${overview?.whatsapp_status_label ?? "Em breve"}`} />
           </div>
         </DashboardCard>
@@ -1365,7 +1365,7 @@ export function MasterFinancePage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Pagamentos" value={isLoading ? "--" : String(overview?.totals.payments_count ?? 0)} change={isLoading ? "Carregando..." : formatMoney(overview?.totals.payments_total ?? 0)} tone="info" icon={HandCoins} />
-        <MetricCard label="Receita paga" value={isLoading ? "--" : formatMoney(overview?.totals.paid_total ?? 0)} change={isLoading ? "Carregando..." : `Operacional ${formatMoney(overview?.totals.revenue_records_total ?? 0)}`} tone="success" icon={Wallet} />
+        <MetricCard label="Receita paga" value={isLoading ? "--" : formatMoney(overview?.totals.paid_total ?? 0)} change={isLoading ? "Carregando..." : `Cobrado ${formatMoney(overview?.totals.payments_total ?? 0)}`} tone="success" icon={Wallet} />
         <MetricCard label="Assinaturas ativas" value={isLoading ? "--" : String(overview?.totals.active_subscriptions ?? 0)} change="Base real de subscriptions" tone="info" icon={ShieldCheck} />
         <MetricCard label="Créditos" value={isLoading ? "--" : `${overview?.totals.credits_sold ?? 0}`} change={isLoading ? "Carregando..." : `${overview?.totals.credits_consumed ?? 0} consumidos`} tone="warning" icon={CreditCard} />
       </div>
@@ -1377,8 +1377,8 @@ export function MasterFinancePage() {
             <InfoCard label="Pendentes" value={String(overview?.billing_status.pending ?? 0)} />
             <InfoCard label="Atrasados" value={String(overview?.billing_status.overdue ?? 0)} />
             <InfoCard label="Outros" value={String(overview?.billing_status.other ?? 0)} />
-            <InfoCard label="Receitas operacionais" value={formatMoney(overview?.totals.revenue_records_total ?? 0)} />
-            <InfoCard label="Despesas operacionais" value={formatMoney(overview?.totals.expense_records_total ?? 0)} />
+            <InfoCard label="Receita de assinaturas" value={formatMoney(overview?.totals.paid_total ?? 0)} />
+            <InfoCard label="Pendente de recebimento" value={formatMoney(Math.max((overview?.totals.payments_total ?? 0) - (overview?.totals.paid_total ?? 0), 0))} />
           </div>
         </DashboardCard>
 

@@ -299,6 +299,12 @@ export type MasterReportOverview = {
 
 export type MasterTemplateType = "Documento" | "Relatorio" | "Roteiro" | "Cotacao" | "Catalogo"
 
+export type MasterTemplateAttachment = {
+  name: string
+  url: string
+  content_type?: string | null
+}
+
 export type MasterTemplateItem = {
   id: string
   agency_id: string
@@ -320,6 +326,10 @@ export type MasterTemplateItem = {
 
 export type MasterTemplateDetail = MasterTemplateItem & {
   variables: string[]
+  preview_image_url: string | null
+  cover_image_url: string | null
+  branding_assets: string[]
+  attachments: MasterTemplateAttachment[]
   audit_logs: AuditLogRow[]
 }
 
@@ -337,6 +347,10 @@ export type MasterTemplateInput = {
   compatibilities?: string[]
   customizable_fields?: string[]
   variables?: string[]
+  preview_image_url?: string | null
+  cover_image_url?: string | null
+  branding_assets?: string[]
+  attachments?: MasterTemplateAttachment[]
 }
 
 export type MasterTemplateOverview = {
@@ -349,4 +363,75 @@ export type MasterTemplateOverview = {
   by_type: Array<{ label: string; count: number }>
   recent_activity: Array<{ id: string; title: string; description: string; created_at: string }>
   items: MasterTemplateItem[]
+}
+
+export type MasterMarketplaceItem = {
+  id: string
+  agency_id: string
+  agency_name: string | null
+  agency_slug: string | null
+  title: string
+  status: string
+  price_label: string | null
+  category: string | null
+  destination: string | null
+  public_slug: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type MasterMarketplaceOverview = {
+  summary: {
+    agencies_with_packages: number
+    published_packages: number
+    draft_packages: number
+    public_showcases: number
+  }
+  items: MasterMarketplaceItem[]
+}
+
+export type MasterLogItem = {
+  id: string
+  agency_id: string | null
+  agency_name: string | null
+  user_id: string | null
+  user_name: string | null
+  action: string
+  entity: string
+  status: string
+  created_at: string
+}
+
+export type MasterLogOverview = {
+  summary: {
+    total: number
+    audit: number
+    warnings: number
+    errors: number
+  }
+  items: MasterLogItem[]
+}
+
+export type MasterPlanItem = {
+  id: string
+  plan_code: string
+  status: string
+  price: number | null
+  agencies_count: number
+  active_subscriptions: number
+  payments_total: number
+}
+
+export type MasterExtraPackageItem = {
+  id: string
+  name: string
+  status: string
+  price: number | null
+  agencies_count: number
+  source: string
+}
+
+export type MasterPlanOverview = {
+  plans: MasterPlanItem[]
+  extra_packages: MasterExtraPackageItem[]
 }

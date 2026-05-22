@@ -17,6 +17,14 @@ const masterTemplatePatchSchema = z.object({
   compatibilities: z.array(z.string()).optional(),
   customizable_fields: z.array(z.string()).optional(),
   variables: z.array(z.string()).optional(),
+  preview_image_url: z.string().optional().nullable(),
+  cover_image_url: z.string().optional().nullable(),
+  branding_assets: z.array(z.string()).optional(),
+  attachments: z.array(z.object({
+    name: z.string(),
+    url: z.string(),
+    content_type: z.string().optional().nullable(),
+  })).optional(),
 })
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {

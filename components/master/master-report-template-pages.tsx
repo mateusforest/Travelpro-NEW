@@ -117,6 +117,7 @@ export function MasterReportsRealPage() {
   const [selectedReport, setSelectedReport] = useState<MasterReportDetail | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [busyReportId, setBusyReportId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
     let active = true
@@ -224,6 +225,13 @@ export function MasterReportsRealPage() {
   }
 
   const records = overview?.items ?? []
+  const pageSize = 8
+  const totalPages = Math.max(1, Math.ceil(records.length / pageSize))
+  const paginatedRecords = records.slice((page - 1) * pageSize, page * pageSize)
+
+  useEffect(() => {
+    setPage(1)
+  }, [searchTerm, typeFilter, statusFilter])
 
   return (
     <PageShell>
@@ -274,7 +282,7 @@ export function MasterReportsRealPage() {
             <EmptyState title="Nenhum relatorio encontrado" description="Quando o Master ou as agencias gerarem relatorios reais, o historico global aparecera aqui." actionLabel="Gerar relatorio" onAction={() => void generateReport()} />
           ) : (
             <div className="space-y-3">
-              {records.map((item) => (
+              {paginatedRecords.map((item) => (
                 <div key={item.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -306,6 +314,19 @@ export function MasterReportsRealPage() {
               ))}
             </div>
           )}
+          {!isLoading && records.length > pageSize ? (
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">Pagina {page} de {totalPages}</p>
+              <div className="flex gap-2">
+                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" disabled={page === 1} onClick={() => setPage((current) => Math.max(current - 1, 1))}>
+                  Anterior
+                </Button>
+                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" disabled={page >= totalPages} onClick={() => setPage((current) => Math.min(current + 1, totalPages))}>
+                  Proxima
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </DashboardCard>
 
         <DashboardCard title="Distribuicao e recencia" description="Leituras leves para tipo, agencias com mais volume e recencia do modulo.">
@@ -609,6 +630,15 @@ export function MasterTemplatesRealPage() {
                         <span key={`${selectedTemplate.id}-var-${index}`} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-muted-foreground">{item}</span>
                       )) : <p className="text-sm text-muted-foreground">Sem variaveis mapeadas.</p>}
                     </div>
+                  </div>
+                </DashboardCard>
+
+                <DashboardCard title="Assets e anexos" description="Branding assets, previews e arquivos auxiliares persistidos neste template.">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <InfoCard label="Preview" value={selectedTemplate.preview_image_url ? "Configurado" : "Sem preview"} />
+                    <InfoCard label="Capa" value={selectedTemplate.cover_image_url ? "Configurada" : "Sem capa"} />
+                    <InfoCard label="Assets" value={String(selectedTemplate.branding_assets.length)} />
+                    <InfoCard label="Anexos" value={String(selectedTemplate.attachments.length)} />
                   </div>
                 </DashboardCard>
               </div>

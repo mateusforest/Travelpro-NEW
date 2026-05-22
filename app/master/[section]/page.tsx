@@ -10,12 +10,12 @@ import {
 import { MasterWhatsAppRealPage } from "@/components/master/master-ai-whatsapp-pages"
 import { MasterReportsRealPage, MasterTemplatesRealPage } from "@/components/master/master-report-template-pages"
 import {
-  MasterAtlasPage,
-  MasterLogsPage,
-  MasterMarketplacePage,
-  MasterPlansPage,
-  MasterSettingsPage,
-} from "@/components/master/master-pages"
+  MasterAtlasRealPage,
+  MasterLogsRealPage,
+  MasterMarketplaceStablePage,
+  MasterPlansStablePage,
+  MasterSettingsStablePage,
+} from "@/components/master/master-stabilized-pages"
 
 export function generateStaticParams() {
   return Object.keys(masterPages).map((section) => ({ section }))
@@ -31,14 +31,14 @@ export default async function MasterSectionPage({ params }: { params: Promise<{ 
   if (section === "agencias") return <MasterAgenciesRealPage />
   if (section === "financeiro") return <MasterFinanceRealPage />
   if (section === "usuarios") return <MasterUsersRealPage />
-  if (section === "marketplace") return <MasterMarketplacePage />
+  if (section === "marketplace") return <MasterMarketplaceStablePage />
   if (section === "templates") return <MasterTemplatesRealPage />
-  if (section === "planos") return <MasterPlansPage />
+  if (section === "planos") return <MasterPlansStablePage />
   if (section === "whatsapp") return <MasterWhatsAppRealPage />
-  if (section === "atlas") return <MasterAtlasPage />
+  if (section === "atlas") return <MasterAtlasRealPage />
   if (section === "relatorios") return <MasterReportsRealPage />
-  if (section === "logs") return <MasterLogsPage />
-  if (section === "configuracoes") return <MasterSettingsPage />
+  if (section === "logs") return <MasterLogsRealPage />
+  if (section === "configuracoes") return <MasterSettingsStablePage />
 
   return <PortalPage config={config} />
 }

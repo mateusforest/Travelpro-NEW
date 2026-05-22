@@ -118,6 +118,8 @@ export function MasterAiCreditsPage({ subsection = "uso-ia" }: { subsection?: Ai
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [showAllTransactions, setShowAllTransactions] = useState(false)
+  const [showAllLogs, setShowAllLogs] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -166,6 +168,8 @@ export function MasterAiCreditsPage({ subsection = "uso-ia" }: { subsection?: Ai
   }, [overview?.recent_transactions, searchTerm])
 
   const logs = useMemo(() => filterAiLogs(overview?.logs ?? [], searchTerm), [overview?.logs, searchTerm])
+  const visibleTransactions = showAllTransactions ? transactions.slice(0, 24) : transactions.slice(0, 8)
+  const visibleLogs = showAllLogs ? logs.slice(0, subsection === "logs-ia" ? 24 : 16) : logs.slice(0, subsection === "logs-ia" ? 10 : 6)
 
   return (
     <PageShell>
@@ -272,8 +276,8 @@ export function MasterAiCreditsPage({ subsection = "uso-ia" }: { subsection?: Ai
           ) : transactions.length === 0 ? (
             <EmptyState title="Nenhuma transacao encontrada" description="Quando houver transacoes de creditos registradas, o historico operacional aparecera aqui." />
           ) : (
-            <div className="space-y-3">
-              {transactions.slice(0, 10).map((item) => (
+            <div className="max-h-[460px] space-y-3 overflow-y-auto pr-1">
+              {visibleTransactions.map((item) => (
                 <div key={item.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-medium text-foreground">{item.agency_name || "Agencia sem nome"}</p>
@@ -286,6 +290,13 @@ export function MasterAiCreditsPage({ subsection = "uso-ia" }: { subsection?: Ai
               ))}
             </div>
           )}
+          {!isLoading && transactions.length > 8 ? (
+            <div className="mt-4 flex justify-end">
+              <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setShowAllTransactions((current) => !current)}>
+                {showAllTransactions ? "Recolher" : "Ver mais"}
+              </Button>
+            </div>
+          ) : null}
         </DashboardCard>
       </div>
 
@@ -302,8 +313,8 @@ export function MasterAiCreditsPage({ subsection = "uso-ia" }: { subsection?: Ai
             onAction={() => toast({ title: "IA em breve", description: "A conexao real com IA continua planejada e sem backend fake nesta etapa." })}
           />
         ) : (
-          <div className="space-y-3">
-            {logs.slice(0, subsection === "logs-ia" ? 24 : 8).map((item, index) => (
+          <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
+            {visibleLogs.map((item, index) => (
               <div key={`${item.source}-${item.id}-${index}`} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -327,6 +338,13 @@ export function MasterAiCreditsPage({ subsection = "uso-ia" }: { subsection?: Ai
             ))}
           </div>
         )}
+        {!isLoading && logs.length > (subsection === "logs-ia" ? 10 : 6) ? (
+          <div className="mt-4 flex justify-end">
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setShowAllLogs((current) => !current)}>
+              {showAllLogs ? "Recolher" : "Ver mais"}
+            </Button>
+          </div>
+        ) : null}
       </DashboardCard>
     </PageShell>
   )

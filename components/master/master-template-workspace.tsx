@@ -4,13 +4,13 @@ import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Bot, Copy, Save, Send, Sparkles, X } from "lucide-react"
+import { ArrowLeft, Bot, Copy, Save, Send, Sparkles, X } from "lucide-react"
 import { DashboardCard } from "@/components/system/dashboard-card"
 import { PageShell } from "@/components/system/page-shell"
 import { SectionHeader } from "@/components/system/section-header"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
-import type { MasterAgencyOverview, MasterTemplateDetail, MasterTemplateInput } from "@/types/master"
+import type { MasterAgencyOverview, MasterTemplateAttachment, MasterTemplateDetail, MasterTemplateInput } from "@/types/master"
 
 type AgencyOption = { id: string; name: string }
 
@@ -44,6 +44,15 @@ function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
 
 function FieldTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea {...props} className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/70" />
+}
+
+async function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "")
+    reader.onerror = () => reject(reader.error ?? new Error("Nao foi possivel ler o arquivo."))
+    reader.readAsDataURL(file)
+  })
 }
 
 function ToggleChip({
@@ -97,6 +106,13 @@ export function MasterTemplateWorkspace({
   const [customizableFields, setCustomizableFields] = useState<string[]>(["logo", "cor principal", "rodape"])
   const [variables, setVariables] = useState<string[]>(["{{cliente_nome}}", "{{periodo}}"])
   const [nextVariable, setNextVariable] = useState("")
+  const [previewImageUrl, setPreviewImageUrl] = useState("")
+  const [coverImageUrl, setCoverImageUrl] = useState("")
+  const [brandingAssets, setBrandingAssets] = useState<string[]>([])
+  const [attachments, setAttachments] = useState<MasterTemplateAttachment[]>([])
+  const [nextBrandingAsset, setNextBrandingAsset] = useState("")
+  const [attachmentName, setAttachmentName] = useState("")
+  const [attachmentUrl, setAttachmentUrl] = useState("")
 
   useEffect(() => {
     let active = true
@@ -125,6 +141,10 @@ export function MasterTemplateWorkspace({
           setCompatibilities(template.compatibilities.length ? template.compatibilities : ["Relatorios"])
           setCustomizableFields(template.customizable_fields.length ? template.customizable_fields : ["logo", "cor principal", "rodape"])
           setVariables(template.variables.length ? template.variables : ["{{cliente_nome}}", "{{periodo}}"])
+          setPreviewImageUrl(template.preview_image_url || "")
+          setCoverImageUrl(template.cover_image_url || "")
+          setBrandingAssets(template.branding_assets)
+          setAttachments(template.attachments)
         } else if (agencies.items?.[0]) {
           setAgencyId(agencies.items[0].id)
           setTitle("Template oficial TravelPro")
@@ -163,6 +183,51 @@ export function MasterTemplateWorkspace({
     setNextVariable("")
   }
 
+  const addBrandingAsset = () => {
+    const normalized = nextBrandingAsset.trim()
+    if (!normalized) return
+    if (!brandingAssets.includes(normalized)) {
+      setBrandingAssets((current) => [...current, normalized])
+    }
+    setNextBrandingAsset("")
+  }
+
+  const addAttachment = () => {
+    if (!attachmentName.trim() || !attachmentUrl.trim()) return
+    setAttachments((current) => [
+      ...current,
+      {
+        name: attachmentName.trim(),
+        url: attachmentUrl.trim(),
+      },
+    ])
+    setAttachmentName("")
+    setAttachmentUrl("")
+  }
+
+  const importAssetFile = async (file: File, mode: "preview" | "cover" | "branding" | "attachment") => {
+    try {
+      const dataUrl = await fileToDataUrl(file)
+      if (!dataUrl) throw new Error("Arquivo vazio.")
+      if (mode === "preview") setPreviewImageUrl(dataUrl)
+      if (mode === "cover") setCoverImageUrl(dataUrl)
+      if (mode === "branding") setBrandingAssets((current) => [...current, dataUrl].slice(0, 8))
+      if (mode === "attachment") {
+        setAttachments((current) => [
+          ...current,
+          {
+            name: file.name,
+            url: dataUrl,
+            content_type: file.type || null,
+          },
+        ])
+      }
+      toast({ title: "Asset carregado", description: "O arquivo foi incorporado ao template e sera salvo junto com o metadata atual." })
+    } catch (error) {
+      toast({ title: "Falha ao ler arquivo", description: error instanceof Error ? error.message : "Nao foi possivel importar o arquivo." })
+    }
+  }
+
   const saveTemplate = async (nextStatus: string) => {
     if (!agencyId) {
       toast({ title: "Agencia obrigatoria", description: "Selecione a agencia base para persistir o template com seguranca." })
@@ -185,6 +250,10 @@ export function MasterTemplateWorkspace({
         compatibilities,
         customizable_fields: customizableFields,
         variables,
+        preview_image_url: previewImageUrl.trim() || null,
+        cover_image_url: coverImageUrl.trim() || null,
+        branding_assets: brandingAssets,
+        attachments,
       }
 
       if (templateId) {
@@ -346,6 +415,62 @@ export function MasterTemplateWorkspace({
               ))}
             </div>
           </DashboardCard>
+
+          <DashboardCard title="Assets, anexos e branding" description="Restaure uploads e apoios visuais do template sem depender de uma engine externa nesta etapa.">
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="space-y-2">
+                <FieldLabel>Imagem de preview</FieldLabel>
+                <FieldInput value={previewImageUrl} onChange={(event) => setPreviewImageUrl(event.target.value)} placeholder="https://... ou data url" />
+                <input type="file" accept="image/*" className="text-xs text-muted-foreground" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importAssetFile(file, "preview") }} />
+              </label>
+              <label className="space-y-2">
+                <FieldLabel>Imagem de capa</FieldLabel>
+                <FieldInput value={coverImageUrl} onChange={(event) => setCoverImageUrl(event.target.value)} placeholder="https://... ou data url" />
+                <input type="file" accept="image/*" className="text-xs text-muted-foreground" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importAssetFile(file, "cover") }} />
+              </label>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="space-y-3">
+                <FieldLabel>Branding assets</FieldLabel>
+                <div className="flex gap-2">
+                  <FieldInput value={nextBrandingAsset} onChange={(event) => setNextBrandingAsset(event.target.value)} placeholder="URL de logo, imagem ou asset visual" />
+                  <Button className="rounded-full" onClick={addBrandingAsset}>Adicionar</Button>
+                </div>
+                <input type="file" accept="image/*,.pdf" multiple className="text-xs text-muted-foreground" onChange={(event) => { const files = Array.from(event.target.files ?? []); files.forEach((file) => { void importAssetFile(file, "branding") }) }} />
+                <div className="flex flex-wrap gap-2">
+                  {brandingAssets.map((item, index) => (
+                    <button key={`${item}-${index}`} type="button" onClick={() => setBrandingAssets((current) => current.filter((entry) => entry !== item))} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-muted-foreground">
+                      Asset {index + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <FieldLabel>Anexos e arquivos auxiliares</FieldLabel>
+                <FieldInput value={attachmentName} onChange={(event) => setAttachmentName(event.target.value)} placeholder="Nome do anexo" />
+                <FieldInput value={attachmentUrl} onChange={(event) => setAttachmentUrl(event.target.value)} placeholder="URL ou data url do arquivo" />
+                <div className="flex flex-wrap gap-2">
+                  <Button className="rounded-full" onClick={addAttachment}>Adicionar anexo</Button>
+                  <input type="file" accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xlsx,.zip" multiple className="text-xs text-muted-foreground" onChange={(event) => { const files = Array.from(event.target.files ?? []); files.forEach((file) => { void importAssetFile(file, "attachment") }) }} />
+                </div>
+                <div className="space-y-2">
+                  {attachments.map((item, index) => (
+                    <div key={`${item.name}-${index}`} className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-foreground">{item.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">{item.content_type || item.url.slice(0, 80)}</p>
+                      </div>
+                      <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setAttachments((current) => current.filter((_, currentIndex) => currentIndex !== index))}>
+                        Remover
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </DashboardCard>
         </div>
 
         <div className="space-y-6">
@@ -380,12 +505,14 @@ export function MasterTemplateWorkspace({
                   <span key={item} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-muted-foreground">{item}</span>
                 ))}
               </div>
+              {attachments.length > 0 ? (
+                <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-primary/70">Anexos</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{attachments.length} arquivos auxiliares persistidos no template.</p>
+                </div>
+              ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => toast({ title: "Preview em foco", description: "O preview oficial ja esta visivel nesta lateral do workspace." })}>
-                <BadgeCheck className="mr-2 h-4 w-4" />
-                Abrir preview
-              </Button>
               <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/master/templates")}>
                 <Copy className="mr-2 h-4 w-4" />
                 Voltar para biblioteca
