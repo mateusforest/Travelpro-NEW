@@ -132,18 +132,13 @@ function mapCatalogRow(item: CatalogItemRow): CatalogListItem {
   }
 }
 
-function fileToPreview(file: File | null) {
-  if (!file) return null
-  return URL.createObjectURL(file)
-}
-
 async function fileToDataUrl(file: File | null) {
   if (!file) return null
 
   return await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "")
-    reader.onerror = () => reject(new Error("Nao foi possivel preparar a imagem para salvar."))
+    reader.onerror = () => reject(new Error("Não foi possível preparar a imagem para salvar."))
     reader.readAsDataURL(file)
   })
 }
@@ -217,6 +212,7 @@ export default function AgencyCatalogPage() {
     () => items.find((item) => isPublished(item.status)) ?? items[0] ?? null,
     [items],
   )
+
   const updateMediaPreview = async (kind: "logo" | "banner", file: File | null) => {
     if (!file) return
 
@@ -224,7 +220,7 @@ export default function AgencyCatalogPage() {
       setIsPreparingMedia(true)
       const persistedValue = await fileToDataUrl(file)
       if (!persistedValue) {
-        throw new Error("Nao foi possivel preparar a imagem para salvar.")
+        throw new Error("Não foi possível preparar a imagem para salvar.")
       }
 
       if (kind === "logo") {
@@ -233,9 +229,9 @@ export default function AgencyCatalogPage() {
         setBannerPreview(persistedValue)
       }
 
-      fire("Midia pronta para salvar", "A identidade visual foi preparada e sera persistida ao salvar as alteracoes.")
+      fire("Mídia pronta para salvar", "A identidade visual foi preparada e será persistida ao salvar as alterações.")
     } catch (error) {
-      fire("Falha ao preparar midia", error instanceof Error ? error.message : "Nao foi possivel processar a imagem.")
+      fire("Falha ao preparar mídia", error instanceof Error ? error.message : "Não foi possível processar a imagem.")
     } finally {
       setIsPreparingMedia(false)
     }
@@ -247,11 +243,7 @@ export default function AgencyCatalogPage() {
     try {
       setIsSavingProfile(true)
       if (isPreparingMedia) {
-        throw new Error("Aguarde a preparacao do logo ou banner terminar antes de salvar.")
-      }
-
-      if (isPreparingMedia) {
-        throw new Error("Aguarde a preparacao do logo ou banner terminar antes de salvar.")
+        throw new Error("Aguarde a preparação do logo ou banner terminar antes de salvar.")
       }
 
       const profile = await requestJson<CatalogAgencyProfile>("/api/catalog/agency", {
@@ -266,9 +258,9 @@ export default function AgencyCatalogPage() {
         setBannerPreview(null)
       }
 
-      fire(kind === "logo" ? "Logo removida" : "Banner removido", "A identidade visual foi atualizada e a vitrine publica ja reflete a alteracao.")
+      fire(kind === "logo" ? "Logo removida" : "Banner removido", "A identidade visual foi atualizada e a vitrine pública já reflete a alteração.")
     } catch (error) {
-      fire("Falha ao remover", error instanceof Error ? error.message : "Nao foi possivel remover a midia da agencia.")
+      fire("Falha ao remover", error instanceof Error ? error.message : "Não foi possível remover a mídia da agência.")
     } finally {
       setIsSavingProfile(false)
     }
@@ -361,7 +353,7 @@ export default function AgencyCatalogPage() {
                 Abrir link público
               </Link>
             </SecondaryButton>
-            <PrimaryButton onClick={() => void saveProfile()} disabled={isSavingProfile}>
+            <PrimaryButton onClick={() => void saveProfile()} disabled={isSavingProfile || isPreparingMedia}>
               <Save className="h-4 w-4" />
               {isSavingProfile ? "Salvando..." : "Salvar alterações"}
             </PrimaryButton>
@@ -429,12 +421,6 @@ export default function AgencyCatalogPage() {
                 preview={logoPreview}
                 onSelect={(file) => {
                   void updateMediaPreview("logo", file)
-                  return
-                  const preview = fileToPreview(file)
-                  if (preview) {
-                    setLogoPreview(preview)
-                    fire("Preview local atualizado", "A persistência de mídia da agência ainda será conectada sem mudar este layout.")
-                  }
                 }}
                 onRemove={() => void removeProfileMedia("logo")}
               />
@@ -445,12 +431,6 @@ export default function AgencyCatalogPage() {
                 preview={bannerPreview}
                 onSelect={(file) => {
                   void updateMediaPreview("banner", file)
-                  return
-                  const preview = fileToPreview(file)
-                  if (preview) {
-                    setBannerPreview(preview)
-                    fire("Preview local atualizado", "A persistência de mídia da agência ainda será conectada sem mudar este layout.")
-                  }
                 }}
                 onRemove={() => void removeProfileMedia("banner")}
               />
@@ -555,12 +535,7 @@ export default function AgencyCatalogPage() {
         </div>
 
         <div className="mb-4 flex flex-wrap gap-2">
-          {[
-            "Vitrine pública ativa",
-            "Match em breve",
-            "Impulsionamento em breve",
-            "IA em breve",
-          ].map((badge) => (
+          {["Vitrine pública ativa", "Match em breve", "Impulsionamento em breve", "IA em breve"].map((badge) => (
             <span key={badge} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-muted-foreground">
               {badge}
             </span>
@@ -615,9 +590,10 @@ export default function AgencyCatalogPage() {
                   <DropdownMenuContent align="end" sideOffset={10} className="w-56 rounded-3xl border-white/10 bg-black/85 p-2 text-foreground shadow-2xl shadow-black/40 backdrop-blur-xl">
                     <DropdownMenuItem
                       className="rounded-2xl px-3 py-2.5"
-                      onSelect={() => {
+                      onSelect={(event) => {
+                        event.preventDefault()
                         if (isPublished(item.status)) {
-                          window.location.href = publicHref
+                          window.open(publicHref, "_blank", "noopener,noreferrer")
                           return
                         }
                         fire("Pacote ainda não público", `${item.title} precisa estar publicado para aparecer na vitrine.`)
@@ -688,7 +664,13 @@ export default function AgencyCatalogPage() {
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setConfirmAction(null)}>
               Cancelar
             </Button>
-            <Button className="rounded-full" onClick={() => { confirmAction?.onConfirm(); setConfirmAction(null) }}>
+            <Button
+              className="rounded-full"
+              onClick={() => {
+                confirmAction?.onConfirm()
+                setConfirmAction(null)
+              }}
+            >
               {confirmAction?.confirmLabel}
             </Button>
           </DialogFooter>
