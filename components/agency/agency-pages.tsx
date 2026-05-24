@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -24,7 +24,6 @@ import {
   HandCoins,
   MoreHorizontal,
   PlaneTakeoff,
-  Percent,
   Receipt,
   Route,
   Save,
@@ -32,9 +31,7 @@ import {
   Sparkles,
   Target,
   Trash2,
-  TrendingUp,
   Users,
-  Wallet,
   Waypoints,
   type LucideIcon,
 } from "lucide-react"
@@ -341,6 +338,108 @@ function StatusPill({ label }: { label: string }) {
           : "border-white/10 bg-white/[0.06] text-muted-foreground"
 
   return <span className={`rounded-full border px-2.5 py-1 text-[10px] font-medium tracking-[0.18em] ${styles}`}>{label}</span>
+}
+
+function WorkspaceSectionHeader({
+  eyebrow,
+  title,
+  description,
+  summary,
+  actions,
+}: {
+  eyebrow: string
+  title: string
+  description: string
+  summary?: string
+  actions?: ReactNode
+}) {
+  return (
+    <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] px-5 py-4 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-primary/68">{eyebrow}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <h1 className="text-base font-semibold text-foreground">{title}</h1>
+            {summary ? <span className="text-sm text-muted-foreground">{summary}</span> : null}
+          </div>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
+        </div>
+        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      </div>
+    </div>
+  )
+}
+
+function WorkspaceMetricStrip({
+  items,
+}: {
+  items: { label: string; value: string; hint: string; tone?: "default" | "success" | "warning" | "danger" }[]
+}) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      {items.map((item) => {
+        const toneClasses =
+          item.tone === "success"
+            ? "border-emerald-400/15 bg-emerald-400/[0.07]"
+            : item.tone === "warning"
+              ? "border-amber-400/15 bg-amber-400/[0.07]"
+              : item.tone === "danger"
+                ? "border-rose-400/15 bg-rose-400/[0.07]"
+                : "border-white/8 bg-white/[0.03]"
+
+        return (
+          <div key={item.label} className={cn("rounded-[24px] border px-4 py-3 shadow-[0_14px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl", toneClasses)}>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-primary/70">{item.label}</p>
+            <p className="mt-2 text-xl font-semibold tracking-tight text-foreground">{item.value}</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.hint}</p>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function WorkspaceToolbar({
+  search,
+  filters,
+}: {
+  search: ReactNode
+  filters?: ReactNode
+}) {
+  return (
+    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      <div className="xl:max-w-md xl:flex-1">{search}</div>
+      {filters ? <div className="flex flex-wrap gap-3">{filters}</div> : null}
+    </div>
+  )
+}
+
+function WorkspacePanel({
+  eyebrow,
+  title,
+  description,
+  actions,
+  children,
+}: {
+  eyebrow: string
+  title: string
+  description: string
+  actions?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <div className="rounded-[30px] border border-white/8 bg-white/[0.03] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-primary/70">{eyebrow}</p>
+          <h3 className="mt-1.5 text-lg font-semibold text-foreground">{title}</h3>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
+        </div>
+        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      </div>
+      <div className="mt-4">{children}</div>
+    </div>
+  )
 }
 
 type WorkspaceCardAction = {
@@ -3060,28 +3159,36 @@ export function AgencyClientsPage() {
 
   return (
     <PageShell>
-      <SectionHeader
+      <WorkspaceSectionHeader
+        eyebrow="Workspace de clientes"
         title="Clientes"
-        description="Base ativa da agência com detalhes completos, histórico e perfil de viagem."
+        description="Relacionamento ativo, follow-ups e contexto de viagem organizados em uma leitura mais rápida e viva."
+        summary={`${visibleClients.length} perfis visíveis agora.`}
         actions={
-          <Button asChild className="rounded-full">
-            <Link href="/app/clientes/novo">Novo cliente</Link>
-          </Button>
+          <>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Follow-ups", "A fila guiada de follow-ups vai ganhar automações leves na próxima etapa.")}>
+              Follow-ups
+            </Button>
+            <Button asChild className="rounded-full">
+              <Link href="/app/clientes/novo">Novo cliente</Link>
+            </Button>
+          </>
         }
       />
-      <div className="grid gap-3 md:grid-cols-3">
-        {metrics.map((metric) => (
-          <MetricCard key={metric.label} {...metric} />
-        ))}
-      </div>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="xl:max-w-md xl:flex-1">
-          <SearchInput placeholder="Buscar cliente, destino ou origem" value={searchTerm} onChange={setSearchTerm} />
-        </div>
-        <FilterTabs items={["Todos", "Premium", "Em viagem", "Família", "Lua de mel"]} activeItem={activeFilter} onChange={setActiveFilter} />
-      </div>
+      <WorkspaceMetricStrip
+        items={metrics.map((metric) => ({
+          label: metric.label,
+          value: metric.value,
+          hint: metric.change,
+          tone: metric.label === "Em viagem" ? "warning" : metric.label === "Documentação" ? "success" : "default",
+        }))}
+      />
+      <WorkspaceToolbar
+        search={<SearchInput placeholder="Buscar cliente, destino ou origem" value={searchTerm} onChange={setSearchTerm} />}
+        filters={<FilterTabs items={["Todos", "Premium", "Em viagem", "Família", "Lua de mel"]} activeItem={activeFilter} onChange={setActiveFilter} />}
+      />
 
-      <DashboardCard title="Clientes da agência" description="Cada cliente abre um detalhe completo com histórico, financeiro e mensagens internas.">
+      <WorkspacePanel eyebrow="Base ativa" title="Clientes da agência" description="Cada linha abre um workspace contextual com viagens, documentos, financeiro e histórico do relacionamento.">
         <div className="space-y-3">
           {loadError ? (
             <div className="flex items-start gap-3 rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
@@ -3111,59 +3218,74 @@ export function AgencyClientsPage() {
             </div>
           ) : (
             visibleClients.map((client) => (
-              <div key={client.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-                <button type="button" onClick={() => setSelected(client)} className="min-w-0 text-left">
+              <div key={client.id} className="rounded-[26px] border border-white/8 bg-[linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-4 py-4 shadow-[0_16px_50px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  <button type="button" onClick={() => setSelected(client)} className="min-w-0 flex-1 text-left">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">{client.name}</p>
+                      <StatusPill label={client.status} />
+                      <StatusPill label={client.tag} />
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{client.email} • {client.phone}</p>
+                    <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-3">
+                      <span>Destino em foco: {client.destination}</span>
+                      <span>Origem: {client.origin}</span>
+                      <span>Próximo passo: {client.nextStep}</span>
+                    </div>
+                  </button>
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{client.name}</p>
-                    <StatusPill label={client.status} />
-                    <StatusPill label={client.tag} />
+                    <Button type="button" size="sm" className="rounded-full" onClick={() => setSelected(client)}>
+                      Abrir perfil
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openClientEditor(client)}>
+                      Editar
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Atendimento", `O fluxo rápido de atendimento de ${client.name} será expandido nas próximas etapas.`)}>
+                      Atender
+                    </Button>
+                    <ActionMenu
+                      items={[
+                        { label: "Visualizar", icon: Eye, onClick: () => setSelected(client) },
+                        { label: "Editar", icon: FilePenLine, onClick: () => openClientEditor(client) },
+                        {
+                          label: "Notificar",
+                          icon: BellRing,
+                          onClick: () =>
+                            fire("Notificações em preparação", `As notificações para ${client.name} serão ativadas com TravelPro Go e WhatsApp operacional.`),
+                        },
+                        {
+                          label: "Excluir",
+                          icon: Trash2,
+                          onClick: () =>
+                            setConfirmAction({
+                              title: "Excluir cliente",
+                              description: `Deseja confirmar a exclusão de ${client.name}? Esta ação remove o registro real da sua base.`,
+                              confirmLabel: "Excluir cliente",
+                              onConfirm: async () => {
+                                try {
+                                  await requestJson(`/api/clients/${client.id}`, { method: "DELETE" })
+                                  setRecords((current) => current.filter((item) => item.id !== client.id))
+                                  setSelected((current) => (current?.id === client.id ? null : current))
+                                  fire("Cliente excluído", `${client.name} foi removido com sucesso.`)
+                                } catch (error) {
+                                  if (process.env.NODE_ENV !== "production") {
+                                    console.error("[AgencyClientsPage] failed to delete client", error)
+                                  }
+                                  fire("Falha ao excluir", error instanceof Error ? error.message : "Não foi possível excluir o cliente.")
+                                }
+                              },
+                            }),
+                          danger: true,
+                        },
+                      ]}
+                    />
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{client.email} • {client.phone}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Destino em foco: {client.destination} • Próximo passo: {client.nextStep}
-                  </p>
-                </button>
-                <ActionMenu
-                  items={[
-                    { label: "Visualizar", icon: Eye, onClick: () => setSelected(client) },
-                    { label: "Editar", icon: FilePenLine, onClick: () => openClientEditor(client) },
-                    {
-                      label: "Notificar",
-                      icon: BellRing,
-                      onClick: () =>
-                        fire("Notificações em preparação", `As notificações para ${client.name} serão ativadas com TravelPro Go e WhatsApp operacional.`),
-                    },
-                    {
-                      label: "Excluir",
-                      icon: Trash2,
-                      onClick: () =>
-                        setConfirmAction({
-                          title: "Excluir cliente",
-                          description: `Deseja confirmar a exclusão de ${client.name}? Esta ação remove o registro real da sua base.`,
-                          confirmLabel: "Excluir cliente",
-                          onConfirm: async () => {
-                            try {
-                              await requestJson(`/api/clients/${client.id}`, { method: "DELETE" })
-                              setRecords((current) => current.filter((item) => item.id !== client.id))
-                              setSelected((current) => (current?.id === client.id ? null : current))
-                              fire("Cliente excluído", `${client.name} foi removido com sucesso.`)
-                            } catch (error) {
-                              if (process.env.NODE_ENV !== "production") {
-                                console.error("[AgencyClientsPage] failed to delete client", error)
-                              }
-                              fire("Falha ao excluir", error instanceof Error ? error.message : "Não foi possível excluir o cliente.")
-                            }
-                          },
-                        }),
-                      danger: true,
-                    },
-                  ]}
-                />
+                </div>
               </div>
             ))
           )}
         </div>
-      </DashboardCard>
+      </WorkspacePanel>
 
       <ClientEditorDialog
         open={Boolean(editingClientId)}
@@ -3501,24 +3623,23 @@ export function AgencyTripsPage() {
 
   return (
     <PageShell>
-      <SectionHeader
+      <WorkspaceSectionHeader
+        eyebrow="Workspace de viagens"
         title="Viagens"
-        description="Controle da jornada completa com visão operacional, timeline, checklist e mensagens."
-        actions={
-          <Button asChild className="rounded-full">
-            <Link href="/app/viagens/nova">Nova viagem</Link>
-          </Button>
-        }
+        description="Central operacional da jornada, com saúde da viagem, documentos, timeline e experiência compartilhável."
+        summary={`${visibleTrips.length} viagens no radar.`}
+        actions={<Button asChild className="rounded-full"><Link href="/app/viagens/nova">Nova viagem</Link></Button>}
       />
-      <div className="grid gap-3 md:grid-cols-3">
-        {tripMetrics.map((metric) => (
-          <MetricCard key={metric.label} {...metric} />
-        ))}
-      </div>
-      <div className="xl:max-w-md xl:flex-1">
-        <SearchInput placeholder="Buscar cliente, destino ou status" value={searchTerm} onChange={setSearchTerm} />
-      </div>
-      <DashboardCard title="Viagens da operação" description="Abra cada viagem para ver roteiro ao vivo, pendências, documentos e financeiro.">
+      <WorkspaceMetricStrip
+        items={tripMetrics.map((metric) => ({
+          label: metric.label,
+          value: metric.value,
+          hint: metric.change,
+          tone: metric.label === "Planejamento" ? "warning" : metric.label === "Viagens ativas" ? "default" : "success",
+        }))}
+      />
+      <WorkspaceToolbar search={<SearchInput placeholder="Buscar cliente, destino ou status" value={searchTerm} onChange={setSearchTerm} />} />
+      <WorkspacePanel eyebrow="Operação viva" title="Viagens da operação" description="Cada linha mostra cliente, período, saúde operacional, compartilhamento e ações rápidas inline.">
         <div className="space-y-3">
           {loadError ? (
             <div className="flex items-start gap-3 rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
@@ -3550,79 +3671,90 @@ export function AgencyTripsPage() {
               const shareLink = shareLinks[trip.id]
 
               return (
-            <div key={trip.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <button type="button" onClick={() => setSelected(trip)} className="min-w-0 text-left">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{trip.client} • {trip.destination}</p>
-                  <StatusPill label={trip.stage} />
-                  {shareLink ? <StatusPill label={shareLink.is_active ? "Link ativo" : "Link inativo"} /> : null}
+                <div key={trip.id} className="rounded-[26px] border border-white/8 bg-[linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-4 py-4 shadow-[0_16px_50px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                    <button type="button" onClick={() => setSelected(trip)} className="min-w-0 flex-1 text-left">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{trip.client} • {trip.destination}</p>
+                        <StatusPill label={trip.stage} />
+                        {shareLink ? <StatusPill label={shareLink.is_active ? "Link ativo" : "Link inativo"} /> : null}
+                      </div>
+                      <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-4">
+                        <span>{trip.dates}</span>
+                        <span>{trip.documents}</span>
+                        <span>{trip.finance}</span>
+                        <span>{trip.itinerary}</span>
+                      </div>
+                      {shareLink ? <p className="mt-2 text-xs text-muted-foreground">Vitrine pública {shareLink.is_active ? "ativa" : "inativa"} • {shareLink.view_count} visualizações</p> : null}
+                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button type="button" size="sm" className="rounded-full" onClick={() => setSelected(trip)}>Abrir viagem</Button>
+                      <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => void copyTripShareLink(trip)}>Compartilhar</Button>
+                      <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openTripEditor(trip)}>Editar</Button>
+                      <ActionMenu
+                        items={[
+                          { label: "Visualizar", icon: Eye, onClick: () => setSelected(trip) },
+                          { label: "Editar", icon: FilePenLine, onClick: () => openTripEditor(trip) },
+                          {
+                            label: "Compartilhar viagem",
+                            icon: ExternalLink,
+                            onClick: async () => {
+                              try {
+                                const link = await requestTripShareLink(trip.id)
+                                fire("Link gerado", `A experiência compartilhável de ${trip.destination} já está pronta em ${buildAbsoluteShareUrl(link.public_url)}.`)
+                              } catch (error) {
+                                if (process.env.NODE_ENV !== "production") {
+                                  console.error("[AgencyTripsPage] failed to create share link", error)
+                                }
+                                fire("Falha ao compartilhar", error instanceof Error ? error.message : "Não foi possível gerar o link compartilhável.")
+                              }
+                            },
+                          },
+                          { label: "Copiar link", icon: Copy, onClick: () => void copyTripShareLink(trip) },
+                          { label: "Abrir link", icon: ExternalLink, onClick: () => void openTripShareLink(trip) },
+                          { label: "Desativar link", icon: BellRing, onClick: () => void deactivateTripShareLink(trip) },
+                          { label: "Notificar cliente", icon: BellRing, onClick: () => fire("Notificações em preparação", `As notificações da viagem de ${trip.client} serão ativadas com TravelPro Go e WhatsApp operacional.`) },
+                          {
+                            label: "Abrir cliente vinculado",
+                            icon: Users,
+                            onClick: () =>
+                              trip.client_id ? fire("Cliente vinculado", `${trip.client} já está conectado ao módulo real de clientes.`) : fire("Sem cliente vinculado", "Esta viagem ainda não possui um cliente vinculado."),
+                          },
+                          { label: "Ver roteiro", icon: Route, onClick: () => fire("Roteiros em preparação", `O fluxo de roteiros reais desta viagem será conectado à próxima etapa do módulo.`) },
+                          { label: "Ver documento", icon: FileText, onClick: () => fire("Documentos em preparação", `Os documentos reais da viagem de ${trip.client} serão exibidos quando o vínculo documental estiver completo.`) },
+                          {
+                            label: "Excluir",
+                            icon: Trash2,
+                            onClick: () =>
+                              setConfirmAction({
+                                title: "Excluir viagem",
+                                description: `Deseja confirmar a exclusão da viagem de ${trip.client} para ${trip.destination}?`,
+                                confirmLabel: "Excluir viagem",
+                                onConfirm: async () => {
+                                  try {
+                                    await requestJson(`/api/trips/${trip.id}`, { method: "DELETE" })
+                                    setRecords((current) => current.filter((item) => item.id !== trip.id))
+                                    setSelected((current) => (current?.id === trip.id ? null : current))
+                                    fire("Viagem excluída", `A viagem de ${trip.client} foi removida do Supabase.`)
+                                  } catch (error) {
+                                    if (process.env.NODE_ENV !== "production") {
+                                      console.error("[AgencyTripsPage] failed to delete trip", error)
+                                    }
+                                    fire("Falha ao excluir", error instanceof Error ? error.message : "Não foi possível excluir a viagem.")
+                                  }
+                                },
+                              }),
+                            danger: true,
+                          },
+                        ]}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">{trip.dates}</p>
-                <p className="mt-2 text-xs text-muted-foreground">{trip.documents} • {trip.finance} • {trip.itinerary}</p>
-                {shareLink ? <p className="mt-2 text-xs text-muted-foreground">Vitrine pública {shareLink.is_active ? "ativa" : "inativa"} • {shareLink.view_count} visualizações</p> : null}
-              </button>
-                <ActionMenu
-                  items={[
-                    { label: "Visualizar", icon: Eye, onClick: () => setSelected(trip) },
-                    { label: "Editar", icon: FilePenLine, onClick: () => openTripEditor(trip) },
-                    {
-                      label: "Compartilhar viagem",
-                      icon: ExternalLink,
-                      onClick: async () => {
-                        try {
-                          const link = await requestTripShareLink(trip.id)
-                          fire("Link gerado", `A experiência compartilhável de ${trip.destination} já está pronta em ${buildAbsoluteShareUrl(link.public_url)}.`)
-                        } catch (error) {
-                          if (process.env.NODE_ENV !== "production") {
-                            console.error("[AgencyTripsPage] failed to create share link", error)
-                          }
-                          fire("Falha ao compartilhar", error instanceof Error ? error.message : "Não foi possível gerar o link compartilhável.")
-                        }
-                      },
-                    },
-                    { label: "Copiar link", icon: Copy, onClick: () => void copyTripShareLink(trip) },
-                    { label: "Abrir link", icon: ExternalLink, onClick: () => void openTripShareLink(trip) },
-                    { label: "Desativar link", icon: BellRing, onClick: () => void deactivateTripShareLink(trip) },
-                    { label: "Notificar cliente", icon: BellRing, onClick: () => fire("Notificações em preparação", `As notificações da viagem de ${trip.client} serão ativadas com TravelPro Go e WhatsApp operacional.`) },
-                    {
-                      label: "Abrir cliente vinculado",
-                      icon: Users,
-                      onClick: () =>
-                        trip.client_id ? fire("Cliente vinculado", `${trip.client} já está conectado ao módulo real de clientes.`) : fire("Sem cliente vinculado", "Esta viagem ainda não possui um cliente vinculado."),
-                    },
-                    { label: "Ver roteiro", icon: Route, onClick: () => fire("Roteiros em preparação", `O fluxo de roteiros reais desta viagem será conectado à próxima etapa do módulo.`) },
-                    { label: "Ver documento", icon: FileText, onClick: () => fire("Documentos em preparação", `Os documentos reais da viagem de ${trip.client} serão exibidos quando o vínculo documental estiver completo.`) },
-                  {
-                    label: "Excluir",
-                    icon: Trash2,
-                    onClick: () =>
-                      setConfirmAction({
-                        title: "Excluir viagem",
-                        description: `Deseja confirmar a exclusão da viagem de ${trip.client} para ${trip.destination}?`,
-                        confirmLabel: "Excluir viagem",
-                        onConfirm: async () => {
-                          try {
-                            await requestJson(`/api/trips/${trip.id}`, { method: "DELETE" })
-                            setRecords((current) => current.filter((item) => item.id !== trip.id))
-                            setSelected((current) => (current?.id === trip.id ? null : current))
-                            fire("Viagem excluída", `A viagem de ${trip.client} foi removida do Supabase.`)
-                          } catch (error) {
-                            if (process.env.NODE_ENV !== "production") {
-                              console.error("[AgencyTripsPage] failed to delete trip", error)
-                            }
-                            fire("Falha ao excluir", error instanceof Error ? error.message : "Não foi possível excluir a viagem.")
-                          }
-                        },
-                      }),
-                    danger: true,
-                  },
-                ]}
-                />
-              </div>
-            )})
+              )})
           )}
         </div>
-      </DashboardCard>
+      </WorkspacePanel>
 
       <TripEditorDialog
         open={Boolean(editingTripId)}
@@ -3918,30 +4050,29 @@ function DocumentHub({
 
   return (
     <PageShell>
-      <SectionHeader
+      <WorkspaceSectionHeader
+        eyebrow={mode === "template" ? "Biblioteca viva" : mode === "roteiro" ? "Workspace de roteiros" : mode === "cotacao" ? "Workspace de cotações" : "Central documental"}
         title={title}
         description={description}
-        actions={
-          <Button asChild className="rounded-full">
-            <Link href={createHref}>{createLabel}</Link>
-          </Button>
-        }
+        summary={`${filteredDocuments.length} itens no recorte atual.`}
+        actions={<Button asChild className="rounded-full"><Link href={createHref}>{createLabel}</Link></Button>}
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <MetricCard key={metric.label} {...metric} />
-        ))}
-      </div>
+      <WorkspaceMetricStrip
+        items={metrics.map((metric) => ({
+          label: metric.label,
+          value: metric.value,
+          hint: metric.change,
+          tone: metric.label === "Prontos" || metric.label === "Vinculados" ? "success" : metric.label === "Rascunhos" ? "warning" : "default",
+        }))}
+      />
 
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="xl:max-w-md xl:flex-1">
-          <SearchInput placeholder="Buscar documento, cliente, viagem ou status" value={searchTerm} onChange={setSearchTerm} />
-        </div>
-        <FilterTabs items={availableFilters} activeItem={activeFilter} onChange={setActiveFilter} />
-      </div>
+      <WorkspaceToolbar
+        search={<SearchInput placeholder="Buscar documento, cliente, viagem ou status" value={searchTerm} onChange={setSearchTerm} />}
+        filters={<FilterTabs items={availableFilters} activeItem={activeFilter} onChange={setActiveFilter} />}
+      />
 
-      <DashboardCard title="Documentos da operacao" description="Visualize, edite, exclua e acompanhe documentos reais da agencia.">
+      <WorkspacePanel eyebrow="Leitura operacional" title={`${title} da operação`} description="Listas compactas, status delicados e ações inline para reduzir a dependência das telas longas da V1.">
         <div className="space-y-3">
           {loadError ? (
             <div className="flex items-start gap-3 rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
@@ -3979,17 +4110,29 @@ function DocumentHub({
             </div>
           ) : (
             filteredDocuments.map((doc) => (
-              <div key={doc.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-                <button type="button" onClick={() => setSelected(doc)} className="min-w-0 text-left">
+              <div key={doc.id} className="rounded-[26px] border border-white/8 bg-[linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-4 py-4 shadow-[0_16px_50px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                <button type="button" onClick={() => setSelected(doc)} className="min-w-0 flex-1 text-left">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-medium text-foreground">{doc.name}</p>
                     <StatusPill label={doc.status} />
                     <StatusPill label={doc.type} />
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{doc.client} • {doc.trip}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">Atualizado em {formatDateLabel(doc.updated_at)} • {doc.storage_path || "Sem arquivo vinculado"}</p>
+                  <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-4">
+                    <span>{doc.client}</span>
+                    <span>{doc.trip}</span>
+                    <span>Atualizado em {formatDateLabel(doc.updated_at)}</span>
+                    <span>{doc.storage_path || "Sem arquivo vinculado"}</span>
+                  </div>
                 </button>
-                <ActionMenu
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" size="sm" className="rounded-full" onClick={() => setSelected(doc)}>
+                    Visualizar
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push(editHref ? editHref(doc) : `/app/documentos/novo?id=${doc.id}`)}>
+                    Editar
+                  </Button>
+                  <ActionMenu
                   items={[
                     { label: "Visualizar", icon: Eye, onClick: () => setSelected(doc) },
                     { label: "Editar", icon: FilePenLine, onClick: () => router.push(editHref ? editHref(doc) : `/app/documentos/novo?id=${doc.id}`) },
@@ -4058,11 +4201,13 @@ function DocumentHub({
                     },
                   ]}
                 />
+                </div>
+                </div>
               </div>
             ))
           )}
         </div>
-      </DashboardCard>
+      </WorkspacePanel>
       <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
 
       <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
@@ -4669,7 +4814,6 @@ export function AgencyFinancePage() {
 
   const totalRevenue = filteredRecordsByView.filter((item) => normalizeFinanceType(item.type) === "Receita").reduce((sum, item) => sum + Number(item.amount || 0), 0)
   const totalExpenses = filteredRecordsByView.filter((item) => normalizeFinanceType(item.type) === "Despesa").reduce((sum, item) => sum + Number(item.amount || 0), 0)
-  const totalCommissions = filteredRecordsByView.filter((item) => (item.category || "").toLowerCase().includes("comiss")).reduce((sum, item) => sum + Number(item.amount || 0), 0)
   const profit = totalRevenue - totalExpenses
   const margin = totalRevenue > 0 ? Math.round((profit / totalRevenue) * 100) : 0
   const financeSeries = useMemo(() => buildFinanceChartSeries(filteredRecordsByView, period, dateRange), [dateRange, filteredRecordsByView, period])
@@ -4698,33 +4842,31 @@ export function AgencyFinancePage() {
 
   return (
     <PageShell>
-      <SectionHeader
+      <WorkspaceSectionHeader
+        eyebrow="Workspace financeiro"
         title="Financeiro"
-        description="Receitas, despesas, vinculos e status com leitura real do Supabase por agencia."
+        description="Caixa, pendências, alertas e fluxo real da agência com foco mais operacional e menos ERP."
+        summary={`${filteredRecordsByView.length} lançamentos no recorte atual.`}
         actions={
-          <div className="flex flex-wrap gap-2">
+          <>
             <Button asChild className="rounded-full">
               <Link href="/app/financeiro/novo">Novo lançamento</Link>
             </Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("IA em breve", "A analise automatica com IA ainda sera conectada ao modulo financeiro.")}>
-              Analisar com IA
-            </Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Stripe em breve", "A conexao automatica com Stripe ainda sera integrada a este modulo.")}>Conectar Stripe</Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openFinancialReport()}>Gerar relatório</Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openFinancialReport(undefined, "HTML")}>Exportar</Button>
-          </div>
+          </>
         }
       />
 
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="xl:max-w-md xl:flex-1">
-          <SearchInput placeholder="Buscar categoria, cliente, viagem ou status" value={searchTerm} onChange={setSearchTerm} />
-        </div>
-        <div className="flex flex-wrap gap-4">
-          <FilterTabs items={[...FINANCE_FILTERS]} activeItem={activeFilter} onChange={(item) => setActiveFilter(item as (typeof FINANCE_FILTERS)[number])} />
-          <FilterTabs items={periods} activeItem={period} onChange={(item) => setPeriod(item as typeof period)} />
-        </div>
-      </div>
+      <WorkspaceToolbar
+        search={<SearchInput placeholder="Buscar categoria, cliente, viagem ou status" value={searchTerm} onChange={setSearchTerm} />}
+        filters={
+          <>
+            <FilterTabs items={[...FINANCE_FILTERS]} activeItem={activeFilter} onChange={(item) => setActiveFilter(item as (typeof FINANCE_FILTERS)[number])} />
+            <FilterTabs items={periods} activeItem={period} onChange={(item) => setPeriod(item as typeof period)} />
+          </>
+        }
+      />
 
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div className="flex flex-wrap gap-3">
@@ -4747,14 +4889,14 @@ export function AgencyFinancePage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <MetricCard label="Receitas" value={formatMoney(totalRevenue)} change={`Periodo: ${period}`} tone="success" icon={Wallet} />
-        <MetricCard label="Despesas" value={formatMoney(totalExpenses)} change="Saidas registradas" tone="warning" icon={Receipt} />
-        <MetricCard label="Comissoes" value={formatMoney(totalCommissions)} change="Categorias com comissao" tone="info" icon={Users} />
-        <MetricCard label="Lucro" value={formatMoney(profit)} change={`Margem ${margin}%`} tone={profit >= 0 ? "success" : "danger"} icon={TrendingUp} />
-        <MetricCard label="Margem" value={`${margin}%`} change="Base real do periodo" tone="success" icon={Percent} />
-        <MetricCard label="Lancamentos" value={`${filteredRecordsByView.length}`} change="Receitas e despesas reais" tone="info" icon={HandCoins} />
-      </div>
+      <WorkspaceMetricStrip
+        items={[
+          { label: "Receitas", value: formatMoney(totalRevenue), hint: `Período: ${period}`, tone: "success" },
+          { label: "Despesas", value: formatMoney(totalExpenses), hint: "Saídas registradas", tone: "warning" },
+          { label: "Lucro", value: formatMoney(profit), hint: `Margem ${margin}%`, tone: profit >= 0 ? "success" : "danger" },
+          { label: "Lançamentos", value: `${filteredRecordsByView.length}`, hint: "Receitas e despesas reais", tone: "default" },
+        ]}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         {financeSeries.length ? (
@@ -4781,7 +4923,7 @@ export function AgencyFinancePage() {
         </DashboardCard>
       </div>
 
-      <DashboardCard title="Lancamentos da operacao" description="Visualize, edite, exclua e acompanhe registros reais do financeiro.">
+      <WorkspacePanel eyebrow="Fluxo financeiro" title="Lançamentos da operação" description="Linhas compactas com valor, competência, vínculos e ações rápidas de pagamento, relatório e edição.">
         <div className="space-y-3">
           {loadError ? (
             <div className="flex items-start gap-3 rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
@@ -4815,69 +4957,103 @@ export function AgencyFinancePage() {
               const linkedTrip = record.trip_id ? tripsById.get(record.trip_id)?.destination ?? `Viagem ${record.trip_id.slice(0, 8)}` : "Sem viagem vinculada"
 
               return (
-                <div key={record.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
+                <div key={record.id} className="rounded-[26px] border border-white/8 bg-[linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-4 py-4 shadow-[0_16px_50px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                   <button type="button" onClick={() => setSelected(record)} className="min-w-0 text-left">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-medium text-foreground">{record.category || record.type}</p>
                       <StatusPill label={record.type} />
                       <StatusPill label={record.status} />
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{linkedClient} • {linkedTrip}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">{formatMoney(Number(record.amount || 0))} • {formatDateLabel(record.occurred_at)} • {record.description || "Sem descricao complementar"}</p>
+                    <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-4">
+                      <span>{linkedClient}</span>
+                      <span>{linkedTrip}</span>
+                      <span>{formatDateLabel(record.occurred_at)}</span>
+                      <span>{record.description || "Sem descrição complementar"}</span>
+                    </div>
                   </button>
-                  <ActionMenu
-                    items={[
-                      { label: "Visualizar", icon: Eye, onClick: () => setSelected(record) },
-                      { label: "Editar", icon: FilePenLine, onClick: () => router.push(`/app/financeiro/novo?id=${record.id}`) },
-                      {
-                        label: "Registrar pagamento",
-                        icon: CreditCard,
-                        onClick: async () => {
-                          try {
-                            const updated = await requestJson<FinancialRecordRow>(`/api/financial-records/${record.id}`, {
-                              method: "PATCH",
-                              body: JSON.stringify({ status: "Pago" }),
-                            })
-                            setRecords((current) => current.map((item) => (item.id === record.id ? updated : item)))
-                            setSelected((current) => (current?.id === record.id ? updated : current))
-                            fire("Pagamento registrado", "O lançamento foi atualizado com status Pago.")
-                          } catch (error) {
-                            fire("Falha ao atualizar", error instanceof Error ? error.message : "Nao foi possivel registrar o pagamento.")
-                          }
-                        },
-                      },
-                      { label: "Conectar Stripe", icon: ArrowRightLeft, onClick: () => fire("Stripe em breve", "A conexao automatica com Stripe ainda sera integrada a este modulo.") },
-                      { label: "Gerar relatorio", icon: Download, onClick: () => openFinancialReport(record) },
-                      { label: "Exportar", icon: ExternalLink, onClick: () => openFinancialReport(record, "HTML") },
-                      {
-                        label: "Excluir",
-                        icon: Trash2,
-                        onClick: () =>
-                          setConfirmAction({
-                            title: "Excluir lancamento",
-                            description: `Deseja confirmar a exclusao de ${record.category || record.type}? Esta acao remove o registro real do Supabase.`,
-                            confirmLabel: "Excluir lancamento",
-                            onConfirm: async () => {
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="min-w-[110px] text-right text-sm font-semibold text-foreground">{formatMoney(Number(record.amount || 0))}</p>
+                      {normalizeFinanceStatus(record.status) !== "Pago" ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="rounded-full"
+                          onClick={async () => {
+                            try {
+                              const updated = await requestJson<FinancialRecordRow>(`/api/financial-records/${record.id}`, {
+                                method: "PATCH",
+                                body: JSON.stringify({ status: "Pago" }),
+                              })
+                              setRecords((current) => current.map((item) => (item.id === record.id ? updated : item)))
+                              setSelected((current) => (current?.id === record.id ? updated : current))
+                              fire("Pagamento registrado", "O lançamento foi atualizado com status Pago.")
+                            } catch (error) {
+                              fire("Falha ao atualizar", error instanceof Error ? error.message : "Nao foi possivel registrar o pagamento.")
+                            }
+                          }}
+                        >
+                          Marcar pago
+                        </Button>
+                      ) : null}
+                      <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push(`/app/financeiro/novo?id=${record.id}`)}>
+                        Editar
+                      </Button>
+                      <ActionMenu
+                        items={[
+                          { label: "Visualizar", icon: Eye, onClick: () => setSelected(record) },
+                          { label: "Editar", icon: FilePenLine, onClick: () => router.push(`/app/financeiro/novo?id=${record.id}`) },
+                          {
+                            label: "Registrar pagamento",
+                            icon: CreditCard,
+                            onClick: async () => {
                               try {
-                                await requestJson(`/api/financial-records/${record.id}`, { method: "DELETE" })
-                                setRecords((current) => current.filter((item) => item.id !== record.id))
-                                setSelected((current) => (current?.id === record.id ? null : current))
-                                fire("Lancamento excluido", "O registro foi removido do Supabase.")
+                                const updated = await requestJson<FinancialRecordRow>(`/api/financial-records/${record.id}`, {
+                                  method: "PATCH",
+                                  body: JSON.stringify({ status: "Pago" }),
+                                })
+                                setRecords((current) => current.map((item) => (item.id === record.id ? updated : item)))
+                                setSelected((current) => (current?.id === record.id ? updated : current))
+                                fire("Pagamento registrado", "O lançamento foi atualizado com status Pago.")
                               } catch (error) {
-                                fire("Falha ao excluir", error instanceof Error ? error.message : "Nao foi possivel excluir o lancamento.")
+                                fire("Falha ao atualizar", error instanceof Error ? error.message : "Nao foi possivel registrar o pagamento.")
                               }
                             },
-                          }),
-                        danger: true,
-                      },
-                    ]}
-                  />
+                          },
+                          { label: "Conectar Stripe", icon: ArrowRightLeft, onClick: () => fire("Stripe em breve", "A conexao automatica com Stripe ainda sera integrada a este modulo.") },
+                          { label: "Gerar relatorio", icon: Download, onClick: () => openFinancialReport(record) },
+                          { label: "Exportar", icon: ExternalLink, onClick: () => openFinancialReport(record, "HTML") },
+                          {
+                            label: "Excluir",
+                            icon: Trash2,
+                            onClick: () =>
+                              setConfirmAction({
+                                title: "Excluir lancamento",
+                                description: `Deseja confirmar a exclusao de ${record.category || record.type}? Esta acao remove o registro real do Supabase.`,
+                                confirmLabel: "Excluir lancamento",
+                                onConfirm: async () => {
+                                  try {
+                                    await requestJson(`/api/financial-records/${record.id}`, { method: "DELETE" })
+                                    setRecords((current) => current.filter((item) => item.id !== record.id))
+                                    setSelected((current) => (current?.id === record.id ? null : current))
+                                    fire("Lancamento excluido", "O registro foi removido do Supabase.")
+                                  } catch (error) {
+                                    fire("Falha ao excluir", error instanceof Error ? error.message : "Nao foi possivel excluir o lancamento.")
+                                  }
+                                },
+                              }),
+                            danger: true,
+                          },
+                        ]}
+                      />
+                    </div>
+                  </div>
                 </div>
               )
             })
           )}
         </div>
-      </DashboardCard>
+      </WorkspacePanel>
 
       <ConfirmationDialog action={confirmAction} onClose={() => setConfirmAction(null)} />
 
@@ -5253,29 +5429,32 @@ export function AgencyLeadsPage() {
 
   return (
     <PageShell>
-      <SectionHeader
+      <WorkspaceSectionHeader
+        eyebrow="Pipeline operacional"
         title="Leads"
-        description="Acompanhe intenção, origem, temperatura e próximos passos de cada oportunidade."
+        description="Origem, prioridade, qualificação e próximos movimentos do funil em um fluxo mais enxuto."
+        summary={`${visibleLeads.length} oportunidades ativas.`}
         actions={
-          <div className="flex flex-wrap gap-2">
+          <>
             <Button variant="outline" asChild className="rounded-full border-white/10 bg-white/[0.03]">
               <Link href="/app/leads/qualificar">Qualificar com IA</Link>
             </Button>
             <Button asChild className="rounded-full">
               <Link href="/app/leads/novo">Novo lead</Link>
             </Button>
-          </div>
+          </>
         }
       />
-      <div className="grid gap-3 md:grid-cols-3">
-        {leadMetrics.map((metric) => (
-          <MetricCard key={metric.label} {...metric} />
-        ))}
-      </div>
-      <div className="xl:max-w-md xl:flex-1">
-        <SearchInput placeholder="Buscar lead, origem, destino ou status" value={searchTerm} onChange={setSearchTerm} />
-      </div>
-      <DashboardCard title="Oportunidades ativas" description="Clique em um lead para abrir detalhes e ações rápidas.">
+      <WorkspaceMetricStrip
+        items={leadMetrics.map((metric) => ({
+          label: metric.label,
+          value: metric.value,
+          hint: metric.change,
+          tone: metric.label === "Alta prioridade" ? "warning" : "default",
+        }))}
+      />
+      <WorkspaceToolbar search={<SearchInput placeholder="Buscar lead, origem, destino ou status" value={searchTerm} onChange={setSearchTerm} />} />
+      <WorkspacePanel eyebrow="Funil vivo" title="Oportunidades ativas" description="Abertura rápida para responder, qualificar, converter ou iniciar a próxima etapa comercial.">
         <div className="space-y-3">
           {loadError ? (
             <div className="flex items-start gap-3 rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
@@ -5304,58 +5483,75 @@ export function AgencyLeadsPage() {
             </div>
           ) : (
             visibleLeads.map((lead) => (
-              <div key={lead.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
+              <div key={lead.id} className="rounded-[26px] border border-white/8 bg-[linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-4 py-4 shadow-[0_16px_50px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                 <button
                   type="button"
                   onClick={() => setSelected(lead)}
-                  className="min-w-0 text-left"
+                  className="min-w-0 flex-1 text-left"
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-medium text-foreground">{lead.name}</p>
                     <StatusPill label={lead.temperature} />
                     <StatusPill label={lead.stage} />
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{lead.origin} • {lead.destination}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">{lead.email} • {lead.phone}</p>
+                  <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-4">
+                    <span>Origem: {lead.origin}</span>
+                    <span>Interesse: {lead.destination}</span>
+                    <span>Contato: {lead.phone}</span>
+                    <span>Status: {lead.stage}</span>
+                  </div>
                 </button>
-                <ActionMenu
-                  items={[
-                    { label: "Visualizar", icon: Eye, onClick: () => setSelected(lead) },
-                    { label: "Editar", icon: FilePenLine, onClick: () => openLeadEditor(lead) },
-                    { label: "Notificar", icon: BellRing, onClick: () => fire("Notificações em preparação", `As notificações para ${lead.name} serão ativadas com TravelPro Agent e WhatsApp operacional.`) },
-                    { label: "Abrir origem", icon: ExternalLink, onClick: () => fire("Origem em preparação", `A abertura direta da origem de ${lead.name} será conectada quando os canais externos estiverem disponíveis.`) },
-                    { label: "Converter em cliente", icon: ArrowRightLeft, onClick: () => fire("Conversão em preparação", `A conversão segura de ${lead.name} em cliente real será ativada na próxima etapa.`) },
-                    {
-                      label: "Excluir",
-                      icon: Trash2,
-                      onClick: () =>
-                        setConfirmAction({
-                          title: "Excluir lead",
-                          description: `Deseja confirmar a exclusão do lead ${lead.name}?`,
-                          confirmLabel: "Excluir lead",
-                          onConfirm: async () => {
-                            try {
-                              await requestJson(`/api/leads/${lead.id}`, { method: "DELETE" })
-                              setRecords((current) => current.filter((item) => item.id !== lead.id))
-                              setSelected((current) => (current?.id === lead.id ? null : current))
-                              fire("Lead excluído", `${lead.name} foi removido com sucesso.`)
-                            } catch (error) {
-                              if (process.env.NODE_ENV !== "production") {
-                                console.error("[AgencyLeadsPage] failed to delete lead", error)
-                              }
-                              fire("Falha ao excluir", error instanceof Error ? error.message : "Não foi possível excluir o lead.")
-                            }
-                          },
-                        }),
-                      danger: true,
-                    },
-                  ]}
-                />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" size="sm" className="rounded-full" onClick={() => setSelected(lead)}>
+                      Responder
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openLeadEditor(lead)}>
+                      Editar
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Conversão em preparação", `A conversão segura de ${lead.name} em cliente real será ativada na próxima etapa.`)}>
+                      Converter
+                    </Button>
+                    <ActionMenu
+                      items={[
+                        { label: "Visualizar", icon: Eye, onClick: () => setSelected(lead) },
+                        { label: "Editar", icon: FilePenLine, onClick: () => openLeadEditor(lead) },
+                        { label: "Notificar", icon: BellRing, onClick: () => fire("Notificações em preparação", `As notificações para ${lead.name} serão ativadas com TravelPro Agent e WhatsApp operacional.`) },
+                        { label: "Abrir origem", icon: ExternalLink, onClick: () => fire("Origem em preparação", `A abertura direta da origem de ${lead.name} será conectada quando os canais externos estiverem disponíveis.`) },
+                        { label: "Converter em cliente", icon: ArrowRightLeft, onClick: () => fire("Conversão em preparação", `A conversão segura de ${lead.name} em cliente real será ativada na próxima etapa.`) },
+                        {
+                          label: "Excluir",
+                          icon: Trash2,
+                          onClick: () =>
+                            setConfirmAction({
+                              title: "Excluir lead",
+                              description: `Deseja confirmar a exclusão do lead ${lead.name}?`,
+                              confirmLabel: "Excluir lead",
+                              onConfirm: async () => {
+                                try {
+                                  await requestJson(`/api/leads/${lead.id}`, { method: "DELETE" })
+                                  setRecords((current) => current.filter((item) => item.id !== lead.id))
+                                  setSelected((current) => (current?.id === lead.id ? null : current))
+                                  fire("Lead excluído", `${lead.name} foi removido com sucesso.`)
+                                } catch (error) {
+                                  if (process.env.NODE_ENV !== "production") {
+                                    console.error("[AgencyLeadsPage] failed to delete lead", error)
+                                  }
+                                  fire("Falha ao excluir", error instanceof Error ? error.message : "Não foi possível excluir o lead.")
+                                }
+                              },
+                            }),
+                          danger: true,
+                        },
+                      ]}
+                    />
+                  </div>
+                </div>
               </div>
             ))
           )}
         </div>
-      </DashboardCard>
+      </WorkspacePanel>
       <LeadEditorDialog
         open={Boolean(editingLeadId)}
         onOpenChange={(open) => {
