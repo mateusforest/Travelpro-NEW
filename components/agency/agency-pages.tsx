@@ -1557,27 +1557,32 @@ export function AgencyDashboardPage() {
   }
 
   const openClientCreate = (partial?: Partial<ClientFormValues>) => {
+    setActiveMicroWorkspace(null)
     setClientCreateValues({ ...buildClientFormValues(), ...partial })
     setIsClientCreateOpen(true)
   }
 
   const openLeadCreate = (partial?: Partial<LeadFormValues>) => {
+    setActiveMicroWorkspace(null)
     setLeadCreateValues({ ...buildLeadFormValues(), ...partial })
     setIsLeadCreateOpen(true)
   }
 
   const openTripCreate = (partial?: Partial<TripFormValues>) => {
+    setActiveMicroWorkspace(null)
     setTripCreateValues({ ...buildTripFormValues(), ...partial })
     setIsTripCreateOpen(true)
   }
 
   const openDocumentCreate = (partial?: Partial<QuickDocumentFormValues>, label = "Novo documento") => {
+    setActiveMicroWorkspace(null)
     setDocumentCreateValues(buildQuickDocumentFormValues(partial))
     setDocumentDialogLabel(label)
     setIsDocumentCreateOpen(true)
   }
 
   const openFinanceCreate = (partial?: Partial<QuickFinanceFormValues>) => {
+    setActiveMicroWorkspace(null)
     setFinanceCreateValues(buildQuickFinanceFormValues(partial))
     setIsFinanceCreateOpen(true)
   }
@@ -1770,17 +1775,27 @@ export function AgencyDashboardPage() {
   const handleCopyTripLink = async (tripId: string) => {
     await withQuickActionSaving(async () => {
       const link = await handleEnsureShareLink(tripId)
-      const publicUrl = `${window.location.origin}/v/${link.token}`
+      const publicUrl = link.public_url || `${window.location.origin}/v/${link.token}`
       await navigator.clipboard.writeText(publicUrl)
       fire("Link copiado", "O link público da viagem foi copiado para compartilhar com o cliente.")
     })
   }
 
   const handleOpenTripLink = async (tripId: string) => {
+    const popup = window.open("about:blank", "_blank", "noopener,noreferrer")
     await withQuickActionSaving(async () => {
-      const link = await handleEnsureShareLink(tripId)
-      window.open(`/v/${link.token}`, "_blank", "noopener,noreferrer")
-      fire("Link aberto", "A experiência pública da viagem foi aberta em uma nova aba.")
+      try {
+        const link = await handleEnsureShareLink(tripId)
+        if (popup) {
+          popup.location.href = link.public_url || `/v/${link.token}`
+        } else {
+          window.open(link.public_url || `/v/${link.token}`, "_blank", "noopener,noreferrer")
+        }
+        fire("Link aberto", "A experiência pública da viagem foi aberta em uma nova aba.")
+      } catch (error) {
+        popup?.close()
+        throw error
+      }
     })
   }
 
