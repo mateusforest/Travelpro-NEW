@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import type { PortalKey } from "@/lib/services/portal-types"
 import { portalProfiles, portalTitles } from "@/lib/services/navigation"
+import { AgencyWorkspaceLayout } from "@/components/system/agency-workspace-layout"
 import { Sidebar } from "@/components/system/sidebar"
 import { PortalHeader } from "@/components/system/portal-header"
 import { BottomMobileNav } from "@/components/system/bottom-mobile-nav"
@@ -13,6 +14,10 @@ type PortalLayoutProps = {
 export function PortalLayout({ portal, children }: PortalLayoutProps) {
   const profile = portalProfiles[portal]
   const title = portalTitles[portal]
+
+  if (portal === "agency") {
+    return <AgencyWorkspaceLayout profile={profile}>{children}</AgencyWorkspaceLayout>
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">

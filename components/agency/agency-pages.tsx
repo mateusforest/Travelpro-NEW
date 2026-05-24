@@ -31,14 +31,13 @@ import {
   Target,
   Trash2,
   TrendingUp,
-  UserRoundPlus,
   Users,
   Wallet,
   Waypoints,
+  type LucideIcon,
 } from "lucide-react"
 import { trips } from "@/mock/trips"
 import { documents } from "@/mock/documents"
-import { templates } from "@/mock/templates"
 import { leads } from "@/mock/leads"
 import { PageShell } from "@/components/system/page-shell"
 import { SectionHeader } from "@/components/system/section-header"
@@ -49,10 +48,6 @@ import { SearchInput } from "@/components/system/search-input"
 import { FilterTabs } from "@/components/system/filter-tabs"
 import { SetupStatusCard } from "@/components/system/setup-status-card"
 import { SmartActionButton } from "@/components/system/smart-action-button"
-import { LivePreviewPanel } from "@/components/system/live-preview-panel"
-import { MediaUploadCard } from "@/components/system/media-upload-card"
-import { OperationalWorkspaceLayout } from "@/components/system/operational-workspace-layout"
-import { WorkspaceSidebarInfo } from "@/components/system/workspace-sidebar-info"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -71,6 +66,7 @@ import {
   normalizeFinanceType,
   resolveFinanceDateRange,
 } from "@/lib/finance/agency-finance"
+import { cn } from "@/lib/utils"
 import type { ClientRow, DocumentRow, FinancialRecordRow, LeadRow, ReportRow, TaskRow, TeamMemberRow, TripRow } from "@/types/database"
 import type { ClientInput, ClientTravelerProfile } from "@/types/client"
 import type { AgencyDashboardData } from "@/types/dashboard"
@@ -78,6 +74,7 @@ import type { CentralOperationalData } from "@/types/operational-center"
 import type { CreditsOverviewData } from "@/types/credits-overview"
 import type { ReportsOverviewData } from "@/types/reports-overview"
 import type { TripShareLinkSummary } from "@/types/trip-share"
+import type { CatalogAgencyProfile, CatalogItemResponse } from "@/types/catalog"
 
 type ClientRecord = {
   id: string
@@ -124,16 +121,6 @@ type TeamRecord = {
   modules: string
 }
 
-type QuoteRecord = {
-  id: string
-  client: string
-  destination: string
-  status: string
-  value: string
-  includes: string
-  notes: string
-}
-
 type MessageRecord = {
   id: string
   sender: "agency" | "client"
@@ -141,25 +128,6 @@ type MessageRecord = {
   time: string
   status?: string
 }
-
-const tripRecords: TripRecord[] = trips.map((trip, index) => ({
-  ...trip,
-  dayProgress: [62, 45, 18][index] ?? 50,
-  stage: trip.status === "Em andamento" ? "Em andamento" : trip.status === "Confirmada" ? "Confirmada" : trip.status === "Planejamento" ? "Planejamento" : "Finalizada",
-  timeline: [
-    { label: "Dia 1", detail: "Check-in, transfer e chegada tranquila." },
-    { label: "Dia 2", detail: "Passeio principal e almoço reservado.", current: trip.status === "Em andamento" },
-    { label: "Dia 3", detail: "Momento livre com experiência sugerida." },
-  ],
-  checklist: [
-    { label: "Contrato", done: true },
-    { label: "Pagamento", done: trip.status !== "Planejamento" },
-    { label: "Voucher", done: trip.status === "Confirmada" || trip.status === "Em andamento" },
-    { label: "Passagem", done: trip.status !== "Planejamento" },
-    { label: "Seguro", done: trip.status === "Confirmada" || trip.status === "Em andamento" },
-    { label: "Roteiro", done: true },
-  ],
-}))
 
 const documentRecords: DocumentRecord[] = [
   ...documents,
@@ -178,19 +146,6 @@ const documentRecords: DocumentRecord[] = [
             ? "Cobertura ativa e instru??es r?pidas para acionamento."
             : "Documento pronto para compartilhar com o cliente.",
 }))
-
-const teamRecords: TeamRecord[] = [
-  { id: "tm-1", name: "Marina Alves", role: "AGENCY_ADMIN", scope: "Acesso total", status: "Ativo", lastAccess: "Hoje, 08:42", modules: "Financeiro, viagens, documentos, IA" },
-  { id: "tm-2", name: "Lucas Prado", role: "AGENCY_SALES", scope: "Leads + cota??es", status: "Ativo", lastAccess: "Hoje, 09:15", modules: "Leads, cota??es, Agent" },
-  { id: "tm-3", name: "Renata Moura", role: "AGENCY_FINANCE", scope: "Financeiro + contratos", status: "Ativo", lastAccess: "Ontem, 18:03", modules: "Financeiro, contratos, relat?rios" },
-  { id: "tm-4", name: "Caio Vieira", role: "AGENCY_OPERATIONAL", scope: "Viagens + documentos", status: "Convite pendente", lastAccess: "Ainda sem acesso", modules: "Viagens, documentos, central operacional" },
-]
-
-const quoteRecords: QuoteRecord[] = [
-  { id: "qt-1", client: "Carla Dias", destination: "Paris", status: "Enviada", value: "R$ 18.400", includes: "A?reo, hotel boutique, transfer", notes: "Cliente pediu foco em experi?ncia rom?ntica." },
-  { id: "qt-2", client: "Fabio Mello", destination: "Gramado", status: "Aguardando aprova??o", value: "R$ 9.200", includes: "Hotel, carro e parque", notes: "Fam?lia com duas crian?as." },
-  { id: "qt-3", client: "Beatriz Lima", destination: "Macei?", status: "Aprovada", value: "R$ 12.780", includes: "Resort, a?reo e seguro", notes: "Preparar convers?o em viagem." },
-]
 
 async function requestJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const response = await fetch(input, {
@@ -384,6 +339,145 @@ function StatusPill({ label }: { label: string }) {
           : "border-white/10 bg-white/[0.06] text-muted-foreground"
 
   return <span className={`rounded-full border px-2.5 py-1 text-[10px] font-medium tracking-[0.18em] ${styles}`}>{label}</span>
+}
+
+type WorkspaceCardAction = {
+  label: string
+  href?: string
+  onClick?: () => void
+  tone?: "default" | "future"
+}
+
+type WorkspaceCardVisualItem = {
+  label: string
+  value: string
+  progress?: number
+}
+
+type WorkspaceCardTone = "default" | "attention" | "critical" | "future"
+
+function WorkspaceDashboardCard({
+  title,
+  icon: Icon,
+  value,
+  context,
+  href,
+  badge,
+  tone = "default",
+  visualItems,
+  primaryAction,
+  secondaryAction,
+}: {
+  title: string
+  icon: LucideIcon
+  value: string
+  context: string
+  href?: string
+  badge?: string
+  tone?: WorkspaceCardTone
+  visualItems: WorkspaceCardVisualItem[]
+  primaryAction?: WorkspaceCardAction
+  secondaryAction?: WorkspaceCardAction
+}) {
+  const toneClasses =
+    tone === "critical"
+      ? "border-rose-400/18 bg-[linear-gradient(180deg,rgba(244,63,94,0.12),rgba(255,255,255,0.03))] shadow-[0_24px_60px_rgba(159,18,57,0.16)]"
+      : tone === "attention"
+        ? "border-amber-400/18 bg-[linear-gradient(180deg,rgba(251,191,36,0.10),rgba(255,255,255,0.03))] shadow-[0_24px_60px_rgba(161,98,7,0.14)]"
+        : tone === "future"
+          ? "border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.015))] opacity-90"
+          : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
+
+  const titleContent = (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="rounded-[22px] border border-white/10 bg-black/20 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <Icon className="h-4.5 w-4.5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-foreground">{title}</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">{context}</p>
+          </div>
+        </div>
+        {badge ? <StatusPill label={badge} /> : null}
+      </div>
+
+      <div className="mt-5 flex items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-primary/65">Leitura principal</p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
+        </div>
+      </div>
+    </>
+  )
+
+  return (
+    <div className={`group rounded-[30px] border p-5 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/16 hover:bg-white/[0.05] ${toneClasses}`}>
+      {href ? (
+        <Link href={href} className="block">
+          {titleContent}
+        </Link>
+      ) : (
+        titleContent
+      )}
+
+      <div className="mt-5 space-y-2.5">
+        {visualItems.slice(0, 3).map((item, index) => (
+          <div key={`${title}-${item.label}-${index}`} className="rounded-[20px] border border-white/8 bg-black/15 px-3.5 py-3">
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="truncate text-muted-foreground">{item.label}</span>
+              <span className="font-medium text-foreground">{item.value}</span>
+            </div>
+            {typeof item.progress === "number" ? (
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/8">
+                <div
+                  className={cn(
+                    "h-full rounded-full bg-gradient-to-r from-primary/75 via-orange-300/75 to-amber-200/80 transition-all",
+                    tone === "future" ? "opacity-55" : "",
+                  )}
+                  style={{ width: `${Math.max(8, Math.min(item.progress, 100))}%` }}
+                />
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+
+      {primaryAction || secondaryAction ? (
+        <div className="mt-5 flex flex-wrap gap-2">
+          {primaryAction ? (
+            primaryAction.href ? (
+              <Button asChild size="sm" className="rounded-full">
+                <Link href={primaryAction.href}>{primaryAction.label}</Link>
+              </Button>
+            ) : (
+              <Button size="sm" type="button" className="rounded-full" onClick={primaryAction.onClick}>
+                {primaryAction.label}
+              </Button>
+            )
+          ) : null}
+          {secondaryAction ? (
+            secondaryAction.href ? (
+              <Button asChild size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+                <Link href={secondaryAction.href}>{secondaryAction.label}</Link>
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                type="button"
+                variant="outline"
+                className="rounded-full border-white/10 bg-white/[0.03]"
+                onClick={secondaryAction.onClick}
+              >
+                {secondaryAction.label}
+              </Button>
+            )
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 function InternalMessages({ initialMessages }: { initialMessages: MessageRecord[] }) {
@@ -860,6 +954,13 @@ function TripEditorDialog({
 
 export function AgencyDashboardPage() {
   const [dashboard, setDashboard] = useState<AgencyDashboardData | null>(null)
+  const [operational, setOperational] = useState<CentralOperationalData | null>(null)
+  const [credits, setCredits] = useState<CreditsOverviewData | null>(null)
+  const [reportsOverview, setReportsOverview] = useState<ReportsOverviewData | null>(null)
+  const [teamMembers, setTeamMembers] = useState<TeamMemberRow[]>([])
+  const [catalogProfile, setCatalogProfile] = useState<CatalogAgencyProfile | null>(null)
+  const [catalogPackages, setCatalogPackages] = useState<CatalogItemResponse[]>([])
+  const [selectedAttention, setSelectedAttention] = useState<DashboardPriorityItem | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const fire = (title: string, description: string) => toast({ title, description })
@@ -872,15 +973,42 @@ export function AgencyDashboardPage() {
       setLoadError(null)
 
       try {
-        const data = await requestJson<AgencyDashboardData>("/api/dashboard/agency")
+        const [dashboardResult, operationalResult, creditsResult, reportsResult, teamResult, catalogProfileResult, catalogPackagesResult] = await Promise.allSettled([
+          requestJson<AgencyDashboardData>("/api/dashboard/agency"),
+          requestJson<CentralOperationalData>("/api/operational-center"),
+          requestJson<CreditsOverviewData>("/api/credits/overview"),
+          requestJson<ReportsOverviewData>("/api/reports/overview"),
+          requestJson<TeamMemberRow[]>("/api/team"),
+          requestJson<CatalogAgencyProfile>("/api/catalog/agency"),
+          requestJson<CatalogItemResponse[]>("/api/catalog/packages"),
+        ])
+
         if (!active) return
-        setDashboard(data)
+
+        if (dashboardResult.status === "fulfilled") {
+          setDashboard(dashboardResult.value)
+        } else {
+          throw dashboardResult.reason
+        }
+
+        setOperational(operationalResult.status === "fulfilled" ? operationalResult.value : null)
+        setCredits(creditsResult.status === "fulfilled" ? creditsResult.value : null)
+        setReportsOverview(reportsResult.status === "fulfilled" ? reportsResult.value : null)
+        setTeamMembers(teamResult.status === "fulfilled" ? teamResult.value : [])
+        setCatalogProfile(catalogProfileResult.status === "fulfilled" ? catalogProfileResult.value : null)
+        setCatalogPackages(catalogPackagesResult.status === "fulfilled" ? catalogPackagesResult.value : [])
       } catch (error) {
         if (!active) return
         if (process.env.NODE_ENV !== "production") {
           console.error("[AgencyDashboardPage] failed to load dashboard", error)
         }
         setDashboard(null)
+        setOperational(null)
+        setCredits(null)
+        setReportsOverview(null)
+        setTeamMembers([])
+        setCatalogProfile(null)
+        setCatalogPackages([])
         setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar o dashboard da agencia.")
       } finally {
         if (active) {
@@ -896,314 +1024,527 @@ export function AgencyDashboardPage() {
     }
   }, [])
 
-  const metricIconMap = [Users, Waypoints, PlaneTakeoff, FileText, Wallet, CalendarClock]
+  const attentionItems = dashboard?.priorities.slice(0, 4) ?? []
+  const summaryCards = dashboard?.summary_cards.slice(0, 3) ?? []
+  const topFeed = dashboard?.operational_feed.slice(0, 3) ?? []
+  const recentDocuments = dashboard?.recent_entities.documents ?? []
+  const recentTemplateCount = recentDocuments.filter((item) => normalizeDocumentType(item.type) === "Template").length
+  const recentQuoteCount = recentDocuments.filter((item) => normalizeDocumentType(item.type) === "Cotação").length
+  const recentItineraryCount = recentDocuments.filter((item) => normalizeDocumentType(item.type) === "Roteiro").length
+  const teamActiveCount = teamMembers.filter((member) => String(member.status || "").toLowerCase().includes("ativo")).length
+  const publishedCatalogCount = catalogPackages.filter((item) => {
+    const status = String(item.status || "").toLowerCase()
+    return status.includes("public") || status.includes("ativo")
+  }).length
+  const attentionCount = attentionItems.length
+  const healthTone =
+    dashboard?.health.tone === "danger" ? "critical" : dashboard?.health.tone === "warning" ? "attention" : "default"
 
-  const feedIconForHref = (href: string) => {
-    if (href.includes("/clientes")) return UserRoundPlus
-    if (href.includes("/leads")) return Waypoints
-    if (href.includes("/viagens")) return PlaneTakeoff
-    if (href.includes("/documentos")) return FilePenLine
-    return HandCoins
-  }
-
-  const quickActions = [
-    { title: "Novo cliente", href: "/app/clientes/novo", icon: UserRoundPlus, description: "Cadastrar contato e abrir relacionamento." },
-    { title: "Novo lead", href: "/app/leads/novo", icon: Waypoints, description: "Adicionar lead novo ao funil comercial." },
-    { title: "Nova viagem", href: "/app/viagens/nova", icon: PlaneTakeoff, description: "Abrir jornada operacional com dados reais." },
-    { title: "Novo documento", href: "/app/documentos/novo", icon: FilePenLine, description: "Criar documento real vinculado a cliente ou viagem." },
-    { title: "Novo lançamento", href: "/app/financeiro/novo", icon: HandCoins, description: "Registrar receita ou despesa no financeiro real." },
-    { title: "Ver clientes", href: "/app/clientes", icon: Users, description: "Abrir a base real de clientes da agência." },
-    { title: "Ver leads", href: "/app/leads", icon: Target, description: "Acompanhar o pipeline comercial em tempo real." },
-    { title: "Ver viagens", href: "/app/viagens", icon: Route, description: "Consultar viagens ativas e próximos embarques." },
-    { title: "Ver documentos", href: "/app/documentos", icon: FileText, description: "Acompanhar contratos, vouchers e pendências." },
-    { title: "Ver financeiro", href: "/app/financeiro", icon: Wallet, description: "Consultar saldo, receitas e despesas reais." },
-  ]
+  const workspaceCards = [
+    {
+      key: "financeiro",
+      span: "xl:col-span-4",
+      title: "Financeiro",
+      icon: HandCoins,
+      value: formatMoney(dashboard?.finance_snapshot.balance ?? 0),
+      context: dashboard?.finance_snapshot.note || "Receitas, despesas, caixa e pendências reais da agência.",
+      href: "/app/financeiro",
+      badge: (dashboard?.finance_snapshot.pending_revenue ?? 0) > 0 ? "Atenção" : "Estável",
+      tone: (dashboard?.finance_snapshot.pending_revenue ?? 0) > 0 ? "attention" : "default",
+      visualItems: [
+        { label: "Receitas", value: formatMoney(dashboard?.finance_snapshot.total_revenue ?? 0), progress: 76 },
+        { label: "Despesas", value: formatMoney(dashboard?.finance_snapshot.total_expenses ?? 0), progress: 48 },
+        { label: "A receber", value: formatMoney(dashboard?.finance_snapshot.pending_revenue ?? 0), progress: 34 },
+      ],
+      primaryAction: { label: "Novo lançamento", href: "/app/financeiro/novo" },
+      secondaryAction: { label: "Ver pendências", href: "/app/financeiro" },
+    },
+    {
+      key: "viagens",
+      span: "xl:col-span-4",
+      title: "Viagens",
+      icon: PlaneTakeoff,
+      value: `${dashboard?.counts.active_trips ?? 0} em andamento`,
+      context: `${dashboard?.counts.upcoming_trips ?? 0} embarques próximos com operação ativa e compartilhamento pronto.`,
+      href: "/app/viagens",
+      badge: (dashboard?.counts.upcoming_trips ?? 0) > 0 ? "Hoje" : "Estável",
+      tone: (dashboard?.counts.upcoming_trips ?? 0) > 0 ? "attention" : "default",
+      visualItems: (dashboard?.recent_entities.trips ?? []).slice(0, 3).map((trip, index) => ({
+        label: trip.destination || `Viagem ${index + 1}`,
+        value: trip.status || "Planejamento",
+        progress: trip.status?.includes("Confirm") ? 84 : trip.status?.includes("andamento") ? 96 : 52,
+      })),
+      primaryAction: { label: "Nova viagem", href: "/app/viagens/nova" },
+      secondaryAction: { label: "Abrir viagens", href: "/app/viagens" },
+    },
+    {
+      key: "documentos",
+      span: "xl:col-span-4",
+      title: "Documentos",
+      icon: FileText,
+      value: `${dashboard?.counts.pending_documents ?? 0} pendentes`,
+      context: `${dashboard?.counts.emitted_documents ?? 0} documentos emitidos com leitura real da central documental.`,
+      href: "/app/documentos",
+      badge: (dashboard?.counts.pending_documents ?? 0) > 0 ? "Revisar" : "Em dia",
+      tone: (dashboard?.counts.pending_documents ?? 0) > 0 ? "attention" : "default",
+      visualItems: recentDocuments.slice(0, 3).map((document, index) => ({
+        label: document.title || `Documento ${index + 1}`,
+        value: normalizeDocumentType(document.type),
+        progress: document.status?.toLowerCase().includes("rascunho") ? 36 : document.status?.toLowerCase().includes("pend") ? 52 : 88,
+      })),
+      primaryAction: { label: "Novo documento", href: "/app/documentos/novo" },
+      secondaryAction: { label: "Abrir central", href: "/app/documentos" },
+    },
+    {
+      key: "clientes",
+      span: "xl:col-span-3",
+      title: "Clientes",
+      icon: Users,
+      value: `${dashboard?.counts.clients ?? 0} ativos`,
+      context: "Relacionamento, vínculos e base viva da agência.",
+      href: "/app/clientes",
+      badge: (dashboard?.recent_entities.clients.length ?? 0) > 0 ? "Recentes" : "Base vazia",
+      visualItems: (dashboard?.recent_entities.clients ?? []).slice(0, 3).map((client, index) => ({
+        label: client.name || `Cliente ${index + 1}`,
+        value: client.email || client.phone || "Cadastro recente",
+        progress: 70 - index * 12,
+      })),
+      primaryAction: { label: "Novo cliente", href: "/app/clientes/novo" },
+      secondaryAction: { label: "Abrir CRM", href: "/app/clientes" },
+    },
+    {
+      key: "leads",
+      span: "xl:col-span-3",
+      title: "Leads",
+      icon: Waypoints,
+      value: `${dashboard?.counts.leads ?? 0} no funil`,
+      context: "Qualificação comercial e próximos avanços do pipeline.",
+      href: "/app/leads",
+      badge: Object.keys(dashboard?.counts.leads_by_status ?? {}).length > 0 ? "Pipeline" : "Sem sinais",
+      tone: (dashboard?.counts.leads_by_status.Novo ?? 0) > 0 ? "attention" : "default",
+      visualItems: Object.entries(dashboard?.counts.leads_by_status ?? {}).slice(0, 3).map(([status, amount], index) => ({
+        label: status,
+        value: `${amount}`,
+        progress: 75 - index * 15,
+      })),
+      primaryAction: { label: "Novo lead", href: "/app/leads/novo" },
+      secondaryAction: { label: "Abrir leads", href: "/app/leads" },
+    },
+    {
+      key: "roteiros",
+      span: "xl:col-span-3",
+      title: "Roteiros",
+      icon: Route,
+      value: recentItineraryCount > 0 ? `${recentItineraryCount} recentes` : "Sem novos roteiros",
+      context: "Experiência do cliente, jornada e resumo operacional da viagem.",
+      href: "/app/viagens/roteiros",
+      badge: recentItineraryCount > 0 ? "Atualizado" : "Biblioteca pronta",
+      visualItems: recentDocuments
+        .filter((item) => normalizeDocumentType(item.type) === "Roteiro")
+        .slice(0, 3)
+        .map((item, index) => ({
+          label: item.title || `Roteiro ${index + 1}`,
+          value: item.status || "Pronto",
+          progress: item.status?.toLowerCase().includes("rascunho") ? 42 : 84,
+        })),
+      primaryAction: { label: "Novo roteiro", href: "/app/viagens/roteiros/novo" },
+      secondaryAction: { label: "Ver roteiros", href: "/app/viagens/roteiros" },
+    },
+    {
+      key: "cotacoes",
+      span: "xl:col-span-3",
+      title: "Cotações",
+      icon: Receipt,
+      value: recentQuoteCount > 0 ? `${recentQuoteCount} recentes` : "Sem novas cotações",
+      context: "Propostas, follow-up comercial e conversão em viagem real.",
+      href: "/app/viagens/cotacoes",
+      badge: recentQuoteCount > 0 ? "Em negociação" : "Fluxo pronto",
+      visualItems: recentDocuments
+        .filter((item) => normalizeDocumentType(item.type) === "Cotação")
+        .slice(0, 3)
+        .map((item, index) => ({
+          label: item.title || `Cotação ${index + 1}`,
+          value: item.status || "Rascunho",
+          progress: item.status?.toLowerCase().includes("aprov") ? 88 : 48 + index * 10,
+        })),
+      primaryAction: { label: "Nova cotação", href: "/app/viagens/cotacoes/nova" },
+      secondaryAction: { label: "Abrir cotações", href: "/app/viagens/cotacoes" },
+    },
+    {
+      key: "templates",
+      span: "xl:col-span-3",
+      title: "Templates",
+      icon: FileBadge,
+      value: recentTemplateCount > 0 ? `${recentTemplateCount} recentes` : "Biblioteca pronta",
+      context: "Blocos reutilizáveis para documentos, relatórios e roteiros.",
+      href: "/app/documentos/templates",
+      badge: recentTemplateCount > 0 ? "Reutilizável" : "Em preparo",
+      visualItems:
+        recentTemplateCount > 0
+          ? recentDocuments
+              .filter((item) => normalizeDocumentType(item.type) === "Template")
+              .slice(0, 3)
+              .map((item, index) => ({
+                label: item.title || `Template ${index + 1}`,
+                value: item.status || "Ativo",
+                progress: item.status?.toLowerCase().includes("inativo") ? 25 : 80 - index * 10,
+              }))
+          : [
+              { label: "Modelos ativos", value: "Prontos para edição", progress: 72 },
+              { label: "Uso como base", value: "Disponível", progress: 66 },
+              { label: "Biblioteca visual", value: "Organizada por tipo", progress: 61 },
+            ],
+      primaryAction: { label: "Novo template", href: "/app/documentos/templates" },
+      secondaryAction: { label: "Biblioteca", href: "/app/documentos/templates" },
+    },
+    {
+      key: "equipe",
+      span: "xl:col-span-3",
+      title: "Equipe",
+      icon: Users,
+      value: `${teamMembers.length} membros`,
+      context: "Permissões visuais, status e ritmo de acesso da operação.",
+      href: "/app/equipe",
+      badge: teamActiveCount > 0 ? `${teamActiveCount} ativos` : "Sem acessos",
+      visualItems: teamMembers.slice(0, 3).map((member, index) => ({
+        label: member.name || `Membro ${index + 1}`,
+        value: member.status || member.role || "Ativo",
+        progress: String(member.status || "").toLowerCase().includes("ativo") ? 82 : 34,
+      })),
+      primaryAction: { label: "Adicionar", href: "/app/equipe/novo" },
+      secondaryAction: { label: "Abrir equipe", href: "/app/equipe" },
+    },
+    {
+      key: "relatorios",
+      span: "xl:col-span-3",
+      title: "Relatórios",
+      icon: CalendarClock,
+      value: `${reportsOverview?.recent_reports.length ?? 0} recentes`,
+      context: reportsOverview?.preview.title || "Resumo operacional e exportações rápidas da agência.",
+      href: "/app/central-operacional/relatorios",
+      badge: reportsOverview?.recent_reports.length ? "Atualizado" : "Sem histórico",
+      visualItems:
+        reportsOverview?.preview.lines.slice(0, 3).map((line, index) => ({
+          label: `Leitura ${index + 1}`,
+          value: line,
+          progress: 84 - index * 14,
+        })) ?? [],
+      primaryAction: { label: "Gerar relatório", href: "/app/central-operacional/relatorios/novo" },
+      secondaryAction: { label: "Abrir relatórios", href: "/app/central-operacional/relatorios" },
+    },
+    {
+      key: "catalogo",
+      span: "xl:col-span-3",
+      title: "Catálogo",
+      icon: Target,
+      value: `${catalogPackages.length} pacotes`,
+      context: catalogProfile?.public_url || "Vitrine pública da agência, branding e publicação de ofertas.",
+      href: "/app/catalogo",
+      badge: publishedCatalogCount > 0 ? `${publishedCatalogCount} publicados` : "Sem publicação",
+      visualItems: catalogPackages.slice(0, 3).map((item, index) => ({
+        label: item.title || `Pacote ${index + 1}`,
+        value: item.status || "Rascunho",
+        progress: String(item.status || "").toLowerCase().includes("public") ? 82 : 36,
+      })),
+      primaryAction: { label: "Abrir catálogo", href: "/app/catalogo" },
+      secondaryAction: catalogProfile?.slug ? { label: "Ver vitrine", href: `/catalogo/${catalogProfile.slug}` } : { label: "Ver vitrine", href: "/app/catalogo" },
+    },
+    {
+      key: "creditos",
+      span: "xl:col-span-3",
+      title: "Créditos",
+      icon: CreditCard,
+      value: `${credits?.balance ?? 0} disponíveis`,
+      context: "Consumo operacional, origem das ações e saldo para expansões futuras.",
+      href: "/app/creditos",
+      badge: (credits?.balance ?? 0) > 0 ? "Operação ativa" : "Revisar saldo",
+      tone: (credits?.balance ?? 0) <= 0 ? "attention" : "default",
+      visualItems:
+        credits?.by_feature.slice(0, 3).map((item, index) => ({
+          label: item.feature,
+          value: `${item.amount}`,
+          progress: 82 - index * 16,
+        })) ?? [],
+      primaryAction: { label: "Abrir créditos", href: "/app/creditos" },
+      secondaryAction: { label: "Ver histórico", href: "/app/creditos" },
+    },
+    {
+      key: "central",
+      span: "xl:col-span-3",
+      title: "Central Operacional",
+      icon: CheckCheck,
+      value: `${operational?.priorities.length ?? 0} prioridades`,
+      context: "Tarefas, prioridades reais e sinais vivos da rotina da agência.",
+      href: "/app/central-operacional",
+      badge: (operational?.priorities.length ?? 0) > 0 ? "Em foco" : "Tudo sob controle",
+      tone: (operational?.priorities.length ?? 0) > 2 ? "attention" : "default",
+      visualItems:
+        operational?.statuses.slice(0, 3).map((item, index) => ({
+          label: item.label,
+          value: item.value,
+          progress: 86 - index * 15,
+        })) ?? [],
+      primaryAction: { label: "Abrir central", href: "/app/central-operacional" },
+      secondaryAction: { label: "Ver tarefas", href: "/app/central-operacional/tarefas" },
+    },
+    {
+      key: "atlas",
+      span: "xl:col-span-3",
+      title: "Atlas",
+      icon: Bot,
+      value: dashboard?.advisor_recommendations.length ? `${dashboard.advisor_recommendations.length} sugestões` : "Suporte pronto",
+      context: "Copiloto operacional para orientar o uso do TravelPro sem virar chatbot genérico.",
+      href: "/app/atlas-advisor",
+      badge: "Contextual",
+      visualItems:
+        dashboard?.advisor_recommendations.slice(0, 3).map((item, index) => ({
+          label: `Sugestão ${index + 1}`,
+          value: item,
+          progress: 80 - index * 11,
+        })) ?? [],
+      primaryAction: { label: "Abrir Atlas", href: "/app/atlas-advisor" },
+      secondaryAction: { label: "Preciso de ajuda", href: "/app/atlas-advisor" },
+    },
+    {
+      key: "expansoes",
+      span: "xl:col-span-6",
+      title: "Expansões premium",
+      icon: Sparkles,
+      value: "Disponíveis para ativação",
+      context: "TravelPro Go, Agent, Match, WhatsApp IA, Marketing IA, Advisor e automações seguem como módulos preparados.",
+      href: "/app/planos",
+      badge: "Em breve",
+      tone: "future",
+      visualItems: [
+        { label: "TravelPro Go", value: "Espaço reservado no fluxo", progress: 42 },
+        { label: "Match + catálogo", value: "Pronto para próxima fase", progress: 56 },
+        { label: "Marketing + automações", value: "Aguardando ativação", progress: 38 },
+      ],
+      primaryAction: { label: "Ver expansões", href: "/app/planos" },
+      secondaryAction: {
+        label: "Quero ativar",
+        onClick: () => fire("Em breve", "As expansões premium continuam preparadas visualmente e serão ativadas em fases posteriores."),
+      },
+    },
+  ] as const
 
   return (
     <PageShell>
-      <SectionHeader
-        title="Operação ativa"
-        description="Resumo vivo da agência com prioridade comercial, entrega, caixa e automação trabalhando em segundo plano."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Button asChild className="rounded-full">
-              <Link href="/app/viagens/nova">Nova viagem</Link>
-            </Button>
-            <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
-              <Link href="/app/central-operacional">Abrir central</Link>
-            </Button>
-          </div>
-        }
-      />
-
-      <DashboardCard
-        title="Resumo operacional inteligente"
-        description="O que o sistema está vendo agora sem transformar seu dia em um cockpit barulhento."
-      >
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          {isLoading
-            ? Array.from({ length: 5 }).map((_, index) => (
-                <div key={`dashboard-summary-skeleton-${index}`} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3.5 animate-pulse">
-                  <div className="h-3 w-24 rounded-full bg-white/10" />
-                  <div className="mt-3 h-4 w-28 rounded-full bg-white/10" />
-                  <div className="mt-2 h-3 w-32 rounded-full bg-white/10" />
-                </div>
-              ))
-            : (dashboard?.summary_cards ?? []).map((item) => (
-            <div key={item.label} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3.5">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">{item.label}</p>
-              <p className="mt-2 text-sm font-semibold text-foreground">{item.value}</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.hint}</p>
+      <div className="overflow-hidden rounded-[34px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 shadow-[0_36px_120px_rgba(0,0,0,0.32)] backdrop-blur-2xl md:p-6">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_380px]">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.08] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary/80">
+              <Sparkles className="h-3.5 w-3.5" />
+              Operação em foco
             </div>
-          ))}
+            <h2 className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+              O dashboard agora é o seu workspace operacional vivo.
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground md:text-[15px]">
+              Menos peso de ERP, mais contexto prático: clientes, viagens, documentos, caixa, catálogo e central operacional no mesmo plano de trabalho.
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2.5">
+              <Button asChild className="rounded-full">
+                <Link href="/app/viagens/nova">Nova viagem</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+                <Link href="/app/central-operacional">Abrir central</Link>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-full border-white/10 bg-white/[0.03]"
+                onClick={() => fire("Personalização em breve", "A reorganização manual dos cards será liberada na próxima etapa do redesign do workspace.")}
+              >
+                Personalizar cards
+              </Button>
+            </div>
+          </div>
+
+          <div className={`rounded-[30px] border p-5 backdrop-blur-xl ${healthTone === "critical" ? "border-rose-400/18 bg-rose-400/10" : healthTone === "attention" ? "border-amber-400/18 bg-amber-400/10" : "border-emerald-400/15 bg-emerald-400/10"}`}>
+            <p className={`text-[11px] uppercase tracking-[0.22em] ${healthTone === "critical" ? "text-rose-100/80" : healthTone === "attention" ? "text-amber-100/80" : "text-emerald-100/80"}`}>
+              {dashboard?.health.label || "Operação ativa"}
+            </p>
+            <p className="mt-3 text-xl font-semibold text-foreground">{dashboard?.health.title || "Lendo sinais reais da agência"}</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {dashboard?.health.description || "O workspace monitora caixa, documentação, viagens, clientes e ritmo comercial em segundo plano."}
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {isLoading
+                ? Array.from({ length: 3 }).map((_, index) => <div key={`hero-skeleton-${index}`} className="h-20 animate-pulse rounded-[22px] bg-white/10" />)
+                : summaryCards.map((item) => (
+                    <div key={item.label} className="rounded-[22px] border border-white/10 bg-black/18 px-4 py-3.5">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">{item.label}</p>
+                      <p className="mt-2 text-sm font-semibold text-foreground">{item.value}</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.hint}</p>
+                    </div>
+                  ))}
+            </div>
+          </div>
         </div>
-      </DashboardCard>
+      </div>
 
       {loadError ? (
-        <div className="rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
-          <p className="font-medium">Nao foi possivel carregar o dashboard agora.</p>
+        <div className="rounded-[28px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+          <p className="font-medium">Nao foi possivel carregar o workspace agora.</p>
           <p className="mt-1 text-amber-100/80">{loadError}</p>
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="rounded-[32px] border border-white/8 bg-white/[0.03] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.2)] backdrop-blur-2xl">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-primary/70">Inteligência operacional</p>
+            <h3 className="mt-2 text-xl font-semibold text-foreground">
+              {attentionCount > 0
+                ? `Você tem ${attentionCount} ponto${attentionCount > 1 ? "s" : ""} de atenção hoje.`
+                : "Sua operação está estável agora."}
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Clique em um sinal para abrir o contexto certo e resolver sem navegar por telas pesadas.
+            </p>
+          </div>
+          <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+            <Link href="/app/central-operacional">Abrir central operacional</Link>
+          </Button>
+        </div>
+
+        <div className="mt-5 grid gap-3 lg:grid-cols-4">
+          {isLoading
+            ? Array.from({ length: 4 }).map((_, index) => <div key={`attention-skeleton-${index}`} className="h-28 animate-pulse rounded-[24px] bg-white/[0.05]" />)
+            : attentionItems.length > 0
+              ? attentionItems.map((item) => (
+                  <button
+                    key={item.href}
+                    type="button"
+                    onClick={() => setSelectedAttention(item)}
+                    className="rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-4 text-left transition-all hover:border-primary/18 hover:bg-white/[0.05]"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium text-foreground">{item.label}</p>
+                      <StatusPill label={item.value} />
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.hint}</p>
+                  </button>
+                ))
+              : (
+                  <div className="lg:col-span-4 rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">
+                    Nenhuma prioridade crítica agora. Continue alimentando clientes, viagens, documentos e financeiro para manter o workspace vivo.
+                  </div>
+                )}
+        </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-12">
         {isLoading
-          ? Array.from({ length: 6 }).map((_, index) => (
-              <div key={`dashboard-metric-skeleton-${index}`} className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5 animate-pulse">
+          ? Array.from({ length: 14 }).map((_, index) => (
+              <div key={`workspace-card-skeleton-${index}`} className={cn("rounded-[30px] border border-white/8 bg-white/[0.03] p-5 animate-pulse", index < 3 ? "xl:col-span-4" : index === 13 ? "xl:col-span-6" : "xl:col-span-3")}>
                 <div className="h-4 w-28 rounded-full bg-white/10" />
-                <div className="mt-4 h-6 w-36 rounded-full bg-white/10" />
-                <div className="mt-3 h-4 w-40 rounded-full bg-white/10" />
+                <div className="mt-5 h-7 w-32 rounded-full bg-white/10" />
+                <div className="mt-6 space-y-2">
+                  <div className="h-12 rounded-[20px] bg-white/10" />
+                  <div className="h-12 rounded-[20px] bg-white/10" />
+                  <div className="h-12 rounded-[20px] bg-white/10" />
+                </div>
               </div>
             ))
-          : (dashboard?.metrics ?? []).map((metric, index) => {
-              const Icon = metricIconMap[index] ?? Sparkles
-              return <MetricCard key={metric.label} label={metric.label} value={metric.value} change={metric.change} tone={metric.tone} icon={Icon} />
-            })}
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_380px]">
-        <DashboardCard title="Financeiro vivo" description="Receitas, despesas, saldo e registros recentes com base real do Supabase.">
-          {isLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={`dashboard-finance-skeleton-${index}`} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4 animate-pulse">
-                  <div className="h-4 w-32 rounded-full bg-white/10" />
-                  <div className="mt-3 h-4 w-40 rounded-full bg-white/10" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <InfoCard label="Receitas" value={formatMoney(dashboard?.finance_snapshot.total_revenue ?? 0)} />
-                <InfoCard label="Despesas" value={formatMoney(dashboard?.finance_snapshot.total_expenses ?? 0)} />
-                <InfoCard label="Saldo" value={formatMoney(dashboard?.finance_snapshot.balance ?? 0)} />
-                <InfoCard label="A receber" value={formatMoney(dashboard?.finance_snapshot.pending_revenue ?? 0)} />
+          : workspaceCards.map((card) => (
+              <div key={card.key} className={card.span}>
+                <WorkspaceDashboardCard {...card} />
               </div>
-              <div className="mt-4 rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-sm font-medium text-foreground">Leitura do momento</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{dashboard?.finance_snapshot.note || "Ainda não há dados financeiros suficientes para leitura."}</p>
-              </div>
-              <div className="mt-4 space-y-3">
-                {(dashboard?.finance_snapshot.recent_records ?? []).length === 0 ? (
-                  <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
-                    Nenhum lançamento financeiro ainda. Use o CTA de novo lançamento para alimentar o dashboard.
-                  </div>
-                ) : (
-                  (dashboard?.finance_snapshot.recent_records ?? []).map((record) => (
-                    <div key={record.id} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{record.category || record.type}</p>
-                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{record.description || "Sem descrição complementar"} • {formatDateLabel(record.occurred_at)}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-foreground">{formatMoney(Number(record.amount || 0))}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{record.status}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </>
-          )}
-        </DashboardCard>
-
-        <div className="space-y-6">
-          <DashboardCard title="Sistema Vivo TravelPro" description="Pequeno retrato do que está trabalhando por trás da operação.">
-            <div className="space-y-3">
-              {(dashboard?.system_items ?? []).map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => {
-                    if (item.action === "future") {
-                      fire("Em breve", item.detail)
-                    }
-                  }}
-                  className="flex w-full items-start gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-left"
-                >
-                  <span className={`mt-1 h-2.5 w-2.5 shrink-0 animate-pulse rounded-full ${item.tone}`} />
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-medium text-foreground">{item.label}</p>
-                      <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                        {item.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </DashboardCard>
-
-          <DashboardCard title="Saúde operacional" description="Indicador discreto baseado em leads, financeiro, follow-up e documentação.">
-            <div className={`rounded-[24px] p-4 ${dashboard?.health.tone === "success" ? "border border-emerald-400/15 bg-emerald-400/10" : "border border-amber-400/20 bg-amber-400/10"}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className={`text-[10px] uppercase tracking-[0.18em] ${dashboard?.health.tone === "success" ? "text-emerald-200/80" : "text-amber-100/80"}`}>{dashboard?.health.label || "Em análise"}</p>
-                  <p className="mt-2 text-lg font-semibold text-foreground">{dashboard?.health.title || "Carregando saúde operacional"}</p>
-                </div>
-                <div className={`h-3 w-3 animate-pulse rounded-full ${dashboard?.health.tone === "success" ? "bg-emerald-300" : "bg-amber-300"}`} />
-              </div>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                {dashboard?.health.description || "Lendo sinais reais da operação."}
-              </p>
-            </div>
-          </DashboardCard>
-        </div>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
-        <DashboardCard title="Atividade operacional" description="Fluxo recente da agência com leitura limpa e contextual.">
-          <div className="space-y-3">
-            {(dashboard?.operational_feed ?? []).length === 0 && !isLoading ? (
-              <div className="rounded-[22px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
-                Ainda não há eventos reais recentes. Crie clientes, leads, viagens, documentos ou lançamentos para alimentar este feed.
-              </div>
-            ) : null}
-            {(dashboard?.operational_feed ?? []).map((item, index) => {
-              const Icon = feedIconForHref(item.href)
-              const stableKey = item.id || `${item.href}-${item.time}-${item.title}-${index}`
-              return (
-              <div key={stableKey} className="flex items-start gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3.5">
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-2.5">
-                  <Icon className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{item.title}</p>
-                    <StatusPill label={item.time} />
-                  </div>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</p>
-                </div>
-              </div>
-            )})}
-          </div>
-        </DashboardCard>
-
-        <DashboardCard title="Hoje na operação" description="Prioridades que merecem sua atenção antes do próximo ciclo do dia.">
-          <div className="space-y-3">
-            {(dashboard?.priorities ?? []).map((item, index) => (
-              <Link key={item.id || `${item.href}-${item.label}-${item.value}-${index}`} href={item.href} className="block rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 transition-all hover:border-primary/15 hover:bg-white/[0.05]">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-foreground">{item.label}</p>
-                  <span className="text-sm font-semibold text-primary">{item.value}</span>
-                </div>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.hint}</p>
-              </Link>
             ))}
-            <Button asChild variant="outline" className="w-full rounded-full border-white/10 bg-white/[0.03]">
-              <Link href="/app/central-operacional">Abrir central operacional</Link>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+        <div className="rounded-[32px] border border-white/8 bg-white/[0.03] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-primary/70">Fluxo da operação</p>
+              <h3 className="mt-2 text-xl font-semibold text-foreground">O que está se movendo agora</h3>
+            </div>
+            <Button asChild variant="outline" size="sm" className="rounded-full border-white/10 bg-white/[0.03]">
+              <Link href="/app/central-operacional">Ver tudo</Link>
             </Button>
           </div>
-        </DashboardCard>
+          <div className="mt-5 space-y-3">
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, index) => <div key={`feed-skeleton-${index}`} className="h-20 animate-pulse rounded-[24px] bg-white/[0.05]" />)
+            ) : topFeed.length > 0 ? (
+              topFeed.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className="flex items-start gap-3 rounded-[24px] border border-white/8 bg-black/15 px-4 py-3.5 transition-all hover:border-primary/16 hover:bg-white/[0.04]"
+                >
+                  <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_12px_rgba(249,115,22,0.55)]" />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">{item.title}</p>
+                      <StatusPill label={item.time} />
+                    </div>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">
+                Ainda não há eventos reais suficientes para esse micro feed.
+              </div>
+            )}
+          </div>
+        </div>
 
-        <div className="space-y-6">
-          <DashboardCard title="TravelPro Go" description="Presença viva do assessor operacional dentro da rotina da agência.">
-            <div className="space-y-3">
-              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">Status operacional</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-amber-400" />
-                  <p className="text-sm font-semibold text-foreground">Em breve na leitura real do dashboard</p>
+        <div className="rounded-[32px] border border-white/8 bg-white/[0.03] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-primary/70">Notas rápidas</p>
+          <h3 className="mt-2 text-xl font-semibold text-foreground">Leitura curta da agência</h3>
+          <div className="mt-5 space-y-3">
+            {(dashboard?.operation_notes ?? []).length > 0 ? (
+              (dashboard?.operation_notes ?? []).slice(0, 4).map((item) => (
+                <div key={item} className="rounded-[22px] border border-white/8 bg-black/15 px-4 py-3 text-sm leading-6 text-muted-foreground">
+                  {item}
                 </div>
+              ))
+            ) : (
+              <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">
+                O sistema ainda está coletando sinais suficientes para resumir a operação com mais profundidade.
               </div>
-              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">Ações hoje</p>
-                <p className="mt-2 text-sm font-semibold text-foreground">Integração futura com WhatsApp</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">O painel já reserva o espaço, mas ainda não lê execuções reais do GO sem a integração de WhatsApp.</p>
-              </div>
-              <div className="flex gap-2">
-                <Button className="flex-1 rounded-full" onClick={() => fire("TravelPro Go em breve", "O GO ainda não está conectado ao dashboard real porque a integração de WhatsApp permanece fora deste escopo.")}>
-                  Abrir GO
-                </Button>
-                <Button variant="outline" className="flex-1 rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Histórico em breve", "O histórico do TravelPro Go será liberado quando a integração de WhatsApp entrar na fase correspondente.")}>
-                  Ver histórico
-                </Button>
-              </div>
-            </div>
-          </DashboardCard>
-
-          <DashboardCard title="Advisor recomenda" description="Sugestões discretas com maior impacto operacional e comercial.">
-            <div className="space-y-3">
-            {(dashboard?.advisor_recommendations ?? []).map((item, index) => (
-              <div key={`${item}-${index}`} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-muted-foreground">
-                {item}
-              </div>
-            ))}
-            </div>
-          </DashboardCard>
-
-          <DashboardCard title="Match e Marketing IA" description="Oportunidades detectadas e campanhas prontas para aproveitar a demanda.">
-            <div className="space-y-3">
-              <button type="button" onClick={() => fire("Match em breve", "O Match ainda não está integrado a dados reais neste dashboard.")} className="w-full rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-left">
-                <p className="text-sm font-medium text-foreground">Match em alta</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  O conceito visual foi mantido, mas a integração real do Match continua como próxima etapa.
-                </p>
-              </button>
-              <button type="button" onClick={() => fire("Marketing IA em breve", "O Marketing IA ainda não está integrado a dados reais neste dashboard.")} className="w-full rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-left">
-                <p className="text-sm font-medium text-foreground">Marketing IA</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  O painel já sinaliza o espaço do módulo, mas sem inventar dados enquanto a integração real não existe.
-                </p>
-              </button>
-              <Button className="w-full rounded-full" onClick={() => fire("Campanhas em breve", "A geração de campanhas por Marketing IA ainda será integrada fora deste escopo.")}>Gerar campanha</Button>
-            </div>
-          </DashboardCard>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <DashboardCard title="Ações rápidas" description="Atalhos para mover a operação sem perder contexto.">
-          <div className="grid gap-3 md:grid-cols-2">
-            {quickActions.map((item) => (
-              <Link key={item.title} href={item.href} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4 transition-all hover:border-primary/15 hover:bg-white/[0.05]">
-                <div className="mb-3 flex items-center gap-3">
-                  <div className="rounded-2xl border border-white/10 bg-primary/10 p-2.5">
-                    <item.icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground">{item.title}</p>
+      <Dialog open={Boolean(selectedAttention)} onOpenChange={(open) => (!open ? setSelectedAttention(null) : null)}>
+        <DialogContent className="border-white/10 bg-[#0e0b0c]/96 p-0 shadow-[0_34px_120px_rgba(0,0,0,0.58)]">
+          {selectedAttention ? (
+            <>
+              <DialogHeader className="border-b border-white/8 px-6 py-5">
+                <DialogTitle>{selectedAttention.label}</DialogTitle>
+                <DialogDescription>
+                  {selectedAttention.hint}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 px-6 py-5">
+                <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-primary/70">Leitura atual</p>
+                  <p className="mt-2 text-lg font-semibold text-foreground">{selectedAttention.value}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    Abra o módulo relacionado para resolver esse ponto no fluxo operacional certo, sem perder contexto.
+                  </p>
                 </div>
-                <p className="text-sm leading-6 text-muted-foreground">{item.description}</p>
-              </Link>
-            ))}
-          </div>
-        </DashboardCard>
-
-        <DashboardCard title="Operação resumida" description="Leitura curta e contextual do que mais pesa na agência neste momento.">
-          <div className="space-y-3">
-            {(dashboard?.operation_notes ?? []).map((item) => (
-              <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-muted-foreground">
-                {item}
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild className="rounded-full">
+                    <Link href={selectedAttention.href}>Abrir módulo</Link>
+                  </Button>
+                  <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setSelectedAttention(null)}>
+                    Fechar
+                  </Button>
+                </div>
               </div>
-            ))}
-          </div>
-        </DashboardCard>
-      </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </PageShell>
   )
 }
