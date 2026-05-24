@@ -567,7 +567,7 @@ function WorkspaceDashboardCard({
   return (
     <div
       className={cn(
-        "group flex h-full min-h-[252px] flex-col rounded-[28px] border p-4 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/16 hover:bg-white/[0.05]",
+        "group flex h-full min-h-[212px] flex-col rounded-[26px] border p-3.5 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/16 hover:bg-white/[0.05]",
         toneClasses,
         isDragging ? "scale-[0.985] opacity-70" : "",
         isDropTarget ? "ring-1 ring-primary/35 ring-offset-0" : "",
@@ -585,8 +585,8 @@ function WorkspaceDashboardCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="rounded-[20px] border border-white/10 bg-black/20 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-            <Icon className="h-4.5 w-4.5 text-primary" />
+          <div className="rounded-[18px] border border-white/10 bg-black/20 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <Icon className="h-4 w-4 text-primary" />
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">{title}</p>
@@ -600,7 +600,7 @@ function WorkspaceDashboardCard({
               onDragStart={() => onDragStart?.(cardKey)}
               onDragEnd={onDragEnd}
               aria-label={`Reorganizar card ${title}`}
-              className="rounded-full border border-white/8 bg-black/15 p-1.5 text-muted-foreground opacity-0 transition-all hover:border-white/12 hover:text-foreground group-hover:opacity-100"
+              className="rounded-full border border-white/8 bg-black/15 p-1.5 text-muted-foreground opacity-0 transition-all duration-300 hover:border-white/12 hover:text-foreground group-hover:opacity-100"
             >
               <Grip className="h-3.5 w-3.5" />
             </button>
@@ -609,28 +609,28 @@ function WorkspaceDashboardCard({
         </div>
       </div>
 
-      <p className="mt-2 min-h-[32px] text-xs leading-5 text-muted-foreground">{context}</p>
+      <p className="mt-1.5 text-[12px] leading-5 text-muted-foreground">{context}</p>
 
-      <div className="mt-3">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-primary/65">Leitura principal</p>
+      <div className="mt-2.5">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-primary/58">Leitura principal</p>
         {href ? (
-          <Link href={href} className="mt-1.5 block text-[1.35rem] font-semibold tracking-tight text-foreground transition-colors hover:text-primary">
+          <Link href={href} className="mt-1 block text-[1.2rem] font-semibold tracking-tight text-foreground transition-colors hover:text-primary">
             {value}
           </Link>
         ) : (
-          <p className="mt-1.5 text-[1.35rem] font-semibold tracking-tight text-foreground">{value}</p>
+          <p className="mt-1 text-[1.2rem] font-semibold tracking-tight text-foreground">{value}</p>
         )}
       </div>
 
-      <div className="mt-3.5 flex-1 space-y-2">
+      <div className="mt-2.5 flex-1 space-y-1.5">
         {visualItems.slice(0, 3).map((item, index) => (
-          <div key={`${title}-${item.label}-${index}`} className="rounded-[18px] border border-white/8 bg-black/15 px-3 py-2.5">
+          <div key={`${title}-${item.label}-${index}`} className="rounded-[16px] border border-white/8 bg-black/15 px-3 py-2">
             <div className="flex items-center justify-between gap-3 text-xs">
               <span className="truncate text-muted-foreground">{item.label}</span>
               <span className="font-medium text-foreground">{item.value}</span>
             </div>
             {typeof item.progress === "number" ? (
-              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/8">
+              <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/8">
                 <div
                   className={cn(
                     "h-full rounded-full bg-gradient-to-r from-primary/75 via-orange-300/75 to-amber-200/80 transition-all",
@@ -645,7 +645,7 @@ function WorkspaceDashboardCard({
       </div>
 
       {primaryAction || secondaryAction || onOpenQuickActions ? (
-        <div className="mt-3.5 flex items-center gap-2">
+        <div className="mt-2.5 flex items-center gap-2">
           {primaryAction ? (
             primaryAction.href ? (
               <Button asChild size="sm" className="rounded-full">
@@ -784,12 +784,12 @@ function ModalField({ label, value }: MockField) {
 function ConfirmationDialog({ action, onClose }: { action: ConfirmAction; onClose: () => void }) {
   return (
     <Dialog open={Boolean(action)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-        <DialogHeader className="border-b border-white/8 px-6 py-5">
+      <DialogContent className="max-w-lg rounded-[30px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+        <DialogHeader className="border-b border-white/8 px-5 py-4.5">
           <DialogTitle>{action?.title}</DialogTitle>
           <DialogDescription>{action?.description}</DialogDescription>
         </DialogHeader>
-        <DialogFooter className="border-t border-white/8 px-6 py-5">
+        <DialogFooter className="border-t border-white/8 px-5 py-4.5">
           <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={onClose}>
             Cancelar
           </Button>
@@ -827,17 +827,17 @@ function MockFormDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-        <DialogHeader className="border-b border-white/8 px-6 py-5">
+      <DialogContent className="max-w-2xl rounded-[30px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+        <DialogHeader className="border-b border-white/8 px-5 py-4.5">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <div className="grid max-h-[56vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
+        <div className="grid max-h-[56vh] gap-4 overflow-y-auto px-5 py-4.5 md:grid-cols-2">
           {fields.map((field) => (
             <ModalField key={field.label} {...field} />
           ))}
         </div>
-        <DialogFooter className="border-t border-white/8 px-6 py-5">
+        <DialogFooter className="border-t border-white/8 px-5 py-4.5">
           <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
@@ -1971,7 +1971,7 @@ export function AgencyDashboardPage() {
       title: "Financeiro",
       icon: HandCoins,
       value: formatMoney(dashboard?.finance_snapshot.balance ?? 0),
-      context: dashboard?.finance_snapshot.note || "Receitas, despesas, caixa e pendências reais da agência.",
+      context: dashboard?.finance_snapshot.note || "Caixa, fluxo e pendencias.",
       href: "/app/financeiro",
       badge: (dashboard?.finance_snapshot.pending_revenue ?? 0) > 0 ? "Atenção" : "Estável",
       tone: (dashboard?.finance_snapshot.pending_revenue ?? 0) > 0 ? "attention" : "default",
@@ -1994,7 +1994,7 @@ export function AgencyDashboardPage() {
       title: "Viagens",
       icon: PlaneTakeoff,
       value: `${dashboard?.counts.active_trips ?? 0} em andamento`,
-      context: `${dashboard?.counts.upcoming_trips ?? 0} embarques próximos com operação ativa e compartilhamento pronto.`,
+      context: `${dashboard?.counts.upcoming_trips ?? 0} embarques proximos e links prontos.`,
       href: "/app/viagens",
       badge: (dashboard?.counts.upcoming_trips ?? 0) > 0 ? "Hoje" : "Estável",
       tone: (dashboard?.counts.upcoming_trips ?? 0) > 0 ? "attention" : "default",
@@ -2017,7 +2017,7 @@ export function AgencyDashboardPage() {
       title: "Documentos",
       icon: FileText,
       value: `${dashboard?.counts.pending_documents ?? 0} pendentes`,
-      context: `${dashboard?.counts.emitted_documents ?? 0} documentos emitidos com leitura real da central documental.`,
+      context: `${dashboard?.counts.emitted_documents ?? 0} emitidos e ${dashboard?.counts.pending_documents ?? 0} em fila.`,
       href: "/app/documentos",
       badge: (dashboard?.counts.pending_documents ?? 0) > 0 ? "Revisar" : "Em dia",
       tone: (dashboard?.counts.pending_documents ?? 0) > 0 ? "attention" : "default",
@@ -2040,7 +2040,7 @@ export function AgencyDashboardPage() {
       title: "Clientes",
       icon: Users,
       value: `${dashboard?.counts.clients ?? 0} ativos`,
-      context: "Relacionamento, vínculos e base viva da agência.",
+      context: "Relacionamento e base ativa.",
       href: "/app/clientes",
       badge: (dashboard?.recent_entities.clients.length ?? 0) > 0 ? "Recentes" : "Base vazia",
       visualItems: (dashboard?.recent_entities.clients ?? []).slice(0, 3).map((client, index) => ({
@@ -2062,7 +2062,7 @@ export function AgencyDashboardPage() {
       title: "Leads",
       icon: Waypoints,
       value: `${dashboard?.counts.leads ?? 0} no funil`,
-      context: "Qualificação comercial e próximos avanços do pipeline.",
+      context: "Pipeline e proximos avanços.",
       href: "/app/leads",
       badge: Object.keys(dashboard?.counts.leads_by_status ?? {}).length > 0 ? "Pipeline" : "Sem sinais",
       tone: (dashboard?.counts.leads_by_status.Novo ?? 0) > 0 ? "attention" : "default",
@@ -2085,7 +2085,7 @@ export function AgencyDashboardPage() {
       title: "Roteiros",
       icon: Route,
       value: recentItineraryCount > 0 ? `${recentItineraryCount} recentes` : "Sem novos roteiros",
-      context: "Experiência do cliente, jornada e resumo operacional da viagem.",
+      context: "Jornada e entrega ao cliente.",
       href: "/app/viagens/roteiros",
       badge: recentItineraryCount > 0 ? "Atualizado" : "Biblioteca pronta",
       visualItems: recentDocuments
@@ -2110,7 +2110,7 @@ export function AgencyDashboardPage() {
       title: "Cotações",
       icon: Receipt,
       value: recentQuoteCount > 0 ? `${recentQuoteCount} recentes` : "Sem novas cotações",
-      context: "Propostas, follow-up comercial e conversão em viagem real.",
+      context: "Propostas, follow-up e conversao.",
       href: "/app/viagens/cotacoes",
       badge: recentQuoteCount > 0 ? "Em negociação" : "Fluxo pronto",
       visualItems: recentDocuments
@@ -2412,27 +2412,31 @@ export function AgencyDashboardPage() {
 
   return (
     <PageShell>
-      <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] px-5 py-4 shadow-[0_24px_70px_rgba(0,0,0,0.18)] backdrop-blur-2xl">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-primary/68">Workspace operacional</p>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <p className="text-base font-semibold text-foreground">Sua operação está ativa hoje.</p>
-              <span className="text-sm text-muted-foreground">
-                {attentionCount > 0 ? `${attentionCount} ponto${attentionCount > 1 ? "s" : ""} pedem atenção.` : condensedSummary}
-              </span>
-            </div>
+      <div className="rounded-[22px] border border-white/8 bg-[linear-gradient(135deg,rgba(255,255,255,0.038),rgba(255,255,255,0.018))] px-4 py-3 shadow-[0_18px_54px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+        <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px]",
+                healthTone === "critical"
+                  ? "border-rose-400/18 bg-rose-400/10 text-rose-100/85"
+                  : healthTone === "attention"
+                    ? "border-amber-400/18 bg-amber-400/10 text-amber-100/85"
+                    : "border-emerald-400/15 bg-emerald-400/10 text-emerald-100/85",
+              )}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-current opacity-90" />
+              {attentionCount > 0 ? `${attentionCount} alertas` : "Em dia"}
+            </span>
+            <span className="text-sm text-muted-foreground">{attentionCount > 0 ? condensedSummary : dashboard?.health.title || "Tudo sob controle."}</span>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <div className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs", healthTone === "critical" ? "border-rose-400/18 bg-rose-400/10 text-rose-100/85" : healthTone === "attention" ? "border-amber-400/18 bg-amber-400/10 text-amber-100/85" : "border-emerald-400/15 bg-emerald-400/10 text-emerald-100/85")}>
-              <span className="font-medium">{dashboard?.health.title || "Operacao ativa"}</span>
-            </div>
             <Button asChild size="sm" className="rounded-full">
               <Link href="/app/viagens/nova">Nova viagem</Link>
             </Button>
             <Button asChild size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
-              <Link href="/app/central-operacional">Abrir central</Link>
+              <Link href="/app/central-operacional">Central</Link>
             </Button>
           </div>
         </div>
@@ -2445,45 +2449,35 @@ export function AgencyDashboardPage() {
         </div>
       ) : null}
 
-      <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-4 shadow-[0_20px_64px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-primary/70">Inteligência operacional</p>
-            <h3 className="mt-1.5 text-base font-semibold text-foreground">
-              {attentionCount > 0
-                ? `Você tem ${attentionCount} ponto${attentionCount > 1 ? "s" : ""} de atenção hoje.`
-                : "Sua operação está estável agora."}
-            </h3>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Clique em um sinal para abrir o contexto certo e resolver sem navegar por telas pesadas.
-            </p>
-          </div>
+      <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-3.5 shadow-[0_18px_54px_rgba(0,0,0,0.15)] backdrop-blur-2xl">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-primary/68">Alertas</p>
           <Button asChild size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
-            <Link href="/app/central-operacional">Abrir central operacional</Link>
+            <Link href="/app/central-operacional">Abrir central</Link>
           </Button>
         </div>
 
-        <div className="mt-4 grid gap-3 lg:grid-cols-4">
+        <div className="grid gap-3 lg:grid-cols-4">
           {isLoading
-            ? Array.from({ length: 4 }).map((_, index) => <div key={`attention-skeleton-${index}`} className="h-28 animate-pulse rounded-[24px] bg-white/[0.05]" />)
+            ? Array.from({ length: 4 }).map((_, index) => <div key={`attention-skeleton-${index}`} className="h-20 animate-pulse rounded-[20px] bg-white/[0.05]" />)
             : attentionItems.length > 0
               ? attentionItems.map((item) => (
                   <button
                     key={item.href}
                     type="button"
                     onClick={() => setSelectedAttention(item)}
-                    className="rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-4 text-left transition-all hover:border-primary/18 hover:bg-white/[0.05]"
+                    className="rounded-[20px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-3 text-left transition-all duration-300 hover:border-primary/18 hover:bg-white/[0.05]"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-medium text-foreground">{item.label}</p>
                       <StatusPill label={item.value} />
                     </div>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.hint}</p>
+                    <p className="mt-1.5 text-sm leading-5 text-muted-foreground">{item.hint}</p>
                   </button>
                 ))
               : (
-                  <div className="lg:col-span-4 rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">
-                    Nenhuma prioridade crítica agora. Continue alimentando clientes, viagens, documentos e financeiro para manter o workspace vivo.
+                  <div className="lg:col-span-4 rounded-[20px] border border-dashed border-white/10 bg-white/[0.02] px-4 py-6 text-sm text-muted-foreground">
+                    Nenhum alerta agora.
                   </div>
                 )}
         </div>
@@ -2642,10 +2636,10 @@ export function AgencyDashboardPage() {
       />
 
       <Dialog open={Boolean(activeMicroWorkspace)} onOpenChange={(open) => (!open ? setActiveMicroWorkspace(null) : null)}>
-        <DialogContent className="max-w-4xl border-white/10 bg-[#0e0b0c]/96 p-0 shadow-[0_34px_120px_rgba(0,0,0,0.58)]">
+        <DialogContent className="max-w-4xl rounded-[30px] border-white/10 bg-[#0e0b0c]/96 p-0 shadow-[0_34px_120px_rgba(0,0,0,0.58)]">
           {activeMicroWorkspace ? (
             <>
-              <DialogHeader className="border-b border-white/8 px-6 py-5">
+              <DialogHeader className="border-b border-white/8 px-5 py-4.5">
                 <DialogTitle>
                   {{
                     clients: "Clientes em foco",
@@ -2673,7 +2667,7 @@ export function AgencyDashboardPage() {
                   }[activeMicroWorkspace]}
                 </DialogDescription>
               </DialogHeader>
-              <div className="max-h-[72vh] overflow-y-auto px-6 py-5">
+              <div className="max-h-[72vh] overflow-y-auto px-5 py-4.5">
                 {activeMicroWorkspace === "clients" ? (
                   <div className="space-y-4">
                     <div className="flex flex-wrap gap-2">
@@ -2974,21 +2968,21 @@ export function AgencyDashboardPage() {
       </Dialog>
 
       <Dialog open={Boolean(activeQuickActions)} onOpenChange={(open) => (!open ? setActiveQuickActions(null) : null)}>
-        <DialogContent className="max-w-xl border-white/10 bg-[#0e0b0c]/96 p-0 shadow-[0_34px_120px_rgba(0,0,0,0.58)]">
+        <DialogContent className="max-w-lg rounded-[28px] border-white/10 bg-[#0e0b0c]/96 p-0 shadow-[0_34px_120px_rgba(0,0,0,0.58)]">
           {activeQuickActions ? (
             <>
-              <DialogHeader className="border-b border-white/8 px-6 py-5">
+              <DialogHeader className="border-b border-white/8 px-5 py-4.5">
                 <DialogTitle>{activeQuickActions.title}</DialogTitle>
                 <DialogDescription>{activeQuickActions.description}</DialogDescription>
               </DialogHeader>
-              <div className="space-y-3 px-6 py-5">
+              <div className="space-y-2.5 px-5 py-4.5">
                 {activeQuickActions.actions.map((action, index) =>
                   action.href ? (
                     <Link
                       key={`${activeQuickActions.title}-action-${index}`}
                       href={action.href}
                       onClick={() => setActiveQuickActions(null)}
-                      className="flex items-center justify-between rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-foreground transition-all hover:border-primary/18 hover:bg-white/[0.05]"
+                      className="flex items-center justify-between rounded-[20px] border border-white/8 bg-white/[0.03] px-3.5 py-2.5 text-sm text-foreground transition-all hover:border-primary/18 hover:bg-white/[0.05]"
                     >
                       <span>{action.label}</span>
                       <ChevronRight className="h-3.5 w-3.5 text-primary" />
@@ -3001,7 +2995,7 @@ export function AgencyDashboardPage() {
                         action.onClick?.()
                         setActiveQuickActions(null)
                       }}
-                      className="flex w-full items-center justify-between rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-left text-sm text-foreground transition-all hover:border-primary/18 hover:bg-white/[0.05]"
+                      className="flex w-full items-center justify-between rounded-[20px] border border-white/8 bg-white/[0.03] px-3.5 py-2.5 text-left text-sm text-foreground transition-all hover:border-primary/18 hover:bg-white/[0.05]"
                     >
                       <span>{action.label}</span>
                       <ChevronRight className="h-3.5 w-3.5 text-primary" />
