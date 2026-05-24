@@ -29,6 +29,7 @@ export default async function PublicCatalogPage({
   const featuredMetadata = featuredPackage ? parseMetadata(featuredPackage.metadata) : {}
   const agencyBanner = data.agency.banner_url || defaultBanner
   const agencyLogo = data.agency.logo_url || defaultLogo
+  const whatsappHref = data.agency.phone ? `https://wa.me/${data.agency.phone.replace(/\D/g, "")}` : null
 
   return (
     <main id="top" className="min-h-screen bg-background px-6 py-10 text-foreground">
@@ -76,6 +77,27 @@ export default async function PublicCatalogPage({
               <p className="mt-5 max-w-2xl text-sm leading-7 text-white/75 md:text-base">
                 {data.agency.description || "Pacotes publicados da agência, organizados em uma vitrine limpa, pública e pronta para compartilhamento."}
               </p>
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                {whatsappHref ? (
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/15 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+                  >
+                    <MessageSquareText className="h-4 w-4" />
+                    Falar com a agência
+                  </a>
+                ) : null}
+                <Link
+                  href="#pacotes"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-white/75 transition-colors hover:text-white"
+                >
+                  <Globe className="h-4 w-4" />
+                  Ver pacotes
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -187,7 +209,7 @@ export default async function PublicCatalogPage({
                     Próximas fases
                   </div>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Match, IA, recomendação inteligente e impulsionamento permanecem “Em breve”, sem backend fake nesta vitrine.
+                    Match, IA, recomendação inteligente e impulsionamento permanecem em breve, sem backend fake nesta vitrine.
                   </p>
                 </div>
               </div>

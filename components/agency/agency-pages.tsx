@@ -40,13 +40,9 @@ import { documents } from "@/mock/documents"
 import { leads } from "@/mock/leads"
 import { PageShell } from "@/components/system/page-shell"
 import { SectionHeader } from "@/components/system/section-header"
-import { MetricCard } from "@/components/system/metric-card"
 import { DashboardCard } from "@/components/system/dashboard-card"
-import { FeatureExplanationCard } from "@/components/system/feature-explanation-card"
 import { SearchInput } from "@/components/system/search-input"
 import { FilterTabs } from "@/components/system/filter-tabs"
-import { SetupStatusCard } from "@/components/system/setup-status-card"
-import { SmartActionButton } from "@/components/system/smart-action-button"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -438,6 +434,61 @@ function WorkspacePanel({
         {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
       </div>
       <div className="mt-4">{children}</div>
+    </div>
+  )
+}
+
+function WorkspaceInlineCard({
+  title,
+  detail,
+  meta,
+  status,
+  actions,
+}: {
+  title: string
+  detail: string
+  meta?: string
+  status?: string
+  actions?: ReactNode
+}) {
+  return (
+    <div className="rounded-[24px] border border-white/8 bg-black/10 px-4 py-3.5 transition-all hover:border-primary/15 hover:bg-white/[0.045]">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-medium text-foreground">{title}</p>
+            {status ? <StatusPill label={status} /> : null}
+          </div>
+          <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{detail}</p>
+          {meta ? <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-primary/65">{meta}</p> : null}
+        </div>
+        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      </div>
+    </div>
+  )
+}
+
+function WorkspaceFeatureCard({
+  title,
+  description,
+  badge,
+  actions,
+}: {
+  title: string
+  description: string
+  badge?: string
+  actions?: ReactNode
+}) {
+  return (
+    <div className="rounded-[26px] border border-white/8 bg-[linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] p-4 shadow-[0_16px_50px_rgba(0,0,0,0.14)] backdrop-blur-xl">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+        </div>
+        {badge ? <StatusPill label={badge} /> : null}
+      </div>
+      {actions ? <div className="mt-4 flex flex-wrap gap-2">{actions}</div> : null}
     </div>
   )
 }
@@ -5648,48 +5699,65 @@ export function AgencyTravelProGoPage() {
 
   return (
     <PageShell>
-      <SectionHeader
+      <WorkspaceSectionHeader
+        eyebrow="Expansão operacional"
         title="TravelPro Go"
-        description="WhatsApp operacional com governança, histórico e ações rápidas da rotina."
+        description="Camada futura de operação conversacional da agência, preparada para governança, histórico e comandos rápidos."
+        summary="Em breve"
         actions={
-          <div className="flex flex-wrap gap-2">
-            <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir regras, permissões e comandos úteis para o TravelPro Go." />
-            <Button className="rounded-full" onClick={() => fire("TravelPro Go em breve", "O controle operacional do número será liberado quando a integração real de WhatsApp entrar na próxima fase.")}>Ativar / pausar</Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem aberta", "O histórico completo do TravelPro Go foi preparado.")}>Abrir origem</Button>
-          </div>
+          <>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Configuração em breve", "A configuração operacional do TravelPro Go será liberada quando a integração oficial for ativada.")}>Configurar módulo</Button>
+            <Button className="rounded-full" onClick={() => fire("TravelPro Go em breve", "O controle operacional do número será liberado quando a integração real de WhatsApp entrar na próxima fase.")}>Quero ativar</Button>
+          </>
         }
       />
-      <div className="grid gap-5 xl:grid-cols-2">
-        <FeatureExplanationCard
-          title="Como o TravelPro Go funciona"
-          description="É o assessor interno da agência via WhatsApp, conectado à operação."
-          items={[
-            { title: "Assessor operacional", body: "Recebe comandos internos para criar clientes, cotações, roteiros, documentos e notificações." },
-            { title: "Governança do sistema", body: "Opera com permissões definidas e serve como extensão do time no dia a dia." },
-          ]}
-        />
-        <SetupStatusCard
-          title="Configuração atual"
-          description="Leitura rápida da maturidade do módulo."
-          badges={["Número oficial ativo", "Criação de clientes pronta", "Consultas operacionais liberadas", "Distribuição interna ativa"]}
-        />
+      <WorkspaceMetricStrip
+        items={[
+          { label: "Cobertura futura", value: "WhatsApp interno", hint: "Canal operacional assistido para time e agência." },
+          { label: "Estado atual", value: "Preparação ativa", hint: "Sem integração oficial liberada nesta etapa.", tone: "warning" },
+          { label: "Fluxos previstos", value: "3 comandos-chave", hint: "Clientes, documentos e catálogo no radar." },
+          { label: "Governança", value: "Controlada", hint: "Permissões e histórico continuarão auditáveis." },
+        ]}
+      />
+      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <WorkspacePanel
+          eyebrow="Operação conversacional"
+          title="Como este módulo entra na rotina"
+          description="O Go será a extensão operacional da agência para executar comandos rápidos e distribuir contexto sem sair do ecossistema TravelPro."
+        >
+          <div className="grid gap-3 md:grid-cols-2">
+            <WorkspaceFeatureCard title="Comandos internos" description="Criar roteiro, gerar contrato, abrir catálogo e acionar a operação a partir de uma conversa assistida." />
+            <WorkspaceFeatureCard title="Histórico e rastreio" description="Cada ação continuará com trilha clara, sem botões mudos nem automações invisíveis." />
+          </div>
+        </WorkspacePanel>
+        <WorkspacePanel
+          eyebrow="Sinais preparados"
+          title="Execuções previstas"
+          description="Exemplos operacionais que mostram como o módulo será usado quando a camada oficial estiver ativa."
+        >
+          <div className="space-y-3">
+            {entries.map((entry) => (
+              <WorkspaceInlineCard
+                key={entry.id}
+                title={entry.title}
+                detail={entry.response}
+                meta="Fluxo preparado"
+                status="Em breve"
+                actions={
+                  <>
+                    <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem em breve", `A trilha completa de ${entry.title} será exibida quando o histórico real do Go estiver disponível.`)}>
+                      Abrir origem
+                    </Button>
+                    <Button className="rounded-full" onClick={() => fire("Detalhes preparados", `O cenário de ${entry.title} já está mapeado para a próxima fase.`)}>
+                      Ver cenário
+                    </Button>
+                  </>
+                }
+              />
+            ))}
+          </div>
+        </WorkspacePanel>
       </div>
-      <DashboardCard title="Execuções recentes" description="Comandos recentes com origem e detalhe operacional.">
-        <div className="space-y-3">
-          {entries.map((entry) => (
-            <div key={entry.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">{entry.title}</p>
-                <p className="mt-2 text-sm text-muted-foreground">{entry.response}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem em breve", `A trilha completa de ${entry.title} será exibida quando o histórico real do Go estiver disponível.`)}>Abrir origem</Button>
-                <Button className="rounded-full" onClick={() => fire("Detalhes abertos", `Os detalhes de ${entry.title} foram preparados.`)}>Abrir detalhes</Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </DashboardCard>
     </PageShell>
   )
 }
@@ -5702,65 +5770,59 @@ export function AgencyAgentPage() {
 
   return (
     <PageShell>
-      <SectionHeader
+      <WorkspaceSectionHeader
+        eyebrow="Expansão comercial"
         title="TravelPro Agent"
-        description="Leads atendidos, qualificação, follow-ups e estilo de atendimento com ações por item."
+        description="Camada futura de atendimento assistido para leads e clientes, preparada para operar com contexto e escalonamento."
+        summary={`${items.length} conversas mapeadas.`}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir estilo de atendimento, regras e escalonamento para o Agent." />
+          <>
             <Button className="rounded-full" onClick={() => fire("Agent em breve", "O controle fino do Agent será liberado quando a operação conversacional entrar na próxima fase.")}>Pausar / ativar</Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setStyleOpen(true)}>Editar estilo de atendimento</Button>
-          </div>
+          </>
         }
       />
-      <div className="grid gap-5 xl:grid-cols-2">
-        <FeatureExplanationCard
-          title="Como o TravelPro Agent funciona"
-          description="É o atendente externo da agência para leads e clientes em qualificação."
-          items={[
-            { title: "Atendente comercial", body: "Qualifica leads, faz follow-up, cria oportunidades e notifica a agência quando precisa de humano." },
-            { title: "Escalonamento inteligente", body: "Quando a conversa exige contexto maior, o Agent prepara a transferência para o time." },
-          ]}
-        />
-        <SetupStatusCard
-          title="Estado atual do Agent"
-          description="Leitura rápida do módulo externo de atendimento."
-          badges={["Follow-up ativo", "Qualificação assistida", "Escalonamento configurado", "Estilo consultivo premium"]}
-        />
-      </div>
-      <DashboardCard title="Conversas acompanhadas" description="Ações rápidas por atendimento sem poluir a operação.">
+      <WorkspaceMetricStrip
+        items={[
+          { label: "Estado atual", value: "Preparação ativa", hint: "Sem backend conversacional novo nesta etapa.", tone: "warning" },
+          { label: "Follow-up", value: "Assistido", hint: "Modelo futuro para retomar leads e jornadas quentes." },
+          { label: "Escalonamento", value: "Mapeado", hint: "Transferência premium para o humano no momento certo." },
+          { label: "Tom", value: "Consultivo", hint: "Estilo atual preparado para a agência." },
+        ]}
+      />
+      <WorkspacePanel eyebrow="Fila preparada" title="Conversas acompanhadas" description="Ações rápidas por atendimento sem poluir a operação.">
         <div className="space-y-3">
           {items.map((item) => (
-            <div key={item.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{item.name}</p>
-                  <StatusPill label={item.stage} />
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">{item.destination} • {item.origin} • {item.style}</p>
-              </div>
-              <ActionMenu
-                items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => fire("Atendimento em breve", `${item.name} entra na leitura real quando o módulo conversacional for conectado.`) },
-                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Edição em breve", `A edição segura do atendimento de ${item.name} será liberada na próxima etapa do Agent.`) },
-                  {
-                    label: "Excluir",
-                    icon: Trash2,
-                    onClick: () =>
-                      setConfirmAction({
-                        title: "Excluir atendimento",
-                        description: `Deseja remover ${item.name} desta fila de preparação do Agent?`,
-                        confirmLabel: "Excluir atendimento",
-                        onConfirm: () => fire("Atendimento removido", `${item.name} saiu desta visão de preparação do Agent.`),
-                      }),
-                    danger: true,
-                  },
-                ]}
-              />
-            </div>
+            <WorkspaceInlineCard
+              key={item.id}
+              title={item.name}
+              detail={`${item.destination} • ${item.origin} • ${item.style}`}
+              meta="Atendimento preparado"
+              status={item.stage}
+              actions={
+                <ActionMenu
+                  items={[
+                    { label: "Visualizar", icon: Eye, onClick: () => fire("Atendimento em breve", `${item.name} entra na leitura real quando o módulo conversacional for conectado.`) },
+                    { label: "Editar", icon: FilePenLine, onClick: () => fire("Edição em breve", `A edição segura do atendimento de ${item.name} será liberada na próxima etapa do Agent.`) },
+                    {
+                      label: "Excluir",
+                      icon: Trash2,
+                      onClick: () =>
+                        setConfirmAction({
+                          title: "Excluir atendimento",
+                          description: `Deseja remover ${item.name} desta fila de preparação do Agent?`,
+                          confirmLabel: "Excluir atendimento",
+                          onConfirm: () => fire("Atendimento removido", `${item.name} saiu desta visão de preparação do Agent.`),
+                        }),
+                      danger: true,
+                    },
+                  ]}
+                />
+              }
+            />
           ))}
         </div>
-      </DashboardCard>
+      </WorkspacePanel>
       <MockFormDialog
         open={styleOpen}
         onOpenChange={setStyleOpen}
@@ -5792,60 +5854,61 @@ export function AgencyMarketingPage() {
 
   return (
     <PageShell>
-      <SectionHeader
+      <WorkspaceSectionHeader
+        eyebrow="Expansão de campanhas"
         title="Marketing"
-        description="Campanhas, calendário e ações promocionais com fluxo leve e organizado."
+        description="Base de campanhas e calendário promocional na mesma linguagem operacional da V2."
+        summary={`${campaigns.length} campanhas em leitura.`}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <SmartActionButton label="Criar campanha com IA" description="A IA poderá gerar campanhas, calendário e CTA com base no pacote e público." />
+          <>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Calendário em breve", "O calendário promocional completo será conectado quando o módulo de campanhas sair da fase preparatória.")}>Abrir calendário</Button>
             <Button asChild className="rounded-full">
               <Link href="/app/marketing/campanhas/nova">Nova campanha</Link>
             </Button>
-          </div>
+          </>
         }
       />
-      <FeatureExplanationCard
-        title="Marketing IA na operação"
-        description="O módulo deixa de ser só um calendário e passa a ser base de distribuição comercial."
+      <WorkspaceMetricStrip
         items={[
-          { title: "Campanhas orientadas por pacote", body: "Relaciona catálogo, público, CTA e canal em um só fluxo." },
-          { title: "Base para IA futura", body: "Pronto para gerar criativos, mensagens e versões por segmento." },
+          { label: "Estado atual", value: "Preparação ativa", hint: "Campanhas reais entram na próxima etapa do módulo.", tone: "warning" },
+          { label: "Campanhas", value: campaigns.length.toString().padStart(2, "0"), hint: "Leituras de exemplo para operação e distribuição." },
+          { label: "Calendário", value: "Planejado", hint: "Abertura visual já preparada para evolução futura." },
+          { label: "Direção", value: "Catálogo + público", hint: "O módulo seguirá conectado à operação comercial." },
         ]}
       />
-      <DashboardCard title="Campanhas" description="Acompanhe campanhas ativas e ações de manutenção.">
+      <WorkspacePanel eyebrow="Campanhas preparadas" title="Fluxos promocionais" description="Acompanhe campanhas e mantenha a visão comercial organizada, sem cair numa tabela pesada.">
         <div className="space-y-3">
           {campaigns.map((item) => (
-            <div key={item.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{item.title}</p>
-                  <StatusPill label={item.status} />
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{item.detail}</p>
-              </div>
-              <ActionMenu
-                items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => fire("Campanha em breve", `${item.title} entra na leitura real quando o módulo de campanhas for conectado.`) },
-                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Edição em breve", `A edição segura de ${item.title} será liberada na próxima etapa do Marketing IA.`) },
-                  {
-                    label: "Excluir",
-                    icon: Trash2,
-                    onClick: () =>
-                      setConfirmAction({
-                        title: "Excluir campanha",
-                        description: `Deseja remover ${item.title} desta lista de preparação?`,
-                        confirmLabel: "Excluir campanha",
-                        onConfirm: () => fire("Campanha removida", `${item.title} saiu desta visão preparatória do Marketing IA.`),
-                      }),
-                    danger: true,
-                  },
-                ]}
-              />
-            </div>
+            <WorkspaceInlineCard
+              key={item.id}
+              title={item.title}
+              detail={item.detail}
+              meta="Campanha preparada"
+              status={item.status}
+              actions={
+                <ActionMenu
+                  items={[
+                    { label: "Visualizar", icon: Eye, onClick: () => fire("Campanha em breve", `${item.title} entra na leitura real quando o módulo de campanhas for conectado.`) },
+                    { label: "Editar", icon: FilePenLine, onClick: () => fire("Edição em breve", `A edição segura de ${item.title} será liberada na próxima etapa do Marketing IA.`) },
+                    {
+                      label: "Excluir",
+                      icon: Trash2,
+                      onClick: () =>
+                        setConfirmAction({
+                          title: "Excluir campanha",
+                          description: `Deseja remover ${item.title} desta lista de preparação?`,
+                          confirmLabel: "Excluir campanha",
+                          onConfirm: () => fire("Campanha removida", `${item.title} saiu desta visão preparatória do Marketing IA.`),
+                        }),
+                      danger: true,
+                    },
+                  ]}
+                />
+              }
+            />
           ))}
         </div>
-      </DashboardCard>
+      </WorkspacePanel>
       <MockFormDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
@@ -5876,44 +5939,79 @@ export function AgencyAtlasAdvisorPage() {
 
   return (
     <PageShell>
-      <SectionHeader
+      <WorkspaceSectionHeader
+        eyebrow="Copiloto operacional"
         title="Atlas Advisor"
-        description="Consultoria operacional inteligente para comercial, crises e escala da agência."
+        description="Suporte guiado para decisões operacionais, dúvidas do time e próximos passos mais sensíveis da agência."
+        summary={`${consults.length} consultas recentes.`}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir roteiros de objeção, suporte e ações de escala para a equipe." />
+          <>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Histórico aberto", "O histórico completo do Atlas Advisor foi preparado.")}>Ver histórico</Button>
             <Button className="rounded-full" onClick={() => setCreateOpen(true)}>Nova consulta</Button>
-          </div>
+          </>
         }
       />
-      <FeatureExplanationCard
-        title="Para que serve o Atlas Advisor"
-        description="Consultoria operacional para momentos em que o time precisa de apoio contextual."
+      <WorkspaceMetricStrip
         items={[
-          { title: "Comercial", body: "Sugere scripts, respostas e próximos passos para leads e clientes." },
-          { title: "Operação", body: "Ajuda em crise, objeções, replanejamento e escala da agência." },
+          { label: "Consultas úteis", value: consults.length.toString().padStart(2, "0"), hint: "Pontos recentes em comercial, crise e escala.", tone: "default" },
+          { label: "Modo atual", value: "Guiado", hint: "Determinístico e honesto, sem automação inventada.", tone: "success" },
+          { label: "Contextos ativos", value: "Leads e operação", hint: "Ajuda rápida para o que já acontece no sistema." },
+          { label: "Próximo passo", value: "Escala contextual", hint: "O Atlas continuará explicando módulos e fluxos reais." },
         ]}
       />
-      <DashboardCard title="Consultas recentes" description="Abra contexto, origem e detalhes da orientação recebida.">
-        <div className="space-y-3">
-          {consults.map((item) => (
-            <div key={item.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{item.title}</p>
-                  <StatusPill label={item.status} />
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{item.detail}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem aberta", `A origem de ${item.title} foi preparada.`)}>Abrir origem</Button>
-                <Button className="rounded-full" onClick={() => fire("Detalhes abertos", `Os detalhes de ${item.title} foram preparados.`)}>Abrir detalhes</Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </DashboardCard>
+      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <WorkspacePanel
+          eyebrow="Como faço para...?"
+          title="Atalhos de orientação"
+          description="Respostas curtas, contexto por módulo e apoio para destravar a equipe sem virar chatbot genérico."
+        >
+          <div className="grid gap-3">
+            {[
+              "Como criar uma viagem?",
+              "Como compartilhar o link do cliente?",
+              "Como gerar um contrato?",
+              "Como registrar um recebimento?",
+              "Como configurar minha agência?",
+            ].map((question) => (
+              <button
+                key={question}
+                type="button"
+                onClick={() => fire("Atlas preparado", `A orientação contextual para “${question}” segue pronta no assistente Atlas.`)}
+                className="rounded-[22px] border border-white/8 bg-black/10 px-4 py-3 text-left text-sm text-muted-foreground transition-all hover:border-primary/15 hover:bg-white/[0.05]"
+              >
+                {question}
+              </button>
+            ))}
+          </div>
+        </WorkspacePanel>
+        <WorkspacePanel
+          eyebrow="Consultas recentes"
+          title="Orientações já utilizadas"
+          description="Abra a origem ou reveja o contexto da decisão sem sair da linguagem V2."
+        >
+          <div className="space-y-3">
+            {consults.map((item) => (
+              <WorkspaceInlineCard
+                key={item.id}
+                title={item.title}
+                detail={item.detail}
+                meta="Consulta orientada pelo Atlas"
+                status={item.status}
+                actions={
+                  <>
+                    <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem aberta", `A origem de ${item.title} foi preparada.`)}>
+                      Abrir origem
+                    </Button>
+                    <Button className="rounded-full" onClick={() => fire("Detalhes abertos", `Os detalhes de ${item.title} foram preparados.`)}>
+                      Ver orientação
+                    </Button>
+                  </>
+                }
+              />
+            ))}
+          </div>
+        </WorkspacePanel>
+      </div>
       <MockFormDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
@@ -5944,55 +6042,59 @@ export function AgencyAutomationsPage() {
 
   return (
     <PageShell>
-      <SectionHeader
+      <WorkspaceSectionHeader
+        eyebrow="Expansão operacional"
         title="Automações"
-        description="Fluxos, follow-ups, alertas e tarefas automáticas com histórico de execução."
+        description="Fluxos, follow-ups e tarefas automáticas preparados para assumir rotinas repetitivas da agência."
+        summary={`${flows.length} fluxos em preparação.`}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <SmartActionButton label="Configurar com IA" description="A IA poderá sugerir fluxos, regras e gatilhos para automações premium." />
+          <>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Histórico em breve", "O histórico real das automações será liberado quando os fluxos saírem da fase preparatória.")}>Ver histórico</Button>
             <Button className="rounded-full" onClick={() => setCreateOpen(true)}>Novo fluxo</Button>
-          </div>
+          </>
         }
       />
-      <SetupStatusCard
-        title="Automações em operação"
-        description="A visão agora é de módulo configurável, não só uma lista de fluxos."
-        badges={["Follow-up ativo", "Checklist pré-embarque", "Reativação pronta", "Tarefas automáticas configuradas"]}
+      <WorkspaceMetricStrip
+        items={[
+          { label: "Estado atual", value: "Preparação ativa", hint: "Sem automação real nova liberada nesta fase.", tone: "warning" },
+          { label: "Fluxos", value: flows.length.toString().padStart(2, "0"), hint: "Follow-up, pré-embarque e reativação no radar." },
+          { label: "Cobertura", value: "Comercial + operação", hint: "A evolução seguirá conectada aos módulos reais." },
+          { label: "Ação futura", value: "Gatilhos premium", hint: "Prontos para a próxima camada de automação." },
+        ]}
       />
-      <DashboardCard title="Fluxos ativos" description="Acompanhe, ajuste e remova automações sem perder contexto.">
+      <WorkspacePanel eyebrow="Fluxos preparados" title="Automações mapeadas" description="Acompanhe, ajuste e remova automações sem perder contexto.">
         <div className="space-y-3">
           {flows.map((flow) => (
-            <div key={flow.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{flow.title}</p>
-                  <StatusPill label={flow.status} />
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{flow.detail}</p>
-              </div>
-              <ActionMenu
-                items={[
-                  { label: "Visualizar", icon: Eye, onClick: () => fire("Fluxo em breve", `${flow.title} entra na leitura real quando a camada operacional de automações for conectada.`) },
-                  { label: "Editar", icon: FilePenLine, onClick: () => fire("Edição em breve", `A edição segura de ${flow.title} será liberada quando o módulo sair da fase preparatória.`) },
-                  {
-                    label: "Excluir",
-                    icon: Trash2,
-                    onClick: () =>
-                      setConfirmAction({
-                        title: "Excluir automação",
-                        description: `Deseja remover ${flow.title} desta visão de preparação?`,
-                        confirmLabel: "Excluir automação",
-                        onConfirm: () => fire("Automação removida", `${flow.title} saiu desta visão preparatória.`),
-                      }),
-                    danger: true,
-                  },
-                ]}
-              />
-            </div>
+            <WorkspaceInlineCard
+              key={flow.id}
+              title={flow.title}
+              detail={flow.detail}
+              meta="Fluxo preparado"
+              status={flow.status}
+              actions={
+                <ActionMenu
+                  items={[
+                    { label: "Visualizar", icon: Eye, onClick: () => fire("Fluxo em breve", `${flow.title} entra na leitura real quando a camada operacional de automações for conectada.`) },
+                    { label: "Editar", icon: FilePenLine, onClick: () => fire("Edição em breve", `A edição segura de ${flow.title} será liberada quando o módulo sair da fase preparatória.`) },
+                    {
+                      label: "Excluir",
+                      icon: Trash2,
+                      onClick: () =>
+                        setConfirmAction({
+                          title: "Excluir automação",
+                          description: `Deseja remover ${flow.title} desta visão de preparação?`,
+                          confirmLabel: "Excluir automação",
+                          onConfirm: () => fire("Automação removida", `${flow.title} saiu desta visão preparatória.`),
+                        }),
+                      danger: true,
+                    },
+                  ]}
+                />
+              }
+            />
           ))}
         </div>
-      </DashboardCard>
+      </WorkspacePanel>
       <MockFormDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
@@ -6044,26 +6146,20 @@ export function AgencyOperationalOverviewPage() {
     }
   }, [])
 
-  const toneClassMap: Record<CentralOperationalData["priorities"][number]["tone"], string> = {
-    success: "border-green-400/20 bg-green-400/10 text-green-100",
-    info: "border-sky-400/20 bg-sky-400/10 text-sky-100",
-    warning: "border-amber-400/20 bg-amber-400/10 text-amber-100",
-    danger: "border-red-400/20 bg-red-400/10 text-red-100",
-    default: "border-white/10 bg-white/[0.03] text-muted-foreground",
-  }
-
   return (
     <PageShell>
-      <SectionHeader
+      <WorkspaceSectionHeader
+        eyebrow="Hub vivo da operação"
         title="Central Operacional"
-        description="Prioridades do dia, rotas rápidas e ações por item para mover a operação."
+        description="Prioridades do dia, pendências reais e atalhos para mover a agência sem cair no fluxo antigo."
+        summary={`${data?.priorities.length ?? 0} pontos em foco.`}
         actions={
-          <div className="flex flex-wrap gap-2">
+          <>
             <Button asChild className="rounded-full">
               <Link href="/app/central-operacional/tarefas/nova">Nova tarefa</Link>
             </Button>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Rotas rápidas em breve", "As rotas rápidas configuráveis serão liberadas em uma próxima etapa da central.")}>Adicionar rota rápida</Button>
-          </div>
+          </>
         }
       />
       {loadError ? (
@@ -6073,38 +6169,17 @@ export function AgencyOperationalOverviewPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+      <WorkspaceMetricStrip
+        items={(data?.statuses ?? []).slice(0, 4).map((item) => ({
+          label: item.label,
+          value: item.value,
+          hint: item.detail,
+          tone: item.tone === "info" ? "default" : item.tone,
+        }))}
+      />
+      <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <div className="space-y-5">
-          <DashboardCard title="Status operacional" description="Leitura viva da central com base em tarefas, notificações, relatórios e créditos.">
-            <div className="grid gap-4 md:grid-cols-2">
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, index) => (
-                  <div key={`operational-status-skeleton-${index}`} className="animate-pulse rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
-                    <div className="h-4 w-28 rounded-full bg-white/10" />
-                    <div className="mt-3 h-7 w-24 rounded-full bg-white/10" />
-                    <div className="mt-3 h-3 w-44 rounded-full bg-white/10" />
-                  </div>
-                ))
-              ) : (
-                <>
-                  {(data?.statuses ?? []).map((item) => (
-                    <div key={item.label} className={`rounded-[24px] border p-4 ${toneClassMap[item.tone]}`}>
-                      <p className="text-xs uppercase tracking-[0.16em]">{item.label}</p>
-                      <p className="mt-3 text-2xl font-semibold text-foreground">{item.value}</p>
-                      <p className="mt-2 text-sm">{item.detail}</p>
-                    </div>
-                  ))}
-                  {(data?.statuses ?? []).length === 0 ? (
-                    <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground md:col-span-2">
-                      Ainda não há sinais operacionais suficientes para montar um painel vivo desta agência.
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </div>
-          </DashboardCard>
-
-          <DashboardCard title="Prioridades reais" description="Itens derivados da operação para abrir o módulo certo sem botões mortos.">
+          <WorkspacePanel eyebrow="Fila do dia" title="Prioridades reais" description="Itens derivados da operação para abrir o módulo certo sem botões mortos.">
             <div className="space-y-3">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, index) => (
@@ -6117,20 +6192,18 @@ export function AgencyOperationalOverviewPage() {
               ) : (
                 <>
                   {(data?.priorities ?? []).map((item) => (
-                    <button
+                    <WorkspaceInlineCard
                       key={item.id}
-                      type="button"
-                      onClick={() => router.push(item.href)}
-                      className="w-full rounded-[24px] border border-white/8 bg-white/[0.03] p-4 text-left transition-all hover:border-primary/15 hover:bg-white/[0.05]"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{item.label}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">{item.hint}</p>
-                        </div>
-                        <StatusPill label={item.value} />
-                      </div>
-                    </button>
+                      title={item.label}
+                      detail={item.hint}
+                      meta="Prioridade operacional"
+                      status={item.value}
+                      actions={
+                        <Button className="rounded-full" onClick={() => router.push(item.href)}>
+                          Abrir prioridade
+                        </Button>
+                      }
+                    />
                   ))}
                   {(data?.priorities ?? []).length === 0 ? (
                     <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
@@ -6140,11 +6213,11 @@ export function AgencyOperationalOverviewPage() {
                 </>
               )}
             </div>
-          </DashboardCard>
+          </WorkspacePanel>
         </div>
 
         <div className="space-y-5">
-          <DashboardCard title="Feed operacional" description="Eventos agregados sem tabela nova, priorizando o que acabou de acontecer.">
+          <WorkspacePanel eyebrow="Feed vivo" title="Eventos recentes" description="Eventos agregados sem tabela nova, priorizando o que acabou de acontecer.">
             <div className="space-y-3">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, index) => (
@@ -6157,21 +6230,18 @@ export function AgencyOperationalOverviewPage() {
               ) : (
                 <>
                   {(data?.feed ?? []).map((item) => (
-                    <button
+                    <WorkspaceInlineCard
                       key={item.id}
-                      type="button"
-                      onClick={() => router.push(item.href)}
-                      className="w-full rounded-[24px] border border-white/8 bg-white/[0.03] p-4 text-left transition-all hover:border-primary/15 hover:bg-white/[0.05]"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{item.title}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
-                        </div>
-                        <StatusPill label={item.time} />
-                      </div>
-                      <p className="mt-3 text-xs uppercase tracking-[0.16em] text-primary/70">{item.origin}</p>
-                    </button>
+                      title={item.title}
+                      detail={item.detail}
+                      meta={item.origin}
+                      status={item.time}
+                      actions={
+                        <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push(item.href)}>
+                          Abrir módulo
+                        </Button>
+                      }
+                    />
                   ))}
                   {(data?.feed ?? []).length === 0 ? (
                     <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
@@ -6181,48 +6251,48 @@ export function AgencyOperationalOverviewPage() {
                 </>
               )}
             </div>
-          </DashboardCard>
+          </WorkspacePanel>
 
-          <DashboardCard title="Ações recentes" description="Atalhos vivos para tarefas, notificações e relatórios que já existem.">
+          <WorkspacePanel eyebrow="Resolver agora" title="Ações rápidas" description="Atalhos vivos para tarefas, notificações e relatórios que já existem.">
             <div className="space-y-3">
               {(data?.tasks ?? []).slice(0, 3).map((item) => (
-                <div key={item.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{item.title}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{item.description || "Sem descrição complementar."}</p>
-                    </div>
+                <WorkspaceInlineCard
+                  key={item.id}
+                  title={item.title}
+                  detail={item.description || "Sem descrição complementar."}
+                  meta="Tarefa operacional"
+                  actions={
                     <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push(`/app/central-operacional/tarefas/nova?id=${item.id}`)}>
-                      Abrir prioridade
+                      Concluir tarefa
                     </Button>
-                  </div>
-                </div>
+                  }
+                />
               ))}
               {(data?.notifications ?? []).slice(0, 2).map((item) => (
-                <div key={item.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{item.title}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{item.body || item.type}</p>
-                    </div>
+                <WorkspaceInlineCard
+                  key={item.id}
+                  title={item.title}
+                  detail={item.body || item.type}
+                  meta="Notificação inteligente"
+                  actions={
                     <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push(item.action_url || "/app/central-operacional")}>
                       Abrir origem
                     </Button>
-                  </div>
-                </div>
+                  }
+                />
               ))}
               {(data?.reports ?? []).slice(0, 1).map((item) => (
-                <div key={item.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{item.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{item.type} • {formatDateTimeLabel(item.created_at)}</p>
-                    </div>
+                <WorkspaceInlineCard
+                  key={item.id}
+                  title={item.name}
+                  detail={`${item.type} • ${formatDateTimeLabel(item.created_at)}`}
+                  meta="Relatório recente"
+                  actions={
                     <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/relatorios")}>
-                      Abrir relatório
+                      Gerar relatório
                     </Button>
-                  </div>
-                </div>
+                  }
+                />
               ))}
               {!isLoading && (data?.tasks?.length ?? 0) === 0 && (data?.notifications?.length ?? 0) === 0 && (data?.reports?.length ?? 0) === 0 ? (
                 <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
@@ -6230,7 +6300,7 @@ export function AgencyOperationalOverviewPage() {
                 </div>
               ) : null}
             </div>
-          </DashboardCard>
+          </WorkspacePanel>
         </div>
       </div>
     </PageShell>
@@ -6402,24 +6472,38 @@ export function AgencyCreditsPage() {
 
   return (
     <PageShell>
-      <SectionHeader title="Créditos e consumo" description="Consumo por feature, histórico e ações rápidas de compra e rastreio." />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <MetricCard label="Créditos disponíveis" value={isLoading ? "--" : String(overview?.balance ?? 0)} change="Saldo operacional atual" tone={Number(overview?.balance ?? 0) > 0 ? "success" : "warning"} icon={CreditCard} />
-        <MetricCard label="Créditos usados" value={isLoading ? "--" : String(overview?.consumed ?? 0)} change={`${overview?.history.length ?? 0} movimentos no histórico`} tone="warning" icon={Sparkles} />
-        <MetricCard label="Maior origem" value={isLoading ? "--" : overview?.top_feature || "Sem consumo"} change={isLoading ? "Carregando" : `${overview?.top_feature_amount ?? 0} créditos`} tone="info" icon={Bot} />
-      </div>
+      <WorkspaceSectionHeader
+        eyebrow="Consumo operacional"
+        title="Créditos"
+        description="Saldo, histórico e entendimento de consumo por módulo em uma leitura mais executiva."
+        summary={`${overview?.balance ?? 0} disponíveis.`}
+        actions={
+          <>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Consumo mapeado", "O histórico operacional abaixo já reflete os movimentos reais de créditos.")}>
+              Ver histórico
+            </Button>
+            <Button className="rounded-full" onClick={() => fire("Compra em breve", "A compra de créditos continua fora deste escopo e será integrada depois, sem Stripe por enquanto.")}>
+              Comprar créditos
+            </Button>
+          </>
+        }
+      />
+      <WorkspaceMetricStrip
+        items={[
+          { label: "Saldo atual", value: isLoading ? "--" : String(overview?.balance ?? 0), hint: "Créditos disponíveis para uso operacional.", tone: Number(overview?.balance ?? 0) > 0 ? "success" : "warning" },
+          { label: "Consumidos", value: isLoading ? "--" : String(overview?.consumed ?? 0), hint: `${overview?.history.length ?? 0} movimentos registrados no histórico.`, tone: "warning" },
+          { label: "Maior origem", value: isLoading ? "--" : overview?.top_feature || "Sem consumo", hint: isLoading ? "Carregando..." : `${overview?.top_feature_amount ?? 0} créditos`, tone: "default" },
+          { label: "Entradas", value: isLoading ? "--" : String(overview?.added ?? 0), hint: "Créditos adicionados até agora.", tone: "default" },
+        ]}
+      />
       {loadError ? (
         <div className="rounded-[28px] border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
-          <p className="font-medium">Nao foi possivel carregar os créditos agora.</p>
+          <p className="font-medium">Nao foi possivel carregar os creditos agora.</p>
           <p className="mt-1 text-amber-100/80">{loadError}</p>
         </div>
       ) : null}
-      <DashboardCard title="Histórico de uso" description="Abra a origem do consumo, revise o histórico e compre novos créditos.">
-        <div className="mb-4 flex flex-wrap gap-2">
-          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Histórico em foco", "O histórico operacional abaixo já reflete os movimentos reais de créditos.")}>Ver histórico</Button>
-          <Button className="rounded-full" onClick={() => fire("Compra em breve", "A compra de créditos continua fora deste escopo e será integrada depois, sem Stripe por enquanto.")}>Comprar créditos</Button>
-        </div>
-        <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+      <div className="grid gap-4 xl:grid-cols-[0.88fr_1.12fr]">
+        <WorkspacePanel eyebrow="Origem do uso" title="Leitura de consumo" description="Entenda rapidamente de onde os créditos saem e quando vale agir antes do saldo apertar.">
           <div className="space-y-3">
             <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
               <p className="text-sm font-medium text-foreground">Saldo e entradas</p>
@@ -6427,7 +6511,7 @@ export function AgencyCreditsPage() {
               <p className="mt-2 text-sm text-muted-foreground">{isLoading ? "Carregando histórico..." : `${overview?.added ?? 0} créditos adicionados até agora.`}</p>
             </div>
             <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
-              <p className="text-sm font-medium text-foreground">Origens operacionais</p>
+              <p className="text-sm font-medium text-foreground">Consumo por módulo</p>
               <div className="mt-3 space-y-2">
                 {isLoading ? (
                   Array.from({ length: 4 }).map((_, index) => <div key={`credit-feature-skeleton-${index}`} className="h-10 animate-pulse rounded-2xl bg-white/10" />)
@@ -6445,6 +6529,8 @@ export function AgencyCreditsPage() {
               </div>
             </div>
           </div>
+        </WorkspacePanel>
+        <WorkspacePanel eyebrow="Movimentos recentes" title="Historico real de creditos" description="Acompanhe o consumo recente, entenda a origem e mantenha a operação sob controle.">
           <div className="space-y-3">
             {isLoading ? (
               Array.from({ length: 5 }).map((_, index) => (
@@ -6456,18 +6542,18 @@ export function AgencyCreditsPage() {
             ) : (
               <>
                 {visibleHistory.map((row) => (
-                  <div key={row.id} className="flex flex-col gap-3 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-medium text-foreground">{row.feature || row.source || "Operação geral"}</p>
-                        <StatusPill label={row.type} />
-                      </div>
-                      <p className="mt-1 text-sm text-muted-foreground">{row.amount} créditos • {formatDateTimeLabel(row.created_at)}</p>
-                    </div>
-                    <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem do consumo", row.source || row.feature || "Movimento operacional sem origem detalhada.")}>
-                      Abrir origem
-                    </Button>
-                  </div>
+                  <WorkspaceInlineCard
+                    key={row.id}
+                    title={row.feature || row.source || "Operação geral"}
+                    detail={`${row.amount} créditos • ${formatDateTimeLabel(row.created_at)}`}
+                    meta="Movimento registrado"
+                    status={row.type}
+                    actions={
+                      <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem do consumo", row.source || row.feature || "Movimento operacional sem origem detalhada.")}>
+                        Entender consumo
+                      </Button>
+                    }
+                  />
                 ))}
                 {history.length > 6 ? (
                   <Button
@@ -6486,8 +6572,8 @@ export function AgencyCreditsPage() {
               </>
             )}
           </div>
-        </div>
-      </DashboardCard>
+        </WorkspacePanel>
+      </div>
     </PageShell>
   )
 }

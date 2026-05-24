@@ -36,42 +36,6 @@ function InfoCard({ label, value }: { label: string; value: string }) {
   )
 }
 
-const plans = [
-  {
-    name: "Start",
-    price: "R$ 497/mês",
-    limits: "3 usuários, 1.500 créditos e Match de entrada",
-    features: ["Catálogo público", "Central operacional", "WhatsApp essencial"],
-  },
-  {
-    name: "Pro",
-    price: "R$ 997/mês",
-    limits: "6 usuários, 3.500 créditos e Agent com autonomia assistida",
-    features: ["Roteiros premium", "Documentos inteligentes", "Atlas Advisor assistido"],
-  },
-  {
-    name: "Scale",
-    price: "R$ 1.490/mês",
-    limits: "8 usuários, 6.000 créditos e Match expandido",
-    features: ["TravelPro Go completo", "Automações premium", "Equipe e financeiro avançados"],
-  },
-]
-
-const extraPackages = [
-  { title: "Créditos adicionais", description: "+2.000 créditos com ativação imediata", cta: "Contratar pacote" },
-  { title: "Usuários extras", description: "+2 licenças para comercial ou operação", cta: "Adicionar usuários" },
-  { title: "Pacote Match", description: "Mais destaques e impulsionamento no marketplace", cta: "Expandir Match" },
-  { title: "Pacote Agent", description: "Mais jornadas simultâneas e follow-ups", cta: "Expandir Agent" },
-  { title: "Marketing IA", description: "Campanhas, posts e calendário promocional", cta: "Ativar Marketing IA" },
-  { title: "WhatsApp / Go", description: "Janela extra para mensagens e automações", cta: "Liberar WhatsApp" },
-]
-
-const creditPackages = [
-  { title: "2.000 créditos", price: "R$ 190", usage: "Ideal para alta em roteiros e PDFs" },
-  { title: "5.000 créditos", price: "R$ 420", usage: "Operação completa com Agent e Go" },
-  { title: "10.000 créditos", price: "R$ 790", usage: "Escala comercial com campanhas e Match" },
-]
-
 export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: UserProfile }) {
   const router = useRouter()
   const isClientPortal = portal === "client"
