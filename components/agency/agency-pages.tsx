@@ -513,6 +513,28 @@ type WorkspaceCardVisualItem = {
 }
 
 type WorkspaceCardTone = "default" | "attention" | "critical" | "future"
+type AssistantActionId =
+  | "new-client"
+  | "new-lead"
+  | "new-trip"
+  | "update-trip-status"
+  | "share-trip-link"
+  | "new-document"
+  | "new-itinerary"
+  | "new-quote"
+  | "new-contract"
+  | "new-finance"
+  | "mark-finance-paid"
+  | "new-task"
+  | "open-priority"
+
+type AssistantTaskValues = {
+  title: string
+  description: string
+  priority: string
+  status: string
+  dueAt: string
+}
 
 function WorkspaceDashboardCard({
   cardKey,
@@ -935,14 +957,14 @@ function ClientEditorDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-        <DialogHeader className="border-b border-white/8 px-6 py-5">
+      <DialogContent className="max-w-4xl rounded-[30px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+        <DialogHeader className="border-b border-white/8 px-5 py-4.5">
           <DialogTitle>{mode === "create" ? "Novo cliente" : "Editar cliente"}</DialogTitle>
           <DialogDescription>
             Cadastre ou atualize dados reais do cliente, preservando preferências, contexto e próximos passos da operação.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-5 py-4.5 md:grid-cols-2">
           {[
             ["name", "Nome"],
             ["email", "E-mail"],
@@ -981,7 +1003,7 @@ function ClientEditorDialog({
             </label>
           ))}
         </div>
-        <DialogFooter className="border-t border-white/8 px-6 py-5">
+        <DialogFooter className="border-t border-white/8 px-5 py-4.5">
           <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
@@ -1037,8 +1059,8 @@ function LeadEditorDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-        <DialogHeader className="border-b border-white/8 px-6 py-5">
+      <DialogContent className="max-w-4xl rounded-[30px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+        <DialogHeader className="border-b border-white/8 px-5 py-4.5">
           <DialogTitle>{mode === "create" ? "Novo lead" : "Editar lead"}</DialogTitle>
           <DialogDescription>
             {mode === "create"
@@ -1046,7 +1068,7 @@ function LeadEditorDialog({
               : "Atualize os dados reais da oportunidade sem sair da operação."}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-5 py-4.5 md:grid-cols-2">
           {[
             ["name", "Nome"],
             ["email", "E-mail"],
@@ -1075,7 +1097,7 @@ function LeadEditorDialog({
             />
           </label>
         </div>
-        <DialogFooter className="border-t border-white/8 px-6 py-5">
+        <DialogFooter className="border-t border-white/8 px-5 py-4.5">
           <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
@@ -1131,8 +1153,8 @@ function TripEditorDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-        <DialogHeader className="border-b border-white/8 px-6 py-5">
+      <DialogContent className="max-w-4xl rounded-[30px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+        <DialogHeader className="border-b border-white/8 px-5 py-4.5">
           <DialogTitle>{mode === "create" ? "Nova viagem" : "Editar viagem"}</DialogTitle>
           <DialogDescription>
             {mode === "create"
@@ -1140,7 +1162,7 @@ function TripEditorDialog({
               : "Atualize destino, datas, status e resumo da viagem com dados reais."}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-5 py-4.5 md:grid-cols-2">
           {clientOptions.length > 0 ? (
             <label className="space-y-2">
               <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Cliente vinculado</span>
@@ -1184,7 +1206,7 @@ function TripEditorDialog({
             />
           </label>
         </div>
-        <DialogFooter className="border-t border-white/8 px-6 py-5">
+        <DialogFooter className="border-t border-white/8 px-5 py-4.5">
           <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
@@ -1242,12 +1264,12 @@ function QuickDocumentDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-        <DialogHeader className="border-b border-white/8 px-6 py-5">
+      <DialogContent className="max-w-3xl rounded-[30px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+        <DialogHeader className="border-b border-white/8 px-5 py-4.5">
           <DialogTitle>{modeLabel}</DialogTitle>
           <DialogDescription>Crie um documento operacional rápido, com template, vínculos reais e status inicial.</DialogDescription>
         </DialogHeader>
-        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-5 py-4.5 md:grid-cols-2">
           <label className="space-y-2 md:col-span-2">
             <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Título</span>
             <input
@@ -1330,7 +1352,7 @@ function QuickDocumentDialog({
             </select>
           </label>
         </div>
-        <DialogFooter className="border-t border-white/8 px-6 py-5">
+        <DialogFooter className="border-t border-white/8 px-5 py-4.5">
           <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
@@ -1392,12 +1414,12 @@ function QuickFinanceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-        <DialogHeader className="border-b border-white/8 px-6 py-5">
+      <DialogContent className="max-w-3xl rounded-[30px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+        <DialogHeader className="border-b border-white/8 px-5 py-4.5">
           <DialogTitle>Novo lançamento</DialogTitle>
           <DialogDescription>Registre uma receita ou despesa rápida com competência real e vínculos opcionais.</DialogDescription>
         </DialogHeader>
-        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-5 py-4.5 md:grid-cols-2">
           <label className="space-y-2">
             <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Tipo</span>
             <select
@@ -1499,7 +1521,7 @@ function QuickFinanceDialog({
             />
           </label>
         </div>
-        <DialogFooter className="border-t border-white/8 px-6 py-5">
+        <DialogFooter className="border-t border-white/8 px-5 py-4.5">
           <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
@@ -1528,6 +1550,18 @@ export function AgencyDashboardPage() {
   const [selectedAttention, setSelectedAttention] = useState<DashboardPriorityItem | null>(null)
   const [activeQuickActions, setActiveQuickActions] = useState<WorkspaceCardQuickActions | null>(null)
   const [activeMicroWorkspace, setActiveMicroWorkspace] = useState<null | "clients" | "trips" | "documents" | "finance" | "leads" | "itineraries" | "quotes" | "atlas" | "operational">(null)
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false)
+  const [assistantActionId, setAssistantActionId] = useState<AssistantActionId | null>(null)
+  const [assistantTripStatusValues, setAssistantTripStatusValues] = useState({ tripId: "", status: "Confirmada" })
+  const [assistantShareTripId, setAssistantShareTripId] = useState("")
+  const [assistantFinanceRecordId, setAssistantFinanceRecordId] = useState("")
+  const [assistantTaskValues, setAssistantTaskValues] = useState<AssistantTaskValues>({
+    title: "",
+    description: "",
+    priority: "Alta",
+    status: "Aberta",
+    dueAt: "",
+  })
   const [cardOrder, setCardOrder] = useState<string[]>([])
   const [draggingCardKey, setDraggingCardKey] = useState<string | null>(null)
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null)
@@ -1737,12 +1771,138 @@ export function AgencyDashboardPage() {
     setIsFinanceCreateOpen(true)
   }
 
+  const openAssistant = (actionId: AssistantActionId | null = null) => {
+    setActiveMicroWorkspace(null)
+    setActiveQuickActions(null)
+    setAssistantActionId(actionId)
+    setIsAssistantOpen(true)
+  }
+
+  const closeAssistant = () => {
+    setIsAssistantOpen(false)
+    setAssistantActionId(null)
+  }
+
   const withQuickActionSaving = async (action: () => Promise<void>) => {
     setIsSavingQuickAction(true)
     try {
       await action()
     } finally {
       setIsSavingQuickAction(false)
+    }
+  }
+
+  const handleAssistantTaskCreate = async () => {
+    if (!assistantTaskValues.title.trim()) {
+      fire("Informe um título", "Defina a tarefa para concluir essa ação assistida.")
+      return
+    }
+
+    await withQuickActionSaving(async () => {
+      await requestJson<TaskRow>("/api/tasks", {
+        method: "POST",
+        body: JSON.stringify({
+          title: assistantTaskValues.title.trim(),
+          description: assistantTaskValues.description.trim() || null,
+          priority: assistantTaskValues.priority,
+          status: assistantTaskValues.status,
+          due_at: assistantTaskValues.dueAt || null,
+        }),
+      })
+
+      setAssistantTaskValues({
+        title: "",
+        description: "",
+        priority: "Alta",
+        status: "Aberta",
+        dueAt: "",
+      })
+      closeAssistant()
+      await loadDashboard()
+      fire("Tarefa criada", "A tarefa foi adicionada e já entrou na leitura operacional.")
+    })
+  }
+
+  const handleAssistantAction = async (actionId: AssistantActionId) => {
+    if (actionId === "new-client") {
+      closeAssistant()
+      openClientCreate()
+      return
+    }
+    if (actionId === "new-lead") {
+      closeAssistant()
+      openLeadCreate()
+      return
+    }
+    if (actionId === "new-trip") {
+      closeAssistant()
+      openTripCreate()
+      return
+    }
+    if (actionId === "new-document") {
+      closeAssistant()
+      openDocumentCreate({}, "Novo documento")
+      return
+    }
+    if (actionId === "new-itinerary") {
+      closeAssistant()
+      openDocumentCreate({ type: "Roteiro" }, "Novo roteiro")
+      return
+    }
+    if (actionId === "new-quote") {
+      closeAssistant()
+      openDocumentCreate({ type: "Cotação" }, "Nova cotação")
+      return
+    }
+    if (actionId === "new-contract") {
+      closeAssistant()
+      openDocumentCreate({ type: "Contrato" }, "Novo contrato")
+      return
+    }
+    if (actionId === "new-finance") {
+      closeAssistant()
+      openFinanceCreate()
+      return
+    }
+    if (actionId === "update-trip-status") {
+      if (!assistantTripStatusValues.tripId) {
+        fire("Escolha uma viagem", "Selecione a viagem antes de atualizar o status.")
+        return
+      }
+      await handleTripStatusUpdate(assistantTripStatusValues.tripId, assistantTripStatusValues.status)
+      closeAssistant()
+      return
+    }
+    if (actionId === "share-trip-link") {
+      if (!assistantShareTripId) {
+        fire("Escolha uma viagem", "Selecione a viagem antes de gerar ou copiar o link.")
+        return
+      }
+      await handleCopyTripLink(assistantShareTripId)
+      closeAssistant()
+      return
+    }
+    if (actionId === "mark-finance-paid") {
+      if (!assistantFinanceRecordId) {
+        fire("Escolha um lançamento", "Selecione o lançamento antes de marcar como pago.")
+        return
+      }
+      await handleMarkFinanceAsPaid(assistantFinanceRecordId)
+      closeAssistant()
+      return
+    }
+    if (actionId === "new-task") {
+      await handleAssistantTaskCreate()
+      return
+    }
+    if (actionId === "open-priority") {
+      closeAssistant()
+      if (attentionItems[0]) {
+        setSelectedAttention(attentionItems[0])
+        return
+      }
+      router.push("/app/central-operacional")
+      return
     }
   }
 
@@ -2054,6 +2214,28 @@ export function AgencyDashboardPage() {
         { label: "Novo cliente", onClick: () => openClientCreate() },
         { label: "Clientes recentes", onClick: () => setActiveMicroWorkspace("clients") },
         { label: "Abrir CRM", href: "/app/clientes" },
+      ],
+    },
+    {
+      key: "criar-ia",
+      span: "xl:col-span-3",
+      title: "Criar com IA",
+      icon: Sparkles,
+      value: "Ações rápidas",
+      context: "Crie, edite e lance sem abrir modulos.",
+      badge: "Assistido",
+      visualItems: [
+        { label: "Cliente", value: "Cadastro rápido", progress: 72 },
+        { label: "Viagem", value: "Status e link", progress: 68 },
+        { label: "Documento", value: "Roteiro ou contrato", progress: 74 },
+      ],
+      primaryAction: { label: "Iniciar", onClick: () => openAssistant() },
+      secondaryAction: { label: "Ver sugestões", onClick: () => openAssistant("new-trip") },
+      quickActions: [
+        { label: "Novo cliente", onClick: () => openAssistant("new-client") },
+        { label: "Nova viagem", onClick: () => openAssistant("new-trip") },
+        { label: "Novo documento", onClick: () => openAssistant("new-document") },
+        { label: "Novo lançamento", onClick: () => openAssistant("new-finance") },
       ],
     },
     {
@@ -2409,6 +2591,50 @@ export function AgencyDashboardPage() {
   const recentFinanceRows = [...financialRows]
     .sort((left, right) => new Date(right.occurred_at ?? right.created_at).getTime() - new Date(left.occurred_at ?? left.created_at).getTime())
     .slice(0, 4)
+  const assistantActionGroups: { label: string; actions: { id: AssistantActionId; label: string; hint: string }[] }[] = [
+    {
+      label: "Relacionamento",
+      actions: [
+        { id: "new-client", label: "Novo cliente", hint: "Cadastro rápido com dados essenciais." },
+        { id: "new-lead", label: "Novo lead", hint: "Entrada comercial sem abrir o pipeline." },
+      ],
+    },
+    {
+      label: "Viagens",
+      actions: [
+        { id: "new-trip", label: "Nova viagem", hint: "Cliente, destino, período e status inicial." },
+        { id: "update-trip-status", label: "Atualizar status", hint: "Confirme ou mova a viagem rapidamente." },
+        { id: "share-trip-link", label: "Compartilhar link", hint: "Gere ou copie o link público da viagem." },
+      ],
+    },
+    {
+      label: "Documentos",
+      actions: [
+        { id: "new-document", label: "Novo documento", hint: "Crie um item rápido com vínculos reais." },
+        { id: "new-itinerary", label: "Novo roteiro", hint: "Abra o fluxo enxuto do roteiro." },
+        { id: "new-quote", label: "Nova cotação", hint: "Acelere proposta e follow-up." },
+        { id: "new-contract", label: "Gerar contrato", hint: "Abra o contrato com contexto da operação." },
+      ],
+    },
+    {
+      label: "Financeiro",
+      actions: [
+        { id: "new-finance", label: "Novo lançamento", hint: "Receita ou despesa com competência real." },
+        { id: "mark-finance-paid", label: "Marcar como pago", hint: "Atualize um lançamento pendente." },
+      ],
+    },
+    {
+      label: "Operação",
+      actions: [
+        { id: "new-task", label: "Criar tarefa", hint: "Registre uma prioridade operacional curta." },
+        { id: "open-priority", label: "Abrir prioridade", hint: "Vá direto ao próximo ponto crítico." },
+      ],
+    },
+  ]
+  const selectedAssistantAction = assistantActionGroups
+    .flatMap((group) => group.actions)
+    .find((item) => item.id === assistantActionId) ?? null
+  const pendingFinanceOptions = recentFinanceRows.filter((record) => normalizeFinanceStatus(record.status) !== "Pago")
 
   return (
     <PageShell>
@@ -2634,6 +2860,238 @@ export function AgencyDashboardPage() {
         clientOptions={clientOptions}
         tripOptions={tripOptions}
       />
+
+      <Dialog open={isAssistantOpen} onOpenChange={(open) => (!open ? closeAssistant() : null)}>
+        <DialogContent className="max-w-5xl rounded-[30px] border-white/10 bg-[#0e0b0c]/96 p-0 shadow-[0_34px_120px_rgba(0,0,0,0.58)]">
+          <DialogHeader className="border-b border-white/8 px-5 py-4.5">
+            <DialogTitle>Criar com IA</DialogTitle>
+            <DialogDescription>Escolha uma ação assistida e mova a operação sem abrir o módulo completo.</DialogDescription>
+          </DialogHeader>
+          <div className="grid max-h-[76vh] overflow-hidden lg:grid-cols-[320px_minmax(0,1fr)]">
+            <div className="border-b border-white/8 px-5 py-4 lg:border-b-0 lg:border-r">
+              <div className="space-y-4 overflow-y-auto lg:max-h-[68vh]">
+                {assistantActionGroups.map((group) => (
+                  <div key={group.label} className="space-y-2">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-primary/62">{group.label}</p>
+                    <div className="space-y-1.5">
+                      {group.actions.map((action) => {
+                        const selected = assistantActionId === action.id
+                        return (
+                          <button
+                            key={action.id}
+                            type="button"
+                            onClick={() => setAssistantActionId(action.id)}
+                            className={cn(
+                              "flex w-full items-center justify-between rounded-[18px] border px-3 py-2.5 text-left transition-all duration-300",
+                              selected
+                                ? "border-primary/20 bg-primary/[0.12] text-foreground"
+                                : "border-white/8 bg-white/[0.03] text-muted-foreground hover:border-white/12 hover:bg-white/[0.05] hover:text-foreground",
+                            )}
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-foreground">{action.label}</p>
+                              <p className="mt-0.5 truncate text-xs text-muted-foreground">{action.hint}</p>
+                            </div>
+                            <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 transition-transform duration-300", selected ? "translate-x-0.5 text-primary" : "")} />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="overflow-y-auto px-5 py-4.5">
+              {selectedAssistantAction ? (
+                <div className="space-y-4">
+                  <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3.5">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-primary/62">Ação assistida</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-semibold text-foreground">{selectedAssistantAction.label}</h3>
+                      <StatusPill label="Assistido" />
+                    </div>
+                    <p className="mt-1.5 text-sm leading-5 text-muted-foreground">{selectedAssistantAction.hint}</p>
+                  </div>
+
+                  {assistantActionId === "new-client" || assistantActionId === "new-lead" || assistantActionId === "new-trip" || assistantActionId === "new-document" || assistantActionId === "new-itinerary" || assistantActionId === "new-quote" || assistantActionId === "new-contract" || assistantActionId === "new-finance" ? (
+                    <div className="space-y-3">
+                      <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                        <p className="text-sm text-muted-foreground">
+                          Esse fluxo usa o modal rápido real da V2, com os campos mínimos e salvamento direto nas APIs já existentes.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" className="rounded-full" onClick={() => void handleAssistantAction(assistantActionId)}>
+                          Abrir fluxo
+                        </Button>
+                        <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closeAssistant}>
+                          Fechar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {assistantActionId === "update-trip-status" ? (
+                    <div className="space-y-3">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <label className="space-y-2">
+                          <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Viagem</span>
+                          <select
+                            value={assistantTripStatusValues.tripId}
+                            onChange={(event) => setAssistantTripStatusValues((current) => ({ ...current, tripId: event.target.value }))}
+                            className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                          >
+                            <option value="">Selecione uma viagem</option>
+                            {recentTripRows.map((trip) => (
+                              <option key={trip.id} value={trip.id}>
+                                {trip.destination}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="space-y-2">
+                          <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Novo status</span>
+                          <select
+                            value={assistantTripStatusValues.status}
+                            onChange={(event) => setAssistantTripStatusValues((current) => ({ ...current, status: event.target.value }))}
+                            className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                          >
+                            {["Planejamento", "Confirmada", "Em andamento", "Concluída"].map((status) => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                      <Button type="button" className="rounded-full" onClick={() => void handleAssistantAction("update-trip-status")} disabled={isSavingQuickAction}>
+                        {isSavingQuickAction ? "Atualizando..." : "Atualizar status"}
+                      </Button>
+                    </div>
+                  ) : null}
+
+                  {assistantActionId === "share-trip-link" ? (
+                    <div className="space-y-3">
+                      <label className="space-y-2">
+                        <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Viagem</span>
+                        <select
+                          value={assistantShareTripId}
+                          onChange={(event) => setAssistantShareTripId(event.target.value)}
+                          className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                        >
+                          <option value="">Selecione uma viagem</option>
+                          {recentTripRows.map((trip) => (
+                            <option key={trip.id} value={trip.id}>
+                              {trip.destination}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <Button type="button" className="rounded-full" onClick={() => void handleAssistantAction("share-trip-link")} disabled={isSavingQuickAction}>
+                        {isSavingQuickAction ? "Gerando..." : "Copiar link"}
+                      </Button>
+                    </div>
+                  ) : null}
+
+                  {assistantActionId === "mark-finance-paid" ? (
+                    <div className="space-y-3">
+                      <label className="space-y-2">
+                        <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Lançamento</span>
+                        <select
+                          value={assistantFinanceRecordId}
+                          onChange={(event) => setAssistantFinanceRecordId(event.target.value)}
+                          className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                        >
+                          <option value="">Selecione um lançamento</option>
+                          {pendingFinanceOptions.map((record) => (
+                            <option key={record.id} value={record.id}>
+                              {(record.description || record.category || "Lançamento")} • {formatMoney(Number(record.amount || 0))}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <Button type="button" className="rounded-full" onClick={() => void handleAssistantAction("mark-finance-paid")} disabled={isSavingQuickAction}>
+                        {isSavingQuickAction ? "Salvando..." : "Marcar como pago"}
+                      </Button>
+                    </div>
+                  ) : null}
+
+                  {assistantActionId === "new-task" ? (
+                    <div className="space-y-3">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <label className="space-y-2 md:col-span-2">
+                          <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Título</span>
+                          <input
+                            value={assistantTaskValues.title}
+                            onChange={(event) => setAssistantTaskValues((current) => ({ ...current, title: event.target.value }))}
+                            className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                          />
+                        </label>
+                        <label className="space-y-2">
+                          <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Prioridade</span>
+                          <select
+                            value={assistantTaskValues.priority}
+                            onChange={(event) => setAssistantTaskValues((current) => ({ ...current, priority: event.target.value }))}
+                            className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                          >
+                            {["Alta", "Média", "Baixa"].map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="space-y-2">
+                          <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Status</span>
+                          <select
+                            value={assistantTaskValues.status}
+                            onChange={(event) => setAssistantTaskValues((current) => ({ ...current, status: event.target.value }))}
+                            className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                          >
+                            {["Aberta", "Em andamento", "Concluída"].map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="space-y-2 md:col-span-2">
+                          <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Descrição</span>
+                          <textarea
+                            rows={4}
+                            value={assistantTaskValues.description}
+                            onChange={(event) => setAssistantTaskValues((current) => ({ ...current, description: event.target.value }))}
+                            className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+                          />
+                        </label>
+                      </div>
+                      <Button type="button" className="rounded-full" onClick={() => void handleAssistantAction("new-task")} disabled={isSavingQuickAction}>
+                        {isSavingQuickAction ? "Salvando..." : "Criar tarefa"}
+                      </Button>
+                    </div>
+                  ) : null}
+
+                  {assistantActionId === "open-priority" ? (
+                    <div className="space-y-3">
+                      <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-muted-foreground">
+                        {attentionItems[0]?.hint || "A central operacional está pronta para aprofundar as prioridades reais da agência."}
+                      </div>
+                      <Button type="button" className="rounded-full" onClick={() => void handleAssistantAction("open-priority")}>
+                        Abrir prioridade
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="flex h-full min-h-[320px] items-center justify-center rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-6 text-center text-sm text-muted-foreground">
+                  Escolha uma ação à esquerda para começar.
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={Boolean(activeMicroWorkspace)} onOpenChange={(open) => (!open ? setActiveMicroWorkspace(null) : null)}>
         <DialogContent className="max-w-4xl rounded-[30px] border-white/10 bg-[#0e0b0c]/96 p-0 shadow-[0_34px_120px_rgba(0,0,0,0.58)]">

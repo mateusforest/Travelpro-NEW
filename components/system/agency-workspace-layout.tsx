@@ -4,7 +4,7 @@ import type { ReactNode } from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutGrid } from "lucide-react"
+import { ChevronRight, LayoutGrid } from "lucide-react"
 import { TravelProLogo } from "@/components/branding/travelpro-logo"
 import { ProfileMenu } from "@/components/system/profile-menu"
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
@@ -25,8 +25,16 @@ function isActiveRoute(pathname: string, href?: string) {
 export function AgencyWorkspaceLayout({ profile, children }: AgencyWorkspaceLayoutProps) {
   const pathname = usePathname()
   const [navigationOpen, setNavigationOpen] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
   const items = getNavigationByPortal("agency")
   const firstName = profile.name.split(" ")[0] || "Agencia"
+
+  const toggleGroup = (key: string, fallback = false) => {
+    setExpandedGroups((current) => ({
+      ...current,
+      [key]: !(current[key] ?? fallback),
+    }))
+  }
 
   return (
     <div className="min-h-screen overflow-x-clip bg-[#090708] text-foreground">
@@ -39,8 +47,8 @@ export function AgencyWorkspaceLayout({ profile, children }: AgencyWorkspaceLayo
 
       <header className="sticky top-0 z-30 border-b border-white/6 bg-[#090708]/72 backdrop-blur-2xl">
         <div className="mx-auto flex w-full max-w-[1680px] px-4 py-3 sm:px-5 lg:px-6">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
+          <div className="flex w-full items-center gap-3">
+            <div className="flex shrink-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setNavigationOpen(true)}
@@ -56,13 +64,13 @@ export function AgencyWorkspaceLayout({ profile, children }: AgencyWorkspaceLayo
               <Link href="/app/dashboard" className="shrink-0 sm:hidden">
                 <TravelProLogo variant="compact" priority className="h-9" />
               </Link>
-
-              <div className="min-w-0">
-                <h1 className="truncate text-sm font-semibold text-foreground sm:text-[15px]">Ola, {firstName}.</h1>
-              </div>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="min-w-0 flex-1 pl-1">
+              <h1 className="truncate text-sm font-semibold text-foreground sm:text-[15px]">Ola, {firstName}.</h1>
+            </div>
+
+            <div className="ml-auto flex shrink-0 items-center gap-2.5">
               <div className="hidden rounded-full border border-white/8 bg-white/[0.035] px-2.5 py-1 text-[11px] text-muted-foreground md:flex md:items-center md:gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.65)]" />
                 Online
@@ -83,35 +91,59 @@ export function AgencyWorkspaceLayout({ profile, children }: AgencyWorkspaceLayo
           <div className="space-y-2.5 overflow-y-auto px-4 py-4 md:px-5">
             {items.map((item) => {
               const active = isActiveRoute(pathname, item.href) || item.children?.some((child) => isActiveRoute(pathname, child.href))
+              const itemKey = item.href ?? item.title
+              const expanded = expandedGroups[itemKey] ?? active
 
               return (
                 <div key={item.href ?? item.title} className="space-y-1.5">
-                  {item.href ? (
-                    <Link
-                      href={item.href}
-                      onClick={() => setNavigationOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-[18px] border px-3 py-2.5 transition-all duration-300",
-                        active
-                          ? "border-primary/20 bg-primary/[0.12] text-foreground"
-                          : "border-white/8 bg-white/[0.03] text-muted-foreground hover:border-white/12 hover:bg-white/[0.05] hover:text-foreground",
-                      )}
-                    >
-                      <div className={cn("rounded-[15px] border p-2", active ? "border-primary/20 bg-primary/10" : "border-white/8 bg-black/15")}>
-                        <item.icon className={cn("h-3.5 w-3.5", active ? "text-primary" : "text-muted-foreground")} />
-                      </div>
-                      <p className="min-w-0 truncate text-sm font-medium text-foreground">{item.title}</p>
-                    </Link>
-                  ) : (
-                    <div className="flex items-center gap-3 rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-2.5">
-                      <div className="rounded-[15px] border border-white/8 bg-black/15 p-2">
-                        <item.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                      </div>
-                      <p className="min-w-0 truncate text-sm font-medium text-foreground">{item.title}</p>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {item.href ? (
+                      <Link
+                        href={item.href}
+                        onClick={() => setNavigationOpen(false)}
+                        className={cn(
+                          "flex min-w-0 flex-1 items-center gap-3 rounded-[16px] border px-3 py-2 transition-all duration-300",
+                          active
+                            ? "border-primary/20 bg-primary/[0.12] text-foreground"
+                            : "border-white/8 bg-white/[0.03] text-muted-foreground hover:border-white/12 hover:bg-white/[0.05] hover:text-foreground",
+                        )}
+                      >
+                        <div className={cn("rounded-[14px] border p-1.5", active ? "border-primary/20 bg-primary/10" : "border-white/8 bg-black/15")}>
+                          <item.icon className={cn("h-3.5 w-3.5", active ? "text-primary" : "text-muted-foreground")} />
+                        </div>
+                        <p className="min-w-0 truncate text-sm font-medium text-foreground">{item.title}</p>
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => item.children?.length ? toggleGroup(itemKey, active) : undefined}
+                        className="flex min-w-0 flex-1 items-center gap-3 rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2 text-left transition-all duration-300 hover:border-white/12 hover:bg-white/[0.05]"
+                      >
+                        <div className="rounded-[14px] border border-white/8 bg-black/15 p-1.5">
+                          <item.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <p className="min-w-0 truncate text-sm font-medium text-foreground">{item.title}</p>
+                      </button>
+                    )}
 
-                  {active && item.children?.length ? (
+                    {item.children?.length ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(itemKey, active)}
+                        aria-label={expanded ? `Recolher ${item.title}` : `Expandir ${item.title}`}
+                        className={cn(
+                          "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] border transition-all duration-300",
+                          active
+                            ? "border-primary/20 bg-primary/[0.1] text-primary"
+                            : "border-white/8 bg-white/[0.03] text-muted-foreground hover:border-white/12 hover:bg-white/[0.05] hover:text-foreground",
+                        )}
+                      >
+                        <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-300", expanded ? "rotate-90" : "")} />
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {expanded && item.children?.length ? (
                     <div className="ml-4 space-y-1 border-l border-white/8 pl-3">
                       {item.children.map((child) =>
                         child.href ? (
@@ -120,7 +152,7 @@ export function AgencyWorkspaceLayout({ profile, children }: AgencyWorkspaceLayo
                             href={child.href}
                             onClick={() => setNavigationOpen(false)}
                             className={cn(
-                              "block rounded-[14px] px-2.5 py-1.5 text-[13px] transition-all",
+                              "flex items-center gap-2 rounded-[14px] px-2.5 py-1.5 text-[13px] transition-all",
                               isActiveRoute(pathname, child.href)
                                 ? "bg-primary/[0.1] text-primary"
                                 : "text-muted-foreground hover:bg-white/[0.03] hover:text-foreground",

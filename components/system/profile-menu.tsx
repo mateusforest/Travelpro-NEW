@@ -148,8 +148,8 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
       </DropdownMenu>
 
       <Dialog open={activePanel === "account"} onOpenChange={(open) => !open && closePanel()}>
-        <DialogContent className="max-w-2xl rounded-[32px] border border-white/10 bg-black/88 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-          <DialogHeader className="border-b border-white/8 px-6 py-5">
+        <DialogContent className="max-w-2xl rounded-[30px] border border-white/10 bg-black/88 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+          <DialogHeader className="border-b border-white/8 px-5 py-4.5">
             <DialogTitle>Minha conta</DialogTitle>
             <DialogDescription>
               {isClientPortal
@@ -159,7 +159,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                   : "Atualize seus dados principais de acesso e operação."}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-6 px-6 py-5 md:grid-cols-[240px_1fr]">
+          <div className="grid gap-6 px-5 py-4.5 md:grid-cols-[240px_1fr]">
             <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-center">
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary to-orange-300 text-xl font-semibold text-primary-foreground">
                 {profile.initials}
@@ -180,7 +180,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
               />
             </div>
           </div>
-          <DialogFooter className="border-t border-white/8 px-6 py-5">
+          <DialogFooter className="border-t border-white/8 px-5 py-4.5">
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel}>
               Fechar
             </Button>
@@ -194,8 +194,8 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
 
       {(isAgencyPortal || isMasterPortal) && (
         <Dialog open={activePanel === "preferences"} onOpenChange={(open) => !open && closePanel()}>
-          <DialogContent className="max-w-2xl rounded-[32px] border border-white/10 bg-black/88 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-            <DialogHeader className="border-b border-white/8 px-6 py-5">
+          <DialogContent className="max-w-2xl rounded-[30px] border border-white/10 bg-black/88 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+            <DialogHeader className="border-b border-white/8 px-5 py-4.5">
               <DialogTitle>Preferências</DialogTitle>
               <DialogDescription>
                 {isMasterPortal
@@ -203,13 +203,13 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                   : "Defina tema, notificações e preferências de operação da agência."}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
+            <div className="grid gap-4 px-5 py-4.5 md:grid-cols-2">
               <InfoCard label="Tema" value="Dark premium" />
               <InfoCard label="Idioma" value="Português (Brasil)" />
               <InfoCard label="Notificações" value={isMasterPortal ? "Alertas críticos, Atlas e billing" : "Ativas para leads, cobranças e operação"} />
               <InfoCard label={isMasterPortal ? "Painel inicial" : "Operação"} value={isMasterPortal ? "Resumo executivo com ranking e alertas" : "Follow-up inteligente e alertas prioritários"} />
             </div>
-            <DialogFooter className="border-t border-white/8 px-6 py-5">
+            <DialogFooter className="border-t border-white/8 px-5 py-4.5">
               <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel}>
                 Fechar
               </Button>
@@ -224,22 +224,22 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
 
       {isMasterPortal && (
         <Dialog open={activePanel === "security"} onOpenChange={(open) => !open && closePanel()}>
-          <DialogContent className="max-w-2xl rounded-[32px] border border-white/10 bg-black/88 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-            <DialogHeader className="border-b border-white/8 px-6 py-5">
+          <DialogContent className="max-w-2xl rounded-[30px] border border-white/10 bg-black/88 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+            <DialogHeader className="border-b border-white/8 px-5 py-4.5">
               <DialogTitle>Segurança</DialogTitle>
               <DialogDescription>Gerencie proteção da conta, sessão, acessos críticos e trilhas administrativas.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
+            <div className="grid gap-4 px-5 py-4.5 md:grid-cols-2">
               <InfoCard label="Autenticação em dois fatores" value="Ativa para o usuário Master" />
               <InfoCard label="Último acesso" value="Hoje, 08:42 • São Paulo" />
               <InfoCard label="Sessões abertas" value="2 dispositivos monitorados" />
               <InfoCard label="Alertas de segurança" value="Nenhum incidente crítico no momento" />
             </div>
-            <div className="grid gap-4 px-6 pb-5 md:grid-cols-2">
+            <div className="grid gap-4 px-5 pb-4.5 md:grid-cols-2">
               <Field label="E-mail de recuperação" value="seguranca@travelpro.com" />
               <Field label="Canal crítico" value="SMS + e-mail" />
             </div>
-            <DialogFooter className="border-t border-white/8 px-6 py-5">
+            <DialogFooter className="border-t border-white/8 px-5 py-4.5">
               <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel}>
                 Fechar
               </Button>
@@ -255,8 +255,8 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
       {isAgencyPortal && (
         <>
           <Dialog open={activePanel === "subscription"} onOpenChange={(open) => !open && closePanel()}>
-            <DialogContent className="flex max-h-[88vh] max-w-5xl flex-col overflow-hidden rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-              <DialogHeader className="border-b border-white/8 px-6 py-5">
+            <DialogContent className="flex max-h-[88vh] max-w-5xl flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+              <DialogHeader className="border-b border-white/8 px-5 py-4.5">
                 <DialogTitle>Plano, pacotes e créditos</DialogTitle>
                 <DialogDescription>Uma visão única para plano, extras, consumo e cobrança da agência.</DialogDescription>
               </DialogHeader>
@@ -272,7 +272,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                   </TabsList>
                 </div>
 
-                <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+                <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4.5">
                   <TabsContent value="current-plan" className="space-y-4">
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                       <InfoCard label="Plano contratado" value="Scale" />
@@ -397,23 +397,23 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                 </div>
               </Tabs>
 
-              <DialogFooter className="border-t border-white/8 px-6 py-5">
+              <DialogFooter className="border-t border-white/8 px-5 py-4.5">
                 <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel}>Fechar</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
           <Dialog open={activePanel === "payment-update"} onOpenChange={(open) => !open && setActivePanel("subscription")}>
-            <DialogContent className="max-w-md rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-              <DialogHeader className="border-b border-white/8 px-6 py-5">
+            <DialogContent className="max-w-md rounded-[30px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+              <DialogHeader className="border-b border-white/8 px-5 py-4.5">
                 <DialogTitle>Portal de cobrança</DialogTitle>
                 <DialogDescription>Em breve você será direcionado ao portal seguro de cobrança.</DialogDescription>
               </DialogHeader>
-              <div className="px-6 py-5 text-sm leading-6 text-muted-foreground">
+              <div className="px-5 py-4.5 text-sm leading-6 text-muted-foreground">
                 {/* Futuramente este botão deve chamar o Stripe Customer Portal. */}
                 A integração com o portal seguro de cobrança será conectada quando o fluxo Stripe estiver ativo no sistema.
               </div>
-              <DialogFooter className="border-t border-white/8 px-6 py-5">
+              <DialogFooter className="border-t border-white/8 px-5 py-4.5">
                 <Button className="rounded-full" onClick={() => setActivePanel("subscription")}>
                   Entendi
                 </Button>
@@ -424,8 +424,8 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
       )}
 
       <Dialog open={activePanel === "settings"} onOpenChange={(open) => !open && closePanel()}>
-        <DialogContent className="max-w-3xl rounded-[32px] border border-white/10 bg-black/88 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-          <DialogHeader className="border-b border-white/8 px-6 py-5">
+        <DialogContent className="max-w-3xl rounded-[30px] border border-white/10 bg-black/88 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+          <DialogHeader className="border-b border-white/8 px-5 py-4.5">
             <DialogTitle>{isMasterPortal ? "Configurações da plataforma" : "Configurações"}</DialogTitle>
             <DialogDescription>
               {isClientPortal
@@ -438,7 +438,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
 
           {isClientPortal ? (
             <>
-              <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
+              <div className="grid gap-4 px-5 py-4.5 md:grid-cols-2">
                 <InfoCard label="Notificações" value="Documentos, mensagens e alertas da viagem" />
                 <InfoCard label="Idioma" value="Português (Brasil)" />
                 <InfoCard label="Privacidade" value="Dados visíveis apenas para você e sua agência" />
@@ -451,7 +451,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
             </>
           ) : isMasterPortal ? (
             <>
-              <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
+              <div className="grid gap-4 px-5 py-4.5 md:grid-cols-2">
                 <Field label="Nome da plataforma" value="TravelPro" />
                 <Field label="Domínio principal" value="app.travelpro.com" />
                 <Field label="Canal executivo" value="operacoes@travelpro.com" />
@@ -466,7 +466,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
             </>
           ) : (
             <>
-              <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
+              <div className="grid gap-4 px-5 py-4.5 md:grid-cols-2">
                 <Field label="Nome da agência" value="JT Viagens Premium" />
                 <Field label="Logo" value="travelpro.app/assets/jt-viagens-logo.png" />
                 <Field label="Cor principal" value="Laranja TravelPro + Grafite" />
@@ -481,7 +481,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
             </>
           )}
 
-          <DialogFooter className="border-t border-white/8 px-6 py-5">
+          <DialogFooter className="border-t border-white/8 px-5 py-4.5">
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel}>
               Fechar
             </Button>
@@ -499,12 +499,12 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
       </Dialog>
 
       <Dialog open={activePanel === "logout"} onOpenChange={(open) => !open && closePanel()}>
-        <DialogContent className="max-w-md rounded-[32px] border border-white/10 bg-black/88 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
-          <DialogHeader className="border-b border-white/8 px-6 py-5">
+        <DialogContent className="max-w-md rounded-[30px] border border-white/10 bg-black/88 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+          <DialogHeader className="border-b border-white/8 px-5 py-4.5">
             <DialogTitle>Confirmar saída</DialogTitle>
             <DialogDescription>Você quer encerrar a sessão agora?</DialogDescription>
           </DialogHeader>
-          <DialogFooter className="px-6 py-5">
+          <DialogFooter className="px-5 py-4.5">
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel}>
               Cancelar
             </Button>
