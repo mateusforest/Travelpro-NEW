@@ -82,13 +82,13 @@ export function AgencyWorkspaceLayout({ profile, children }: AgencyWorkspaceLayo
       </header>
 
       <Drawer open={navigationOpen} onOpenChange={setNavigationOpen} direction="left">
-        <DrawerContent className="w-[min(320px,calc(100vw-1rem))] border-white/8 bg-[#0d0a0b]/96 shadow-[0_34px_100px_rgba(0,0,0,0.62)] backdrop-blur-3xl">
+        <DrawerContent className="data-[vaul-drawer-direction=left]:!w-[min(292px,calc(100vw-0.85rem))] md:data-[vaul-drawer-direction=left]:!w-[304px] md:data-[vaul-drawer-direction=left]:max-w-[304px] border-white/8 bg-[#0d0a0b]/96 shadow-[0_34px_100px_rgba(0,0,0,0.62)] backdrop-blur-3xl">
           <DrawerHeader>
             <DrawerTitle>Modulos</DrawerTitle>
             <DrawerDescription>Navegacao de apoio.</DrawerDescription>
           </DrawerHeader>
 
-          <div className="space-y-2.5 overflow-y-auto px-4 py-4 md:px-5">
+          <div className="space-y-2 overflow-y-auto px-3.5 py-3.5 md:px-4">
             {items.map((item) => {
               const active = isActiveRoute(pathname, item.href) || item.children?.some((child) => isActiveRoute(pathname, child.href))
               const itemKey = item.href ?? item.title
@@ -102,7 +102,7 @@ export function AgencyWorkspaceLayout({ profile, children }: AgencyWorkspaceLayo
                         href={item.href}
                         onClick={() => setNavigationOpen(false)}
                         className={cn(
-                          "flex min-w-0 flex-1 items-center gap-3 rounded-[16px] border px-3 py-2 transition-all duration-300",
+                          "flex min-w-0 flex-1 items-center gap-2.5 rounded-[15px] border px-2.5 py-1.5 transition-all duration-300",
                           active
                             ? "border-primary/20 bg-primary/[0.12] text-foreground"
                             : "border-white/8 bg-white/[0.03] text-muted-foreground hover:border-white/12 hover:bg-white/[0.05] hover:text-foreground",
@@ -117,7 +117,7 @@ export function AgencyWorkspaceLayout({ profile, children }: AgencyWorkspaceLayo
                       <button
                         type="button"
                         onClick={() => item.children?.length ? toggleGroup(itemKey, active) : undefined}
-                        className="flex min-w-0 flex-1 items-center gap-3 rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2 text-left transition-all duration-300 hover:border-white/12 hover:bg-white/[0.05]"
+                        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[15px] border border-white/8 bg-white/[0.03] px-2.5 py-1.5 text-left transition-all duration-300 hover:border-white/12 hover:bg-white/[0.05]"
                       >
                         <div className="rounded-[14px] border border-white/8 bg-black/15 p-1.5">
                           <item.icon className="h-3.5 w-3.5 text-muted-foreground" />
@@ -132,7 +132,7 @@ export function AgencyWorkspaceLayout({ profile, children }: AgencyWorkspaceLayo
                         onClick={() => toggleGroup(itemKey, active)}
                         aria-label={expanded ? `Recolher ${item.title}` : `Expandir ${item.title}`}
                         className={cn(
-                          "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] border transition-all duration-300",
+                          "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[13px] border transition-all duration-300",
                           active
                             ? "border-primary/20 bg-primary/[0.1] text-primary"
                             : "border-white/8 bg-white/[0.03] text-muted-foreground hover:border-white/12 hover:bg-white/[0.05] hover:text-foreground",

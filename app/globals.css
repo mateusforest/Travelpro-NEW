@@ -61,6 +61,25 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  select {
+    color-scheme: dark;
+    background-color: rgba(255, 255, 255, 0.03);
+    color: var(--foreground);
+  }
+
+  select option,
+  select optgroup {
+    background-color: #0f0b0c;
+    color: #fafafa;
+  }
+
+  select option:hover,
+  select option:focus,
+  select option:checked {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.24), rgba(255, 255, 255, 0.06));
+    color: #ffffff;
+  }
 }
 
 /* Custom scrollbar */

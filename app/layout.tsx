@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   description:
     "Gerencie clientes, viagens, documentos, operações e automações em uma plataforma inteligente conectada ao WhatsApp, IA e sua equipe.",
   keywords: ["agência de viagens", "gestão", "automação", "IA", "WhatsApp", "turismo"],
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
 }
 
 export const viewport: Viewport = {
