@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import {
   AlertTriangle,
   ArrowRightLeft,
+  ChevronRight,
   BellRing,
   Bot,
   CalendarClock,
@@ -22,7 +23,6 @@ import {
   HandCoins,
   MoreHorizontal,
   PlaneTakeoff,
-  Plus,
   Percent,
   Receipt,
   Route,
@@ -485,7 +485,7 @@ function WorkspaceDashboardCard({
               onClick={onOpenQuickActions}
               aria-label={`Abrir ações rápidas de ${title}`}
             >
-              <Plus className="h-3.5 w-3.5" />
+              <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           ) : null}
         </div>
@@ -1063,7 +1063,7 @@ export function AgencyDashboardPage() {
   const workspaceCards = [
     {
       key: "financeiro",
-      span: "xl:col-span-4",
+      span: "xl:col-span-3",
       title: "Financeiro",
       icon: HandCoins,
       value: formatMoney(dashboard?.finance_snapshot.balance ?? 0),
@@ -1086,7 +1086,7 @@ export function AgencyDashboardPage() {
     },
     {
       key: "viagens",
-      span: "xl:col-span-4",
+      span: "xl:col-span-3",
       title: "Viagens",
       icon: PlaneTakeoff,
       value: `${dashboard?.counts.active_trips ?? 0} em andamento`,
@@ -1109,7 +1109,7 @@ export function AgencyDashboardPage() {
     },
     {
       key: "documentos",
-      span: "xl:col-span-4",
+      span: "xl:col-span-3",
       title: "Documentos",
       icon: FileText,
       value: `${dashboard?.counts.pending_documents ?? 0} pendentes`,
@@ -1425,46 +1425,28 @@ export function AgencyDashboardPage() {
 
   return (
     <PageShell>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.055),rgba(255,255,255,0.02))] px-5 py-4 shadow-[0_28px_90px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-primary/68">Workspace operacional</p>
-          <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-lg font-semibold text-foreground">Sua operação está ativa hoje.</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+      <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] px-5 py-4 shadow-[0_24px_70px_rgba(0,0,0,0.18)] backdrop-blur-2xl">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-primary/68">Workspace operacional</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <p className="text-base font-semibold text-foreground">Sua operação está ativa hoje.</p>
+              <span className="text-sm text-muted-foreground">
                 {attentionCount > 0 ? `${attentionCount} ponto${attentionCount > 1 ? "s" : ""} pedem atenção.` : condensedSummary}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild size="sm" className="rounded-full">
-                <Link href="/app/viagens/nova">Nova viagem</Link>
-              </Button>
-              <Button asChild size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
-                <Link href="/app/central-operacional">Abrir central</Link>
-              </Button>
+              </span>
             </div>
           </div>
-        </div>
 
-        <div className={`rounded-[28px] border px-5 py-4 backdrop-blur-xl shadow-[0_24px_80px_rgba(0,0,0,0.18)] ${healthTone === "critical" ? "border-rose-400/18 bg-rose-400/10" : healthTone === "attention" ? "border-amber-400/18 bg-amber-400/10" : "border-emerald-400/15 bg-emerald-400/10"}`}>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className={`text-[11px] uppercase tracking-[0.22em] ${healthTone === "critical" ? "text-rose-100/80" : healthTone === "attention" ? "text-amber-100/80" : "text-emerald-100/80"}`}>
-                {dashboard?.health.label || "Operação ativa"}
-              </p>
-              <p className="mt-2 text-base font-semibold text-foreground">{dashboard?.health.title || "Lendo sinais reais da agência"}</p>
+          <div className="flex flex-wrap gap-2">
+            <div className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs", healthTone === "critical" ? "border-rose-400/18 bg-rose-400/10 text-rose-100/85" : healthTone === "attention" ? "border-amber-400/18 bg-amber-400/10 text-amber-100/85" : "border-emerald-400/15 bg-emerald-400/10 text-emerald-100/85")}>
+              <span className="font-medium">{dashboard?.health.title || "Operacao ativa"}</span>
             </div>
-            <StatusPill label={dashboard?.health.tone === "success" ? "Estável" : dashboard?.health.tone === "warning" ? "Atenção" : "Crítico"} />
-          </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {isLoading
-              ? Array.from({ length: 3 }).map((_, index) => <div key={`hero-skeleton-${index}`} className="h-16 animate-pulse rounded-[18px] bg-white/10" />)
-              : summaryCards.map((item) => (
-                  <div key={item.label} className="rounded-[18px] border border-white/10 bg-black/18 px-3.5 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">{item.label}</p>
-                    <p className="mt-1.5 text-sm font-semibold text-foreground">{item.value}</p>
-                  </div>
-                ))}
+            <Button asChild size="sm" className="rounded-full">
+              <Link href="/app/viagens/nova">Nova viagem</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+              <Link href="/app/central-operacional">Abrir central</Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -1476,25 +1458,25 @@ export function AgencyDashboardPage() {
         </div>
       ) : null}
 
-      <div className="rounded-[32px] border border-white/8 bg-white/[0.03] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.2)] backdrop-blur-2xl">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-4 shadow-[0_20px_64px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.22em] text-primary/70">Inteligência operacional</p>
-            <h3 className="mt-2 text-xl font-semibold text-foreground">
+            <h3 className="mt-1.5 text-base font-semibold text-foreground">
               {attentionCount > 0
                 ? `Você tem ${attentionCount} ponto${attentionCount > 1 ? "s" : ""} de atenção hoje.`
                 : "Sua operação está estável agora."}
             </h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Clique em um sinal para abrir o contexto certo e resolver sem navegar por telas pesadas.
             </p>
           </div>
-          <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+          <Button asChild size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
             <Link href="/app/central-operacional">Abrir central operacional</Link>
           </Button>
         </div>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-4">
+        <div className="mt-4 grid gap-3 lg:grid-cols-4">
           {isLoading
             ? Array.from({ length: 4 }).map((_, index) => <div key={`attention-skeleton-${index}`} className="h-28 animate-pulse rounded-[24px] bg-white/[0.05]" />)
             : attentionItems.length > 0
@@ -1522,8 +1504,8 @@ export function AgencyDashboardPage() {
 
       <div className="grid auto-rows-fr gap-4 xl:grid-cols-12">
         {isLoading
-          ? Array.from({ length: 14 }).map((_, index) => (
-              <div key={`workspace-card-skeleton-${index}`} className={cn("rounded-[30px] border border-white/8 bg-white/[0.03] p-5 animate-pulse", index < 3 ? "xl:col-span-4" : "xl:col-span-3")}>
+          ? Array.from({ length: 11 }).map((_, index) => (
+              <div key={`workspace-card-skeleton-${index}`} className="rounded-[30px] border border-white/8 bg-white/[0.03] p-5 animate-pulse xl:col-span-3">
                 <div className="h-4 w-28 rounded-full bg-white/10" />
                 <div className="mt-5 h-7 w-32 rounded-full bg-white/10" />
                 <div className="mt-6 space-y-2">
@@ -1659,7 +1641,7 @@ export function AgencyDashboardPage() {
                       className="flex items-center justify-between rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-foreground transition-all hover:border-primary/18 hover:bg-white/[0.05]"
                     >
                       <span>{action.label}</span>
-                      <Plus className="h-3.5 w-3.5 rotate-45 text-primary" />
+                      <ChevronRight className="h-3.5 w-3.5 text-primary" />
                     </Link>
                   ) : (
                     <button
@@ -1672,7 +1654,7 @@ export function AgencyDashboardPage() {
                       className="flex w-full items-center justify-between rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-left text-sm text-foreground transition-all hover:border-primary/18 hover:bg-white/[0.05]"
                     >
                       <span>{action.label}</span>
-                      <Plus className="h-3.5 w-3.5 rotate-45 text-primary" />
+                      <ChevronRight className="h-3.5 w-3.5 text-primary" />
                     </button>
                   ),
                 )}
