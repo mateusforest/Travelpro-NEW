@@ -4036,10 +4036,18 @@ export function AgencyTripsPage() {
   }
 
   const openTripShareLink = async (trip: TripRecord) => {
+    const popup = window.open("about:blank", "_blank", "noopener,noreferrer")
     try {
       const link = shareLinks[trip.id] && shareLinks[trip.id].is_active ? shareLinks[trip.id] : await requestTripShareLink(trip.id)
-      window.open(buildAbsoluteShareUrl(link.public_url), "_blank", "noopener,noreferrer")
+      const targetUrl = buildAbsoluteShareUrl(link.public_url)
+      if (popup) {
+        popup.location.href = targetUrl
+      } else {
+        window.open(targetUrl, "_blank", "noopener,noreferrer")
+      }
+      fire("Link aberto", `A experiência compartilhável de ${trip.destination} foi aberta em uma nova aba.`)
     } catch (error) {
+      popup?.close()
       if (process.env.NODE_ENV !== "production") {
         console.error("[AgencyTripsPage] failed to open share link", error)
       }
@@ -4936,6 +4944,15 @@ export function AgencyReportsPage() {
   const router = useRouter()
   const fire = (title: string, description: string) => toast({ title, description })
   const openPdfExport = (reportId: string) => window.open(`/app/relatorios/${reportId}?export=pdf`, "_blank", "noopener,noreferrer")
+  const triggerDownload = (url: string) => {
+    const link = document.createElement("a")
+    link.href = url
+    link.target = "_blank"
+    link.rel = "noreferrer"
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
 
   useEffect(() => {
     let active = true
@@ -4983,7 +5000,8 @@ export function AgencyReportsPage() {
           source: "Download HTML",
         }),
       })
-      window.location.href = `/api/reports/${report.id}/download`
+      triggerDownload(`/api/reports/${report.id}/download`)
+      fire("Download iniciado", `${report.name} está sendo preparado para download.`)
     } catch (error) {
       fire("Falha no download", error instanceof Error ? error.message : "Nao foi possivel baixar o relatório.")
     } finally {

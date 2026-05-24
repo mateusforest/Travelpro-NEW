@@ -96,6 +96,16 @@ function StatusPill({ label }: { label: string }) {
   return <span className={`rounded-full border px-2.5 py-1 text-[10px] font-medium tracking-[0.18em] ${styles}`}>{label}</span>
 }
 
+function triggerDownload(url: string) {
+  const link = document.createElement("a")
+  link.href = url
+  link.target = "_blank"
+  link.rel = "noreferrer"
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
@@ -301,7 +311,14 @@ export function MasterReportsRealPage() {
                       <Eye className="mr-2 h-4 w-4" />
                       Visualizar
                     </Button>
-                    <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => { window.location.href = `/api/reports/${item.id}/download` }}>
+                    <Button
+                      variant="outline"
+                      className="rounded-full border-white/10 bg-white/[0.03]"
+                      onClick={() => {
+                        triggerDownload(`/api/reports/${item.id}/download`)
+                        toast({ title: "Exportação iniciada", description: `${item.name} está sendo preparado para download.` })
+                      }}
+                    >
                       <Download className="mr-2 h-4 w-4" />
                       Exportar
                     </Button>
