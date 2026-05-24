@@ -875,6 +875,7 @@ function LeadEditorDialog({
   onChange,
   onConfirm,
   saving,
+  mode = "edit",
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -882,13 +883,18 @@ function LeadEditorDialog({
   onChange: (field: keyof LeadFormValues, value: string) => void
   onConfirm: () => void
   saving: boolean
+  mode?: "create" | "edit"
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
         <DialogHeader className="border-b border-white/8 px-6 py-5">
-          <DialogTitle>Editar lead</DialogTitle>
-          <DialogDescription>Atualize os dados reais da oportunidade sem sair da operação.</DialogDescription>
+          <DialogTitle>{mode === "create" ? "Novo lead" : "Editar lead"}</DialogTitle>
+          <DialogDescription>
+            {mode === "create"
+              ? "Crie uma oportunidade rápida com origem, contato e interesse principal."
+              : "Atualize os dados reais da oportunidade sem sair da operação."}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
           {[
@@ -924,7 +930,7 @@ function LeadEditorDialog({
             Cancelar
           </Button>
           <Button className="rounded-full" onClick={onConfirm} disabled={saving}>
-            {saving ? "Salvando..." : "Salvar lead"}
+            {saving ? "Salvando..." : mode === "create" ? "Salvar lead" : "Atualizar lead"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -933,6 +939,7 @@ function LeadEditorDialog({
 }
 
 type TripFormValues = {
+  clientId: string
   destination: string
   origin: string
   status: string
@@ -943,6 +950,7 @@ type TripFormValues = {
 
 function buildTripFormValues(record?: TripRecord): TripFormValues {
   return {
+    clientId: record?.client_id ?? "",
     destination: record?.destination ?? "",
     origin: record?.origin ?? "",
     status: record?.stage ?? "Planejamento",
@@ -959,6 +967,8 @@ function TripEditorDialog({
   onChange,
   onConfirm,
   saving,
+  mode = "edit",
+  clientOptions = [],
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -966,15 +976,38 @@ function TripEditorDialog({
   onChange: (field: keyof TripFormValues, value: string) => void
   onConfirm: () => void
   saving: boolean
+  mode?: "create" | "edit"
+  clientOptions?: { value: string; label: string }[]
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
         <DialogHeader className="border-b border-white/8 px-6 py-5">
-          <DialogTitle>Editar viagem</DialogTitle>
-          <DialogDescription>Atualize destino, datas, status e resumo da viagem com dados reais.</DialogDescription>
+          <DialogTitle>{mode === "create" ? "Nova viagem" : "Editar viagem"}</DialogTitle>
+          <DialogDescription>
+            {mode === "create"
+              ? "Crie uma viagem rápida com cliente, destino, período e status inicial sem sair do workspace."
+              : "Atualize destino, datas, status e resumo da viagem com dados reais."}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
+          {clientOptions.length > 0 ? (
+            <label className="space-y-2">
+              <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Cliente vinculado</span>
+              <select
+                value={values.clientId}
+                onChange={(event) => onChange("clientId", event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+              >
+                <option value="">Selecione um cliente</option>
+                {clientOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           {[
             ["destination", "Destino"],
             ["origin", "Origem"],
@@ -1006,7 +1039,322 @@ function TripEditorDialog({
             Cancelar
           </Button>
           <Button className="rounded-full" onClick={onConfirm} disabled={saving}>
-            {saving ? "Salvando..." : "Salvar viagem"}
+            {saving ? "Salvando..." : mode === "create" ? "Salvar viagem" : "Atualizar viagem"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+type QuickDocumentFormValues = {
+  title: string
+  type: string
+  status: string
+  clientId: string
+  tripId: string
+  templateId: string
+}
+
+function buildQuickDocumentFormValues(partial?: Partial<QuickDocumentFormValues>): QuickDocumentFormValues {
+  return {
+    title: partial?.title ?? "",
+    type: partial?.type ?? "Documento geral",
+    status: partial?.status ?? "Rascunho",
+    clientId: partial?.clientId ?? "",
+    tripId: partial?.tripId ?? "",
+    templateId: partial?.templateId ?? "",
+  }
+}
+
+function QuickDocumentDialog({
+  open,
+  onOpenChange,
+  values,
+  onChange,
+  onConfirm,
+  saving,
+  clientOptions,
+  tripOptions,
+  templateOptions,
+  modeLabel,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  values: QuickDocumentFormValues
+  onChange: (field: keyof QuickDocumentFormValues, value: string) => void
+  onConfirm: () => void
+  saving: boolean
+  clientOptions: { value: string; label: string }[]
+  tripOptions: { value: string; label: string }[]
+  templateOptions: { value: string; label: string }[]
+  modeLabel: string
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+        <DialogHeader className="border-b border-white/8 px-6 py-5">
+          <DialogTitle>{modeLabel}</DialogTitle>
+          <DialogDescription>Crie um documento operacional rápido, com template, vínculos reais e status inicial.</DialogDescription>
+        </DialogHeader>
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
+          <label className="space-y-2 md:col-span-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Título</span>
+            <input
+              value={values.title}
+              onChange={(event) => onChange("title", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Tipo</span>
+            <select
+              value={values.type}
+              onChange={(event) => onChange("type", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            >
+              {["Documento geral", "Contrato", "Voucher", "Recibo", "Passagem", "Template", "Roteiro", "Cotação"].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Status</span>
+            <select
+              value={values.status}
+              onChange={(event) => onChange("status", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            >
+              {["Rascunho", "Aguardando revisão", "Pronto", "Enviado"].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Cliente</span>
+            <select
+              value={values.clientId}
+              onChange={(event) => onChange("clientId", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            >
+              <option value="">Sem cliente vinculado</option>
+              {clientOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Viagem</span>
+            <select
+              value={values.tripId}
+              onChange={(event) => onChange("tripId", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            >
+              <option value="">Sem viagem vinculada</option>
+              {tripOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2 md:col-span-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Usar template como base</span>
+            <select
+              value={values.templateId}
+              onChange={(event) => onChange("templateId", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            >
+              <option value="">Nenhum template agora</option>
+              {templateOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <DialogFooter className="border-t border-white/8 px-6 py-5">
+          <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button type="button" className="rounded-full" onClick={onConfirm} disabled={saving}>
+            {saving ? "Salvando..." : "Salvar documento"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+type QuickFinanceFormValues = {
+  type: string
+  amount: string
+  status: string
+  category: string
+  description: string
+  occurredAt: string
+  clientId: string
+  tripId: string
+}
+
+function buildQuickFinanceFormValues(partial?: Partial<QuickFinanceFormValues>): QuickFinanceFormValues {
+  return {
+    type: partial?.type ?? "Receita",
+    amount: partial?.amount ?? "",
+    status: partial?.status ?? "Pendente",
+    category: partial?.category ?? "",
+    description: partial?.description ?? "",
+    occurredAt: partial?.occurredAt ?? new Date().toISOString().slice(0, 10),
+    clientId: partial?.clientId ?? "",
+    tripId: partial?.tripId ?? "",
+  }
+}
+
+function QuickFinanceDialog({
+  open,
+  onOpenChange,
+  values,
+  onChange,
+  onConfirm,
+  saving,
+  clientOptions,
+  tripOptions,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  values: QuickFinanceFormValues
+  onChange: (field: keyof QuickFinanceFormValues, value: string) => void
+  onConfirm: () => void
+  saving: boolean
+  clientOptions: { value: string; label: string }[]
+  tripOptions: { value: string; label: string }[]
+}) {
+  const revenueCategories = ["Pacote vendido", "Comissão", "Serviço avulso", "Taxa de consultoria", "Sinal/entrada", "Parcela recebida", "Outro"]
+  const expenseCategories = ["Operadora", "Fornecedor", "Marketing", "Plataforma/SaaS", "Comissão", "Reembolso", "Impostos", "Taxas", "Outro"]
+  const categoryOptions = values.type === "Receita" ? revenueCategories : expenseCategories
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl rounded-[32px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
+        <DialogHeader className="border-b border-white/8 px-6 py-5">
+          <DialogTitle>Novo lançamento</DialogTitle>
+          <DialogDescription>Registre uma receita ou despesa rápida com competência real e vínculos opcionais.</DialogDescription>
+        </DialogHeader>
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto px-6 py-5 md:grid-cols-2">
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Tipo</span>
+            <select
+              value={values.type}
+              onChange={(event) => onChange("type", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            >
+              {["Receita", "Despesa"].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Valor</span>
+            <input
+              value={values.amount}
+              onChange={(event) => onChange("amount", event.target.value)}
+              inputMode="decimal"
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Categoria</span>
+            <select
+              value={values.category}
+              onChange={(event) => onChange("category", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            >
+              <option value="">Selecione uma categoria</option>
+              {categoryOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Status</span>
+            <select
+              value={values.status}
+              onChange={(event) => onChange("status", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            >
+              {["Pendente", "Pago", "A receber"].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Competência</span>
+            <input
+              type="date"
+              value={values.occurredAt}
+              onChange={(event) => onChange("occurredAt", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Cliente</span>
+            <select
+              value={values.clientId}
+              onChange={(event) => onChange("clientId", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            >
+              <option value="">Sem cliente vinculado</option>
+              {clientOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Viagem</span>
+            <select
+              value={values.tripId}
+              onChange={(event) => onChange("tripId", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            >
+              <option value="">Sem viagem vinculada</option>
+              {tripOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2 md:col-span-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-primary/75">Descrição</span>
+            <textarea
+              rows={3}
+              value={values.description}
+              onChange={(event) => onChange("description", event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-foreground outline-none"
+            />
+          </label>
+        </div>
+        <DialogFooter className="border-t border-white/8 px-6 py-5">
+          <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button type="button" className="rounded-full" onClick={onConfirm} disabled={saving}>
+            {saving ? "Salvando..." : "Salvar lançamento"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1020,76 +1368,113 @@ export function AgencyDashboardPage() {
   const [credits, setCredits] = useState<CreditsOverviewData | null>(null)
   const [reportsOverview, setReportsOverview] = useState<ReportsOverviewData | null>(null)
   const [teamMembers, setTeamMembers] = useState<TeamMemberRow[]>([])
+  const [clientRows, setClientRows] = useState<ClientRow[]>([])
+  const [leadRows, setLeadRows] = useState<LeadRow[]>([])
+  const [tripRows, setTripRows] = useState<TripRow[]>([])
+  const [documentRows, setDocumentRows] = useState<DocumentRow[]>([])
+  const [financialRows, setFinancialRows] = useState<FinancialRecordRow[]>([])
   const [catalogProfile, setCatalogProfile] = useState<CatalogAgencyProfile | null>(null)
   const [catalogPackages, setCatalogPackages] = useState<CatalogItemResponse[]>([])
   const [selectedAttention, setSelectedAttention] = useState<DashboardPriorityItem | null>(null)
   const [activeQuickActions, setActiveQuickActions] = useState<WorkspaceCardQuickActions | null>(null)
+  const [activeMicroWorkspace, setActiveMicroWorkspace] = useState<null | "clients" | "trips" | "documents" | "finance" | "leads" | "itineraries" | "quotes" | "atlas" | "operational">(null)
   const [cardOrder, setCardOrder] = useState<string[]>([])
   const [draggingCardKey, setDraggingCardKey] = useState<string | null>(null)
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null)
   const [dragEnabled, setDragEnabled] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [isClientCreateOpen, setIsClientCreateOpen] = useState(false)
+  const [clientCreateValues, setClientCreateValues] = useState<ClientFormValues>(buildClientFormValues())
+  const [isLeadCreateOpen, setIsLeadCreateOpen] = useState(false)
+  const [leadCreateValues, setLeadCreateValues] = useState<LeadFormValues>(buildLeadFormValues())
+  const [isTripCreateOpen, setIsTripCreateOpen] = useState(false)
+  const [tripCreateValues, setTripCreateValues] = useState<TripFormValues>(buildTripFormValues())
+  const [isDocumentCreateOpen, setIsDocumentCreateOpen] = useState(false)
+  const [documentCreateValues, setDocumentCreateValues] = useState<QuickDocumentFormValues>(buildQuickDocumentFormValues())
+  const [documentDialogLabel, setDocumentDialogLabel] = useState("Novo documento")
+  const [isFinanceCreateOpen, setIsFinanceCreateOpen] = useState(false)
+  const [financeCreateValues, setFinanceCreateValues] = useState<QuickFinanceFormValues>(buildQuickFinanceFormValues())
+  const [isSavingQuickAction, setIsSavingQuickAction] = useState(false)
+  const [shareLinksByTrip, setShareLinksByTrip] = useState<Record<string, TripShareLinkSummary>>({})
   const fire = useCallback((title: string, description: string) => toast({ title, description }), [])
+  const router = useRouter()
 
-  useEffect(() => {
-    let active = true
+  const loadDashboard = useCallback(async () => {
+    setIsLoading(true)
+    setLoadError(null)
 
-    const loadDashboard = async () => {
-      setIsLoading(true)
-      setLoadError(null)
+    try {
+      const [
+        dashboardResult,
+        operationalResult,
+        creditsResult,
+        reportsResult,
+        teamResult,
+        catalogProfileResult,
+        catalogPackagesResult,
+        clientsResult,
+        leadsResult,
+        tripsResult,
+        documentsResult,
+        financeResult,
+      ] = await Promise.allSettled([
+        requestJson<AgencyDashboardData>("/api/dashboard/agency"),
+        requestJson<CentralOperationalData>("/api/operational-center"),
+        requestJson<CreditsOverviewData>("/api/credits/overview"),
+        requestJson<ReportsOverviewData>("/api/reports/overview"),
+        requestJson<TeamMemberRow[]>("/api/team"),
+        requestJson<CatalogAgencyProfile>("/api/catalog/agency"),
+        requestJson<CatalogItemResponse[]>("/api/catalog/packages"),
+        requestJson<ClientRow[]>("/api/clients"),
+        requestJson<LeadRow[]>("/api/leads"),
+        requestJson<TripRow[]>("/api/trips"),
+        requestJson<DocumentRow[]>("/api/documents"),
+        requestJson<FinancialRecordRow[]>("/api/financial-records"),
+      ])
 
-      try {
-        const [dashboardResult, operationalResult, creditsResult, reportsResult, teamResult, catalogProfileResult, catalogPackagesResult] = await Promise.allSettled([
-          requestJson<AgencyDashboardData>("/api/dashboard/agency"),
-          requestJson<CentralOperationalData>("/api/operational-center"),
-          requestJson<CreditsOverviewData>("/api/credits/overview"),
-          requestJson<ReportsOverviewData>("/api/reports/overview"),
-          requestJson<TeamMemberRow[]>("/api/team"),
-          requestJson<CatalogAgencyProfile>("/api/catalog/agency"),
-          requestJson<CatalogItemResponse[]>("/api/catalog/packages"),
-        ])
-
-        if (!active) return
-
-        if (dashboardResult.status === "fulfilled") {
-          setDashboard(dashboardResult.value)
-        } else {
-          throw dashboardResult.reason
-        }
-
-        setOperational(operationalResult.status === "fulfilled" ? operationalResult.value : null)
-        setCredits(creditsResult.status === "fulfilled" ? creditsResult.value : null)
-        setReportsOverview(reportsResult.status === "fulfilled" ? reportsResult.value : null)
-        setTeamMembers(teamResult.status === "fulfilled" ? teamResult.value : [])
-        setCatalogProfile(catalogProfileResult.status === "fulfilled" ? catalogProfileResult.value : null)
-        setCatalogPackages(catalogPackagesResult.status === "fulfilled" ? catalogPackagesResult.value : [])
-      } catch (error) {
-        if (!active) return
-        if (process.env.NODE_ENV !== "production") {
-          console.error("[AgencyDashboardPage] failed to load dashboard", error)
-        }
-        setDashboard(null)
-        setOperational(null)
-        setCredits(null)
-        setReportsOverview(null)
-        setTeamMembers([])
-        setCatalogProfile(null)
-        setCatalogPackages([])
-        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar o dashboard da agencia.")
-      } finally {
-        if (active) {
-          setIsLoading(false)
-        }
+      if (dashboardResult.status === "fulfilled") {
+        setDashboard(dashboardResult.value)
+      } else {
+        throw dashboardResult.reason
       }
-    }
 
-    void loadDashboard()
-
-    return () => {
-      active = false
+      setOperational(operationalResult.status === "fulfilled" ? operationalResult.value : null)
+      setCredits(creditsResult.status === "fulfilled" ? creditsResult.value : null)
+      setReportsOverview(reportsResult.status === "fulfilled" ? reportsResult.value : null)
+      setTeamMembers(teamResult.status === "fulfilled" ? teamResult.value : [])
+      setCatalogProfile(catalogProfileResult.status === "fulfilled" ? catalogProfileResult.value : null)
+      setCatalogPackages(catalogPackagesResult.status === "fulfilled" ? catalogPackagesResult.value : [])
+      setClientRows(clientsResult.status === "fulfilled" ? clientsResult.value : [])
+      setLeadRows(leadsResult.status === "fulfilled" ? leadsResult.value : [])
+      setTripRows(tripsResult.status === "fulfilled" ? tripsResult.value : [])
+      setDocumentRows(documentsResult.status === "fulfilled" ? documentsResult.value : [])
+      setFinancialRows(financeResult.status === "fulfilled" ? financeResult.value : [])
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[AgencyDashboardPage] failed to load dashboard", error)
+      }
+      setDashboard(null)
+      setOperational(null)
+      setCredits(null)
+      setReportsOverview(null)
+      setTeamMembers([])
+      setCatalogProfile(null)
+      setCatalogPackages([])
+      setClientRows([])
+      setLeadRows([])
+      setTripRows([])
+      setDocumentRows([])
+      setFinancialRows([])
+      setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar o dashboard da agencia.")
+    } finally {
+      setIsLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    void loadDashboard()
+  }, [loadDashboard])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -1112,6 +1497,303 @@ export function AgencyDashboardPage() {
   const healthTone =
     dashboard?.health.tone === "danger" ? "critical" : dashboard?.health.tone === "warning" ? "attention" : "default"
   const condensedSummary = summaryCards[0]?.value || dashboard?.health.title || "Operação online"
+  const clientRecords = useMemo(() => clientRows.map(mapClientRowToRecord), [clientRows])
+  const leadCards = useMemo(() => leadRows.map(mapLeadRowToCard), [leadRows])
+  const clientsById = useMemo(() => new Map(clientRows.map((item) => [item.id, item])), [clientRows])
+  const tripsById = useMemo(() => new Map(tripRows.map((item) => [item.id, item])), [tripRows])
+  const documentRecordsReal = useMemo(
+    () => documentRows.map((item, index) => mapDocumentRowToRecord(item, index, { clientsById, tripsById })),
+    [clientsById, documentRows, tripsById],
+  )
+  const clientOptions = useMemo(() => clientRecords.map((item) => ({ value: item.id, label: item.name })), [clientRecords])
+  const tripOptions = useMemo(
+    () => tripRows.map((item) => ({ value: item.id, label: `${item.destination}${item.starts_at ? ` • ${formatDateLabel(item.starts_at)}` : ""}` })),
+    [tripRows],
+  )
+  const templateOptions = useMemo(
+    () =>
+      documentRecordsReal
+        .filter((item) => normalizeDocumentType(item.type) === "Template")
+        .map((item) => ({ value: item.id, label: item.title })),
+    [documentRecordsReal],
+  )
+  const financialSnapshot = useMemo(() => {
+    const pending = financialRows.filter((item) => normalizeFinanceStatus(item.status) !== "Pago")
+    const pendingRevenue = pending
+      .filter((item) => normalizeFinanceType(item.type) === "Receita")
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+    const pendingExpenses = pending
+      .filter((item) => normalizeFinanceType(item.type) === "Despesa")
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+    return { pendingRevenue, pendingExpenses }
+  }, [financialRows])
+  const atlasSignals = useMemo(
+    () => [
+      (dashboard?.counts.pending_documents ?? 0) > 0 ? `${dashboard?.counts.pending_documents ?? 0} documentos aguardam revisão.` : null,
+      tripRows.some((item) => !item.summary?.trim()) ? "Existe viagem sem resumo operacional completo." : null,
+      (dashboard?.counts.leads_by_status.Novo ?? 0) > 0 ? `${dashboard?.counts.leads_by_status.Novo ?? 0} leads ainda não receberam retorno.` : null,
+    ].filter(Boolean) as string[],
+    [dashboard?.counts.leads_by_status.Novo, dashboard?.counts.pending_documents, tripRows],
+  )
+
+  const updateClientCreateValue = (field: keyof ClientFormValues, value: string) => {
+    setClientCreateValues((current) => ({ ...current, [field]: value }))
+  }
+
+  const updateLeadCreateValue = (field: keyof LeadFormValues, value: string) => {
+    setLeadCreateValues((current) => ({ ...current, [field]: value }))
+  }
+
+  const updateTripCreateValue = (field: keyof TripFormValues, value: string) => {
+    setTripCreateValues((current) => ({ ...current, [field]: value }))
+  }
+
+  const updateDocumentCreateValue = (field: keyof QuickDocumentFormValues, value: string) => {
+    setDocumentCreateValues((current) => ({ ...current, [field]: value }))
+  }
+
+  const updateFinanceCreateValue = (field: keyof QuickFinanceFormValues, value: string) => {
+    setFinanceCreateValues((current) => ({ ...current, [field]: value }))
+  }
+
+  const openClientCreate = (partial?: Partial<ClientFormValues>) => {
+    setClientCreateValues({ ...buildClientFormValues(), ...partial })
+    setIsClientCreateOpen(true)
+  }
+
+  const openLeadCreate = (partial?: Partial<LeadFormValues>) => {
+    setLeadCreateValues({ ...buildLeadFormValues(), ...partial })
+    setIsLeadCreateOpen(true)
+  }
+
+  const openTripCreate = (partial?: Partial<TripFormValues>) => {
+    setTripCreateValues({ ...buildTripFormValues(), ...partial })
+    setIsTripCreateOpen(true)
+  }
+
+  const openDocumentCreate = (partial?: Partial<QuickDocumentFormValues>, label = "Novo documento") => {
+    setDocumentCreateValues(buildQuickDocumentFormValues(partial))
+    setDocumentDialogLabel(label)
+    setIsDocumentCreateOpen(true)
+  }
+
+  const openFinanceCreate = (partial?: Partial<QuickFinanceFormValues>) => {
+    setFinanceCreateValues(buildQuickFinanceFormValues(partial))
+    setIsFinanceCreateOpen(true)
+  }
+
+  const withQuickActionSaving = async (action: () => Promise<void>) => {
+    setIsSavingQuickAction(true)
+    try {
+      await action()
+    } finally {
+      setIsSavingQuickAction(false)
+    }
+  }
+
+  const handleCreateClient = async () => {
+    if (!clientCreateValues.name.trim()) {
+      fire("Informe o nome", "Preencha o nome do cliente para salvar o cadastro rápido.")
+      return
+    }
+
+    await withQuickActionSaving(async () => {
+      await requestJson<ClientRow>("/api/clients", {
+        method: "POST",
+        body: JSON.stringify(buildClientPayload(clientCreateValues)),
+      })
+      setIsClientCreateOpen(false)
+      setClientCreateValues(buildClientFormValues())
+      await loadDashboard()
+      fire("Cliente criado", "O cliente foi salvo e já entrou no workspace operacional.")
+    })
+  }
+
+  const handleCreateLead = async () => {
+    if (!leadCreateValues.name.trim()) {
+      fire("Informe o nome", "Preencha o nome do lead para registrar a oportunidade.")
+      return
+    }
+
+    await withQuickActionSaving(async () => {
+      await requestJson<LeadRow>("/api/leads", {
+        method: "POST",
+        body: JSON.stringify({
+          name: leadCreateValues.name.trim(),
+          email: leadCreateValues.email.trim() || null,
+          phone: leadCreateValues.phone.trim() || null,
+          origin: leadCreateValues.origin.trim() || null,
+          destination: leadCreateValues.destination.trim() || null,
+          status: leadCreateValues.status.trim() || "Novo lead",
+          temperature: leadCreateValues.temperature.trim() || null,
+          notes: leadCreateValues.notes.trim() || null,
+        }),
+      })
+      setIsLeadCreateOpen(false)
+      setLeadCreateValues(buildLeadFormValues())
+      await loadDashboard()
+      fire("Lead criado", "A oportunidade entrou no pipeline rápido do dashboard.")
+    })
+  }
+
+  const handleCreateTrip = async () => {
+    if (!tripCreateValues.destination.trim()) {
+      fire("Informe o destino", "Defina o destino da viagem para concluir a criação rápida.")
+      return
+    }
+
+    await withQuickActionSaving(async () => {
+      await requestJson<TripRow>("/api/trips", {
+        method: "POST",
+        body: JSON.stringify({
+          destination: tripCreateValues.destination.trim(),
+          origin: tripCreateValues.origin.trim() || null,
+          status: tripCreateValues.status.trim() || "Planejamento",
+          starts_at: tripCreateValues.startsAt || null,
+          ends_at: tripCreateValues.endsAt || null,
+          summary: tripCreateValues.summary.trim() || null,
+          client_id: tripCreateValues.clientId || null,
+        }),
+      })
+      setIsTripCreateOpen(false)
+      setTripCreateValues(buildTripFormValues())
+      await loadDashboard()
+      fire("Viagem criada", "A viagem já aparece no fluxo operacional da agência.")
+    })
+  }
+
+  const handleCreateDocument = async () => {
+    if (!documentCreateValues.title.trim()) {
+      fire("Informe o título", "Preencha o título para salvar o documento rápido.")
+      return
+    }
+
+    const selectedTemplate = documentRows.find((item) => item.id === documentCreateValues.templateId)
+
+    await withQuickActionSaving(async () => {
+      await requestJson<DocumentRow>("/api/documents", {
+        method: "POST",
+        body: JSON.stringify({
+          title: documentCreateValues.title.trim(),
+          type: documentCreateValues.type,
+          status: documentCreateValues.status,
+          client_id: documentCreateValues.clientId || null,
+          trip_id: documentCreateValues.tripId || null,
+          metadata: selectedTemplate
+            ? {
+                source_template_id: selectedTemplate.id,
+                source_template_title: selectedTemplate.title,
+              }
+            : undefined,
+        }),
+      })
+      setIsDocumentCreateOpen(false)
+      setDocumentCreateValues(buildQuickDocumentFormValues())
+      await loadDashboard()
+      fire("Documento criado", "O item foi salvo na central documental com os vínculos definidos.")
+    })
+  }
+
+  const handleCreateFinance = async () => {
+    const amount = Number(String(financeCreateValues.amount).replace(",", "."))
+    if (!Number.isFinite(amount) || amount <= 0) {
+      fire("Informe um valor válido", "Preencha o valor do lançamento antes de salvar.")
+      return
+    }
+
+    await withQuickActionSaving(async () => {
+      await requestJson<FinancialRecordRow | FinancialRecordRow[]>("/api/financial-records", {
+        method: "POST",
+        body: JSON.stringify({
+          type: financeCreateValues.type,
+          amount,
+          status: financeCreateValues.status,
+          category: financeCreateValues.category || null,
+          description: financeCreateValues.description.trim() || null,
+          occurred_at: financeCreateValues.occurredAt || null,
+          client_id: financeCreateValues.clientId || null,
+          trip_id: financeCreateValues.tripId || null,
+          plan_mode: "Único",
+        }),
+      })
+      setIsFinanceCreateOpen(false)
+      setFinanceCreateValues(buildQuickFinanceFormValues())
+      await loadDashboard()
+      fire("Lançamento criado", "O financeiro foi atualizado com a competência informada.")
+    })
+  }
+
+  const handleMarkFinanceAsPaid = async (recordId: string) => {
+    await withQuickActionSaving(async () => {
+      await requestJson<FinancialRecordRow>(`/api/finance/${recordId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "Pago" }),
+      })
+      await loadDashboard()
+      fire("Pagamento registrado", "O lançamento foi atualizado para pago.")
+    })
+  }
+
+  const handleUpdateDocumentStatus = async (recordId: string, status: string, successMessage: string) => {
+    await withQuickActionSaving(async () => {
+      await requestJson<DocumentRow>(`/api/documents/${recordId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      })
+      await loadDashboard()
+      fire("Documento atualizado", successMessage)
+    })
+  }
+
+  const handleTripStatusUpdate = async (tripId: string, status: string) => {
+    await withQuickActionSaving(async () => {
+      await requestJson<TripRow>(`/api/trips/${tripId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      })
+      await loadDashboard()
+      fire("Viagem atualizada", "O status da viagem foi ajustado no workspace.")
+    })
+  }
+
+  const handleEnsureShareLink = async (tripId: string) => {
+    const existing = shareLinksByTrip[tripId]
+    if (existing?.token) return existing
+
+    const result = await requestJson<TripShareLinkSummary>(`/api/trips/${tripId}/share-link`, {
+      method: "POST",
+    })
+    setShareLinksByTrip((current) => ({ ...current, [tripId]: result }))
+    return result
+  }
+
+  const handleCopyTripLink = async (tripId: string) => {
+    await withQuickActionSaving(async () => {
+      const link = await handleEnsureShareLink(tripId)
+      const publicUrl = `${window.location.origin}/v/${link.token}`
+      await navigator.clipboard.writeText(publicUrl)
+      fire("Link copiado", "O link público da viagem foi copiado para compartilhar com o cliente.")
+    })
+  }
+
+  const handleOpenTripLink = async (tripId: string) => {
+    await withQuickActionSaving(async () => {
+      const link = await handleEnsureShareLink(tripId)
+      window.open(`/v/${link.token}`, "_blank", "noopener,noreferrer")
+      fire("Link aberto", "A experiência pública da viagem foi aberta em uma nova aba.")
+    })
+  }
+
+  const handleDisableTripLink = async (tripId: string) => {
+    await withQuickActionSaving(async () => {
+      const result = await requestJson<TripShareLinkSummary>(`/api/trips/${tripId}/share-link`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: false }),
+      })
+      setShareLinksByTrip((current) => ({ ...current, [tripId]: result }))
+      fire("Link desativado", "O compartilhamento público desta viagem foi pausado.")
+    })
+  }
 
   const openQuickActions = (title: string, description: string, actions: WorkspaceCardAction[]) => {
     setActiveQuickActions({ title, description, actions })
@@ -1133,11 +1815,11 @@ export function AgencyDashboardPage() {
         { label: "Despesas", value: formatMoney(dashboard?.finance_snapshot.total_expenses ?? 0), progress: 48 },
         { label: "A receber", value: formatMoney(dashboard?.finance_snapshot.pending_revenue ?? 0), progress: 34 },
       ],
-      primaryAction: { label: "Novo lançamento", href: "/app/financeiro/novo" },
-      secondaryAction: { label: "Ver pendências", href: "/app/financeiro" },
+      primaryAction: { label: "Novo lançamento", onClick: () => openFinanceCreate() },
+      secondaryAction: { label: "Ver pendências", onClick: () => setActiveMicroWorkspace("finance") },
       quickActions: [
-        { label: "Novo lançamento", href: "/app/financeiro/novo" },
-        { label: "Ver pendências", href: "/app/financeiro" },
+        { label: "Novo lançamento", onClick: () => openFinanceCreate() },
+        { label: "Ver pendências", onClick: () => setActiveMicroWorkspace("finance") },
         { label: "Abrir financeiro", href: "/app/financeiro" },
       ],
     },
@@ -1156,11 +1838,11 @@ export function AgencyDashboardPage() {
         value: trip.status || "Planejamento",
         progress: trip.status?.includes("Confirm") ? 84 : trip.status?.includes("andamento") ? 96 : 52,
       })),
-      primaryAction: { label: "Nova viagem", href: "/app/viagens/nova" },
-      secondaryAction: { label: "Abrir viagens", href: "/app/viagens" },
+      primaryAction: { label: "Nova viagem", onClick: () => openTripCreate() },
+      secondaryAction: { label: "Abrir workspace", onClick: () => setActiveMicroWorkspace("trips") },
       quickActions: [
-        { label: "Nova viagem", href: "/app/viagens/nova" },
-        { label: "Compartilhar viagem", href: "/app/viagens" },
+        { label: "Nova viagem", onClick: () => openTripCreate() },
+        { label: "Compartilhar viagem", onClick: () => setActiveMicroWorkspace("trips") },
         { label: "Abrir viagens", href: "/app/viagens" },
       ],
     },
@@ -1179,11 +1861,11 @@ export function AgencyDashboardPage() {
         value: normalizeDocumentType(document.type),
         progress: document.status?.toLowerCase().includes("rascunho") ? 36 : document.status?.toLowerCase().includes("pend") ? 52 : 88,
       })),
-      primaryAction: { label: "Novo documento", href: "/app/documentos/novo" },
-      secondaryAction: { label: "Abrir central", href: "/app/documentos" },
+      primaryAction: { label: "Novo documento", onClick: () => openDocumentCreate({}, "Novo documento") },
+      secondaryAction: { label: "Abrir central", onClick: () => setActiveMicroWorkspace("documents") },
       quickActions: [
-        { label: "Novo documento", href: "/app/documentos/novo" },
-        { label: "Gerar contrato", href: "/app/documentos/contratos" },
+        { label: "Novo documento", onClick: () => openDocumentCreate({}, "Novo documento") },
+        { label: "Gerar contrato", onClick: () => openDocumentCreate({ type: "Contrato" }, "Novo contrato") },
         { label: "Abrir central documental", href: "/app/documentos" },
       ],
     },
@@ -1201,11 +1883,11 @@ export function AgencyDashboardPage() {
         value: client.email || client.phone || "Cadastro recente",
         progress: 70 - index * 12,
       })),
-      primaryAction: { label: "Novo cliente", href: "/app/clientes/novo" },
-      secondaryAction: { label: "Abrir CRM", href: "/app/clientes" },
+      primaryAction: { label: "Novo cliente", onClick: () => openClientCreate() },
+      secondaryAction: { label: "Clientes recentes", onClick: () => setActiveMicroWorkspace("clients") },
       quickActions: [
-        { label: "Novo cliente", href: "/app/clientes/novo" },
-        { label: "Clientes recentes", href: "/app/clientes" },
+        { label: "Novo cliente", onClick: () => openClientCreate() },
+        { label: "Clientes recentes", onClick: () => setActiveMicroWorkspace("clients") },
         { label: "Abrir CRM", href: "/app/clientes" },
       ],
     },
@@ -1224,11 +1906,11 @@ export function AgencyDashboardPage() {
         value: `${amount}`,
         progress: 75 - index * 15,
       })),
-      primaryAction: { label: "Novo lead", href: "/app/leads/novo" },
-      secondaryAction: { label: "Abrir leads", href: "/app/leads" },
+      primaryAction: { label: "Novo lead", onClick: () => openLeadCreate() },
+      secondaryAction: { label: "Pipeline rápido", onClick: () => setActiveMicroWorkspace("leads") },
       quickActions: [
-        { label: "Novo lead", href: "/app/leads/novo" },
-        { label: "Pendências", href: "/app/leads" },
+        { label: "Novo lead", onClick: () => openLeadCreate() },
+        { label: "Pendências", onClick: () => setActiveMicroWorkspace("leads") },
         { label: "Abrir pipeline", href: "/app/leads" },
       ],
     },
@@ -1249,10 +1931,10 @@ export function AgencyDashboardPage() {
           value: item.status || "Pronto",
           progress: item.status?.toLowerCase().includes("rascunho") ? 42 : 84,
         })),
-      primaryAction: { label: "Novo roteiro", href: "/app/viagens/roteiros/novo" },
-      secondaryAction: { label: "Ver roteiros", href: "/app/viagens/roteiros" },
+      primaryAction: { label: "Novo roteiro", onClick: () => openDocumentCreate({ type: "Roteiro" }, "Novo roteiro") },
+      secondaryAction: { label: "Workspace", onClick: () => setActiveMicroWorkspace("itineraries") },
       quickActions: [
-        { label: "Novo roteiro", href: "/app/viagens/roteiros/novo" },
+        { label: "Novo roteiro", onClick: () => openDocumentCreate({ type: "Roteiro" }, "Novo roteiro") },
         { label: "Templates", href: "/app/documentos/templates" },
         { label: "Abrir roteiros", href: "/app/viagens/roteiros" },
       ],
@@ -1274,11 +1956,11 @@ export function AgencyDashboardPage() {
           value: item.status || "Rascunho",
           progress: item.status?.toLowerCase().includes("aprov") ? 88 : 48 + index * 10,
         })),
-      primaryAction: { label: "Nova cotação", href: "/app/viagens/cotacoes/nova" },
-      secondaryAction: { label: "Abrir cotações", href: "/app/viagens/cotacoes" },
+      primaryAction: { label: "Nova cotação", onClick: () => openDocumentCreate({ type: "Cotação" }, "Nova cotação") },
+      secondaryAction: { label: "Workspace", onClick: () => setActiveMicroWorkspace("quotes") },
       quickActions: [
-        { label: "Nova cotação", href: "/app/viagens/cotacoes/nova" },
-        { label: "Pendências", href: "/app/viagens/cotacoes" },
+        { label: "Nova cotação", onClick: () => openDocumentCreate({ type: "Cotação" }, "Nova cotação") },
+        { label: "Pendências", onClick: () => setActiveMicroWorkspace("quotes") },
         { label: "Abrir cotações", href: "/app/viagens/cotacoes" },
       ],
     },
@@ -1421,10 +2103,10 @@ export function AgencyDashboardPage() {
           value: item.value,
           progress: 86 - index * 15,
         })) ?? [],
-      primaryAction: { label: "Abrir central", href: "/app/central-operacional" },
+      primaryAction: { label: "Abrir prioridades", onClick: () => setActiveMicroWorkspace("operational") },
       secondaryAction: { label: "Ver tarefas", href: "/app/central-operacional/tarefas" },
       quickActions: [
-        { label: "Abrir central", href: "/app/central-operacional" },
+        { label: "Abrir prioridades", onClick: () => setActiveMicroWorkspace("operational") },
         { label: "Ver tarefas", href: "/app/central-operacional/tarefas" },
         { label: "Criar tarefa agora", href: "/app/central-operacional/tarefas/nova" },
       ],
@@ -1434,21 +2116,21 @@ export function AgencyDashboardPage() {
       span: "xl:col-span-3",
       title: "Atlas",
       icon: Bot,
-      value: dashboard?.advisor_recommendations.length ? `${dashboard.advisor_recommendations.length} sugestões` : "Suporte pronto",
+      value: atlasSignals.length ? `${atlasSignals.length} sinais` : "Suporte pronto",
       context: "Copiloto operacional para orientar o uso do TravelPro sem virar chatbot genérico.",
       href: "/app/atlas-advisor",
       badge: "Contextual",
       visualItems:
-        dashboard?.advisor_recommendations.slice(0, 3).map((item, index) => ({
+        (atlasSignals.length > 0 ? atlasSignals : dashboard?.advisor_recommendations ?? []).slice(0, 3).map((item, index) => ({
           label: `Sugestão ${index + 1}`,
           value: item,
           progress: 80 - index * 11,
         })) ?? [],
-      primaryAction: { label: "Abrir Atlas", href: "/app/atlas-advisor" },
-      secondaryAction: { label: "Preciso de ajuda", href: "/app/atlas-advisor" },
+      primaryAction: { label: "Abrir Atlas", onClick: () => setActiveMicroWorkspace("atlas") },
+      secondaryAction: { label: "Preciso de ajuda", onClick: () => setActiveMicroWorkspace("atlas") },
       quickActions: [
-        { label: "Abrir Atlas", href: "/app/atlas-advisor" },
-        { label: "Preciso de ajuda", href: "/app/atlas-advisor" },
+        { label: "Abrir Atlas", onClick: () => setActiveMicroWorkspace("atlas") },
+        { label: "Preciso de ajuda", onClick: () => setActiveMicroWorkspace("atlas") },
         { label: "Guia operacional", href: "/app/atlas-advisor" },
       ],
     },
@@ -1548,6 +2230,20 @@ export function AgencyDashboardPage() {
     setDraggingCardKey(null)
     setDropTargetKey(null)
   }
+
+  const recentClientRecords = clientRecords.slice(0, 4)
+  const recentLeadCards = leadCards.slice(0, 4)
+  const recentTripRows = [...tripRows]
+    .sort((left, right) => new Date(left.starts_at ?? left.created_at).getTime() - new Date(right.starts_at ?? right.created_at).getTime())
+    .slice(0, 4)
+  const pendingDocumentRecords = documentRecordsReal
+    .filter((item) => ["Rascunho", "Aguardando revisão", "Pendente"].some((status) => String(item.status || "").includes(status)))
+    .slice(0, 4)
+  const itineraryRecords = documentRecordsReal.filter((item) => normalizeDocumentType(item.type) === "Roteiro").slice(0, 4)
+  const quoteRecords = documentRecordsReal.filter((item) => normalizeDocumentType(item.type) === "Cotação").slice(0, 4)
+  const recentFinanceRows = [...financialRows]
+    .sort((left, right) => new Date(right.occurred_at ?? right.created_at).getTime() - new Date(left.occurred_at ?? left.created_at).getTime())
+    .slice(0, 4)
 
   return (
     <PageShell>
@@ -1724,6 +2420,361 @@ export function AgencyDashboardPage() {
           </div>
         </div>
       </div>
+
+      <ClientEditorDialog
+        open={isClientCreateOpen}
+        onOpenChange={setIsClientCreateOpen}
+        mode="create"
+        values={clientCreateValues}
+        onChange={updateClientCreateValue}
+        onConfirm={handleCreateClient}
+        saving={isSavingQuickAction}
+      />
+
+      <LeadEditorDialog
+        open={isLeadCreateOpen}
+        onOpenChange={setIsLeadCreateOpen}
+        mode="create"
+        values={leadCreateValues}
+        onChange={updateLeadCreateValue}
+        onConfirm={handleCreateLead}
+        saving={isSavingQuickAction}
+      />
+
+      <TripEditorDialog
+        open={isTripCreateOpen}
+        onOpenChange={setIsTripCreateOpen}
+        mode="create"
+        values={tripCreateValues}
+        onChange={updateTripCreateValue}
+        onConfirm={handleCreateTrip}
+        saving={isSavingQuickAction}
+        clientOptions={clientOptions}
+      />
+
+      <QuickDocumentDialog
+        open={isDocumentCreateOpen}
+        onOpenChange={setIsDocumentCreateOpen}
+        values={documentCreateValues}
+        onChange={updateDocumentCreateValue}
+        onConfirm={handleCreateDocument}
+        saving={isSavingQuickAction}
+        clientOptions={clientOptions}
+        tripOptions={tripOptions}
+        templateOptions={templateOptions}
+        modeLabel={documentDialogLabel}
+      />
+
+      <QuickFinanceDialog
+        open={isFinanceCreateOpen}
+        onOpenChange={setIsFinanceCreateOpen}
+        values={financeCreateValues}
+        onChange={updateFinanceCreateValue}
+        onConfirm={handleCreateFinance}
+        saving={isSavingQuickAction}
+        clientOptions={clientOptions}
+        tripOptions={tripOptions}
+      />
+
+      <Dialog open={Boolean(activeMicroWorkspace)} onOpenChange={(open) => (!open ? setActiveMicroWorkspace(null) : null)}>
+        <DialogContent className="max-w-4xl border-white/10 bg-[#0e0b0c]/96 p-0 shadow-[0_34px_120px_rgba(0,0,0,0.58)]">
+          {activeMicroWorkspace ? (
+            <>
+              <DialogHeader className="border-b border-white/8 px-6 py-5">
+                <DialogTitle>
+                  {{
+                    clients: "Clientes em foco",
+                    trips: "Viagens em andamento",
+                    documents: "Central documental rápida",
+                    finance: "Financeiro rápido",
+                    leads: "Pipeline rápido",
+                    itineraries: "Roteiros recentes",
+                    quotes: "Cotações recentes",
+                    atlas: "Atlas operacional",
+                    operational: "Central operacional viva",
+                  }[activeMicroWorkspace]}
+                </DialogTitle>
+                <DialogDescription>
+                  {{
+                    clients: "Resolva relacionamento, vínculos e próximos movimentos do cliente sem sair do workspace.",
+                    trips: "Acompanhe embarques, compartilhe links e destrave a operação principal em poucos cliques.",
+                    documents: "Crie, revise e encaminhe documentos com contexto real da viagem.",
+                    finance: "Veja pendências, últimas movimentações e registre pagamentos rapidamente.",
+                    leads: "Qualifique oportunidades, responda rápido e empurre o funil sem abrir o CRM completo.",
+                    itineraries: "Acesse roteiros recentes, reforce reutilização e acelere a entrega ao cliente.",
+                    quotes: "Acompanhe propostas recentes, follow-up e conversão em viagem real.",
+                    atlas: "Suporte guiado com contexto do próprio TravelPro e atalhos operacionais claros.",
+                    operational: "Prioridades, tarefas e sinais da operação reunidos em uma leitura curta e acionável.",
+                  }[activeMicroWorkspace]}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[72vh] overflow-y-auto px-6 py-5">
+                {activeMicroWorkspace === "clients" ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" className="rounded-full" onClick={() => openClientCreate()}>
+                        Novo cliente
+                      </Button>
+                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/clientes")}>
+                        Abrir CRM
+                      </Button>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <InfoCard label="Clientes ativos" value={`${dashboard?.counts.clients ?? clientRows.length}`} />
+                      <InfoCard label="Recentes" value={`${recentClientRecords.length} na leitura rápida`} />
+                    </div>
+                    <div className="space-y-3">
+                      {recentClientRecords.length > 0 ? recentClientRecords.map((client) => (
+                        <div key={client.id} className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{client.name}</p>
+                              <p className="mt-1 text-sm text-muted-foreground">{client.email} • {client.phone}</p>
+                            </div>
+                            <StatusPill label={client.status} />
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button type="button" size="sm" className="rounded-full" onClick={() => router.push("/app/clientes")}>Abrir perfil</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Atendimento", "O atendimento guiado do cliente será expandido nas próximas etapas.")}>Iniciar atendimento</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openTripCreate({ clientId: client.id, destination: client.destination === "Destino em definição" ? "" : client.destination })}>Criar viagem</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Cotação", clientId: client.id, title: `Cotação • ${client.name}` }, "Nova cotação")}>Gerar cotação</Button>
+                          </div>
+                        </div>
+                      )) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Ainda não há clientes recentes para esse micro workspace.</div>}
+                    </div>
+                  </div>
+                ) : null}
+
+                {activeMicroWorkspace === "trips" ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" className="rounded-full" onClick={() => openTripCreate()}>Nova viagem</Button>
+                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/viagens")}>Abrir viagens</Button>
+                    </div>
+                    <div className="space-y-3">
+                      {recentTripRows.length > 0 ? recentTripRows.map((trip) => {
+                        const share = shareLinksByTrip[trip.id]
+                        return (
+                          <div key={trip.id} className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">{trip.destination}</p>
+                                <p className="mt-1 text-sm text-muted-foreground">{formatDateLabel(trip.starts_at)} • {trip.status || "Planejamento"}</p>
+                              </div>
+                              <StatusPill label={share?.is_active === false ? "Link inativo" : share?.token ? "Link ativo" : "Sem link"} />
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <Button type="button" size="sm" className="rounded-full" onClick={() => handleCopyTripLink(trip.id)}>Copiar link</Button>
+                              <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleOpenTripLink(trip.id)}>Abrir link</Button>
+                              <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleTripStatusUpdate(trip.id, trip.status === "Confirmada" ? "Em andamento" : "Confirmada")}>Alterar status</Button>
+                              <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Roteiro", tripId: trip.id, clientId: trip.client_id ?? "", title: `Roteiro • ${trip.destination}` }, "Novo roteiro")}>Gerar roteiro</Button>
+                              <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Voucher", tripId: trip.id, clientId: trip.client_id ?? "", title: `Voucher • ${trip.destination}` }, "Novo documento")}>Gerar documento</Button>
+                              {share?.token ? <Button type="button" size="sm" variant="ghost" className="rounded-full text-muted-foreground hover:text-foreground" onClick={() => handleDisableTripLink(trip.id)}>Desativar link</Button> : null}
+                            </div>
+                          </div>
+                        )
+                      }) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Ainda não há viagens recentes para agir daqui.</div>}
+                    </div>
+                  </div>
+                ) : null}
+
+                {activeMicroWorkspace === "documents" ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" className="rounded-full" onClick={() => openDocumentCreate({}, "Novo documento")}>Novo documento</Button>
+                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/documentos")}>Abrir central</Button>
+                    </div>
+                    <div className="space-y-3">
+                      {pendingDocumentRecords.length > 0 ? pendingDocumentRecords.map((item) => (
+                        <div key={item.id} className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                              <p className="mt-1 text-sm text-muted-foreground">{item.type} • {item.client}</p>
+                            </div>
+                            <StatusPill label={item.status || "Rascunho"} />
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button type="button" size="sm" className="rounded-full" onClick={() => router.push("/app/documentos")}>Visualizar</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Em breve", "A geração de PDF contextual será refinada em uma próxima etapa.")}>Gerar PDF</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleUpdateDocumentStatus(item.id, "Enviado", "O documento foi marcado como enviado.")}>Enviar</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleUpdateDocumentStatus(item.id, "Em revisão", "O documento foi enviado para revisão rápida.")}>Revisar</Button>
+                          </div>
+                        </div>
+                      )) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Nenhuma pendência documental crítica agora.</div>}
+                    </div>
+                  </div>
+                ) : null}
+
+                {activeMicroWorkspace === "finance" ? (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <InfoCard label="A receber" value={formatMoney(financialSnapshot.pendingRevenue)} />
+                      <InfoCard label="Pendências" value={formatMoney(financialSnapshot.pendingExpenses)} />
+                      <InfoCard label="Últimas movimentações" value={`${recentFinanceRows.length}`} />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" className="rounded-full" onClick={() => openFinanceCreate()}>Novo lançamento</Button>
+                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/financeiro")}>Abrir financeiro</Button>
+                    </div>
+                    <div className="space-y-3">
+                      {recentFinanceRows.length > 0 ? recentFinanceRows.map((record) => (
+                        <div key={record.id} className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{record.description || record.category || "Lançamento financeiro"}</p>
+                              <p className="mt-1 text-sm text-muted-foreground">{formatDateLabel(record.occurred_at)} • {normalizeFinanceType(record.type)}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-foreground">{formatMoney(Number(record.amount || 0))}</p>
+                              <StatusPill label={normalizeFinanceStatus(record.status)} />
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {normalizeFinanceStatus(record.status) !== "Pago" ? <Button type="button" size="sm" className="rounded-full" onClick={() => handleMarkFinanceAsPaid(record.id)}>Marcar como pago</Button> : null}
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/financeiro")}>Abrir detalhe</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/central-operacional/relatorios/novo?type=Financeiro")}>Gerar relatório</Button>
+                          </div>
+                        </div>
+                      )) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Sem movimentações recentes para leitura rápida.</div>}
+                    </div>
+                  </div>
+                ) : null}
+
+                {activeMicroWorkspace === "leads" ? (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <InfoCard label="Novos" value={`${dashboard?.counts.leads_by_status.Novo ?? 0}`} />
+                      <InfoCard label="Aguardando retorno" value={`${dashboard?.counts.leads_by_status["Aguardando retorno"] ?? 0}`} />
+                      <InfoCard label="Qualificados" value={`${dashboard?.counts.leads_by_status.Qualificado ?? 0}`} />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" className="rounded-full" onClick={() => openLeadCreate()}>Novo lead</Button>
+                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/leads")}>Abrir pipeline</Button>
+                    </div>
+                    <div className="space-y-3">
+                      {recentLeadCards.length > 0 ? recentLeadCards.map((lead) => (
+                        <div key={lead.id} className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{lead.name}</p>
+                              <p className="mt-1 text-sm text-muted-foreground">{lead.destination} • {lead.origin}</p>
+                            </div>
+                            <StatusPill label={lead.stage} />
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button type="button" size="sm" className="rounded-full" onClick={() => fire("Atendimento", "O atendimento guiado do lead será expandido nas próximas etapas.")}>Iniciar atendimento</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openClientCreate({ name: lead.name, email: lead.email === "E-mail não informado" ? "" : lead.email, phone: lead.phone === "Telefone não informado" ? "" : lead.phone, destination: lead.destination === "Destino em definição" ? "" : lead.destination, origin: lead.origin === "Origem não informada" ? "" : lead.origin, notes: lead.notes === "Sem observações registradas." ? "" : lead.notes })}>Converter cliente</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Cotação", title: `Cotação • ${lead.name}` }, "Nova cotação")}>Criar cotação</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openTripCreate({ destination: lead.destination === "Destino em definição" ? "" : lead.destination })}>Criar viagem</Button>
+                          </div>
+                        </div>
+                      )) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Sem leads recentes para resolver daqui.</div>}
+                    </div>
+                  </div>
+                ) : null}
+
+                {activeMicroWorkspace === "itineraries" ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" className="rounded-full" onClick={() => openDocumentCreate({ type: "Roteiro" }, "Novo roteiro")}>Novo roteiro</Button>
+                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/viagens/roteiros")}>Abrir roteiros</Button>
+                    </div>
+                    <div className="space-y-3">
+                      {itineraryRecords.length > 0 ? itineraryRecords.map((item) => (
+                        <div key={item.id} className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                              <p className="mt-1 text-sm text-muted-foreground">{item.client} • {item.trip}</p>
+                            </div>
+                            <StatusPill label={item.status || "Pronto"} />
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button type="button" size="sm" className="rounded-full" onClick={() => router.push("/app/viagens/roteiros")}>Editar</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Em breve", "A exportação rápida do roteiro ganhará uma experiência dedicada em uma próxima etapa.")}>Gerar PDF</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Em breve", "O compartilhamento contextual do roteiro será ligado à próxima camada da experiência pública.")}>Compartilhar</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Roteiro", title: `${item.title} • Cópia`, clientId: item.client_id ?? "", tripId: item.trip_id ?? "" }, "Duplicar roteiro")}>Duplicar</Button>
+                          </div>
+                        </div>
+                      )) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Ainda não há roteiros recentes para operar daqui.</div>}
+                    </div>
+                  </div>
+                ) : null}
+
+                {activeMicroWorkspace === "quotes" ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" className="rounded-full" onClick={() => openDocumentCreate({ type: "Cotação" }, "Nova cotação")}>Nova cotação</Button>
+                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/viagens/cotacoes")}>Abrir cotações</Button>
+                    </div>
+                    <div className="space-y-3">
+                      {quoteRecords.length > 0 ? quoteRecords.map((item) => (
+                        <div key={item.id} className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                              <p className="mt-1 text-sm text-muted-foreground">{item.client} • {item.trip}</p>
+                            </div>
+                            <StatusPill label={item.status || "Rascunho"} />
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button type="button" size="sm" className="rounded-full" onClick={() => router.push("/app/viagens/cotacoes")}>Visualizar</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleUpdateDocumentStatus(item.id, "Aguardando retorno", "A cotação foi marcada para follow-up.")}>Follow-up</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openTripCreate({ clientId: item.client_id ?? "", destination: item.trip === "Sem viagem vinculada" ? "" : item.trip })}>Converter em viagem</Button>
+                          </div>
+                        </div>
+                      )) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Sem cotações recentes para follow-up rápido.</div>}
+                    </div>
+                  </div>
+                ) : null}
+
+                {activeMicroWorkspace === "atlas" ? (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {atlasSignals.length > 0 ? atlasSignals.slice(0, 3).map((signal) => <InfoCard key={signal} label="Sinal do Atlas" value={signal} />) : <InfoCard label="Status" value="O Atlas segue pronto para orientar a operação." />}
+                    </div>
+                    <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                      <p className="text-sm font-medium text-foreground">Atalhos sugeridos</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button type="button" className="rounded-full" onClick={() => router.push("/app/viagens")}>Como criar uma viagem?</Button>
+                        <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/financeiro")}>Como lançar despesa?</Button>
+                        <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/central-operacional/relatorios")}>Como gerar relatório?</Button>
+                      </div>
+                    </div>
+                    <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/atlas-advisor")}>Abrir Atlas completo</Button>
+                  </div>
+                ) : null}
+
+                {activeMicroWorkspace === "operational" ? (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {(operational?.statuses ?? []).slice(0, 3).map((item) => <InfoCard key={item.label} label={item.label} value={item.value} />)}
+                    </div>
+                    <div className="space-y-3">
+                      {(operational?.priorities ?? []).slice(0, 4).map((item) => (
+                        <div key={item.id ?? item.label} className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                              <p className="mt-1 text-sm text-muted-foreground">{item.hint}</p>
+                            </div>
+                            <StatusPill label={item.value} />
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button type="button" size="sm" className="rounded-full" onClick={() => router.push(item.href)}>Abrir prioridade</Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/central-operacional/tarefas/nova")}>Criar tarefa rápida</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={Boolean(selectedAttention)} onOpenChange={(open) => (!open ? setSelectedAttention(null) : null)}>
         <DialogContent className="border-white/10 bg-[#0e0b0c]/96 p-0 shadow-[0_34px_120px_rgba(0,0,0,0.58)]">
