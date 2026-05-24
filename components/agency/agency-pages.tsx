@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -20,6 +20,7 @@ import {
   FileBadge,
   FilePenLine,
   FileText,
+  Grip,
   HandCoins,
   MoreHorizontal,
   PlaneTakeoff,
@@ -364,6 +365,7 @@ type WorkspaceCardVisualItem = {
 type WorkspaceCardTone = "default" | "attention" | "critical" | "future"
 
 function WorkspaceDashboardCard({
+  cardKey,
   title,
   icon: Icon,
   value,
@@ -375,7 +377,15 @@ function WorkspaceDashboardCard({
   primaryAction,
   secondaryAction,
   onOpenQuickActions,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  isDragging,
+  isDropTarget,
+  dragEnabled,
 }: {
+  cardKey: string
   title: string
   icon: LucideIcon
   value: string
@@ -387,6 +397,13 @@ function WorkspaceDashboardCard({
   primaryAction?: WorkspaceCardAction
   secondaryAction?: WorkspaceCardAction
   onOpenQuickActions?: () => void
+  onDragStart?: (key: string) => void
+  onDragOver?: (key: string) => void
+  onDrop?: (key: string) => void
+  onDragEnd?: () => void
+  isDragging?: boolean
+  isDropTarget?: boolean
+  dragEnabled?: boolean
 }) {
   const toneClasses =
     tone === "critical"
@@ -398,41 +415,72 @@ function WorkspaceDashboardCard({
           : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
 
   return (
-    <div className={`group flex h-full min-h-[322px] flex-col rounded-[30px] border p-5 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/16 hover:bg-white/[0.05] ${toneClasses}`}>
+    <div
+      className={cn(
+        "group flex h-full min-h-[252px] flex-col rounded-[28px] border p-4 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/16 hover:bg-white/[0.05]",
+        toneClasses,
+        isDragging ? "scale-[0.985] opacity-70" : "",
+        isDropTarget ? "ring-1 ring-primary/35 ring-offset-0" : "",
+      )}
+      onDragOver={(event) => {
+        if (!dragEnabled || !onDragOver) return
+        event.preventDefault()
+        onDragOver(cardKey)
+      }}
+      onDrop={(event) => {
+        if (!dragEnabled || !onDrop) return
+        event.preventDefault()
+        onDrop(cardKey)
+      }}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="rounded-[22px] border border-white/10 bg-black/20 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+          <div className="rounded-[20px] border border-white/10 bg-black/20 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
             <Icon className="h-4.5 w-4.5 text-primary" />
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">{title}</p>
           </div>
         </div>
-        {badge ? <StatusPill label={badge} /> : null}
+        <div className="flex items-center gap-1.5">
+          {dragEnabled ? (
+            <button
+              type="button"
+              draggable
+              onDragStart={() => onDragStart?.(cardKey)}
+              onDragEnd={onDragEnd}
+              aria-label={`Reorganizar card ${title}`}
+              className="rounded-full border border-white/8 bg-black/15 p-1.5 text-muted-foreground opacity-0 transition-all hover:border-white/12 hover:text-foreground group-hover:opacity-100"
+            >
+              <Grip className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+          {badge ? <StatusPill label={badge} /> : null}
+        </div>
       </div>
 
-      <p className="mt-3 min-h-[40px] text-xs leading-5 text-muted-foreground">{context}</p>
+      <p className="mt-2 min-h-[32px] text-xs leading-5 text-muted-foreground">{context}</p>
 
-      <div className="mt-4">
+      <div className="mt-3">
         <p className="text-[11px] uppercase tracking-[0.22em] text-primary/65">Leitura principal</p>
         {href ? (
-          <Link href={href} className="mt-2 block text-2xl font-semibold tracking-tight text-foreground transition-colors hover:text-primary">
+          <Link href={href} className="mt-1.5 block text-[1.35rem] font-semibold tracking-tight text-foreground transition-colors hover:text-primary">
             {value}
           </Link>
         ) : (
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
+          <p className="mt-1.5 text-[1.35rem] font-semibold tracking-tight text-foreground">{value}</p>
         )}
       </div>
 
-      <div className="mt-5 flex-1 space-y-2.5">
+      <div className="mt-3.5 flex-1 space-y-2">
         {visualItems.slice(0, 3).map((item, index) => (
-          <div key={`${title}-${item.label}-${index}`} className="rounded-[20px] border border-white/8 bg-black/15 px-3.5 py-3">
+          <div key={`${title}-${item.label}-${index}`} className="rounded-[18px] border border-white/8 bg-black/15 px-3 py-2.5">
             <div className="flex items-center justify-between gap-3 text-xs">
               <span className="truncate text-muted-foreground">{item.label}</span>
               <span className="font-medium text-foreground">{item.value}</span>
             </div>
             {typeof item.progress === "number" ? (
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/8">
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/8">
                 <div
                   className={cn(
                     "h-full rounded-full bg-gradient-to-r from-primary/75 via-orange-300/75 to-amber-200/80 transition-all",
@@ -447,7 +495,7 @@ function WorkspaceDashboardCard({
       </div>
 
       {primaryAction || secondaryAction || onOpenQuickActions ? (
-        <div className="mt-5 flex items-center gap-2">
+        <div className="mt-3.5 flex items-center gap-2">
           {primaryAction ? (
             primaryAction.href ? (
               <Button asChild size="sm" className="rounded-full">
@@ -976,9 +1024,13 @@ export function AgencyDashboardPage() {
   const [catalogPackages, setCatalogPackages] = useState<CatalogItemResponse[]>([])
   const [selectedAttention, setSelectedAttention] = useState<DashboardPriorityItem | null>(null)
   const [activeQuickActions, setActiveQuickActions] = useState<WorkspaceCardQuickActions | null>(null)
+  const [cardOrder, setCardOrder] = useState<string[]>([])
+  const [draggingCardKey, setDraggingCardKey] = useState<string | null>(null)
+  const [dropTargetKey, setDropTargetKey] = useState<string | null>(null)
+  const [dragEnabled, setDragEnabled] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const fire = (title: string, description: string) => toast({ title, description })
+  const fire = useCallback((title: string, description: string) => toast({ title, description }), [])
 
   useEffect(() => {
     let active = true
@@ -1037,6 +1089,11 @@ export function AgencyDashboardPage() {
     return () => {
       active = false
     }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    setDragEnabled(window.matchMedia("(pointer:fine)").matches)
   }, [])
 
   const attentionItems = dashboard?.priorities.slice(0, 4) ?? []
@@ -1421,7 +1478,76 @@ export function AgencyDashboardPage() {
         { label: "Falar com comercial", onClick: () => fire("Em breve", "O fluxo comercial das expansões será conectado em uma próxima fase.") },
       ],
     },
-  ] as const
+  ]
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const stored = window.localStorage.getItem("travelpro:agency-workspace-order:v2")
+    if (!stored) return
+    try {
+      const parsed = JSON.parse(stored) as string[]
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setCardOrder(parsed)
+      }
+    } catch {
+      window.localStorage.removeItem("travelpro:agency-workspace-order:v2")
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    if (cardOrder.length === 0) return
+    window.localStorage.setItem("travelpro:agency-workspace-order:v2", JSON.stringify(cardOrder))
+  }, [cardOrder])
+
+  const orderedWorkspaceCards = (() => {
+    if (cardOrder.length === 0) return workspaceCards
+    const cardMap = new Map(workspaceCards.map((card) => [card.key, card]))
+    const ordered = cardOrder.map((key) => cardMap.get(key)).filter(Boolean)
+    const missing = workspaceCards.filter((card) => !cardOrder.includes(card.key))
+    return [...ordered, ...missing]
+  })()
+
+  const handleDragStart = (key: string) => {
+    if (!dragEnabled) return
+    setDraggingCardKey(key)
+    setDropTargetKey(key)
+  }
+
+  const handleDragOver = (key: string) => {
+    if (!dragEnabled || !draggingCardKey || draggingCardKey === key) return
+    setDropTargetKey(key)
+  }
+
+  const handleDrop = (key: string) => {
+    if (!dragEnabled || !draggingCardKey || draggingCardKey === key) {
+      setDraggingCardKey(null)
+      setDropTargetKey(null)
+      return
+    }
+
+    const sourceOrder = cardOrder.length > 0 ? [...cardOrder] : workspaceCards.map((card) => card.key)
+    const fromIndex = sourceOrder.indexOf(draggingCardKey)
+    const toIndex = sourceOrder.indexOf(key)
+
+    if (fromIndex === -1 || toIndex === -1) {
+      setDraggingCardKey(null)
+      setDropTargetKey(null)
+      return
+    }
+
+    const nextOrder = [...sourceOrder]
+    const [moved] = nextOrder.splice(fromIndex, 1)
+    nextOrder.splice(toIndex, 0, moved)
+    setCardOrder(nextOrder)
+    setDraggingCardKey(null)
+    setDropTargetKey(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggingCardKey(null)
+    setDropTargetKey(null)
+  }
 
   return (
     <PageShell>
@@ -1515,11 +1641,12 @@ export function AgencyDashboardPage() {
                 </div>
               </div>
             ))
-          : workspaceCards.map((card) => {
+          : orderedWorkspaceCards.map((card) => {
               const { quickActions, ...cardProps } = card
               return (
               <div key={card.key} className={card.span}>
                 <WorkspaceDashboardCard
+                  cardKey={card.key}
                   {...cardProps}
                   onOpenQuickActions={() =>
                     openQuickActions(
@@ -1528,6 +1655,13 @@ export function AgencyDashboardPage() {
                       quickActions,
                     )
                   }
+                  dragEnabled={dragEnabled}
+                  isDragging={draggingCardKey === card.key}
+                  isDropTarget={dropTargetKey === card.key && draggingCardKey !== card.key}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onDragEnd={handleDragEnd}
                 />
               </div>
             )})}
