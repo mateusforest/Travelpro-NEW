@@ -22,6 +22,7 @@ import {
   HandCoins,
   MoreHorizontal,
   PlaneTakeoff,
+  Plus,
   Percent,
   Receipt,
   Route,
@@ -348,6 +349,12 @@ type WorkspaceCardAction = {
   tone?: "default" | "future"
 }
 
+type WorkspaceCardQuickActions = {
+  title: string
+  description: string
+  actions: WorkspaceCardAction[]
+}
+
 type WorkspaceCardVisualItem = {
   label: string
   value: string
@@ -367,6 +374,7 @@ function WorkspaceDashboardCard({
   visualItems,
   primaryAction,
   secondaryAction,
+  onOpenQuickActions,
 }: {
   title: string
   icon: LucideIcon
@@ -378,6 +386,7 @@ function WorkspaceDashboardCard({
   visualItems: WorkspaceCardVisualItem[]
   primaryAction?: WorkspaceCardAction
   secondaryAction?: WorkspaceCardAction
+  onOpenQuickActions?: () => void
 }) {
   const toneClasses =
     tone === "critical"
@@ -388,8 +397,8 @@ function WorkspaceDashboardCard({
           ? "border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.015))] opacity-90"
           : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
 
-  const titleContent = (
-    <>
+  return (
+    <div className={`group flex h-full min-h-[322px] flex-col rounded-[30px] border p-5 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/16 hover:bg-white/[0.05] ${toneClasses}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div className="rounded-[22px] border border-white/10 bg-black/20 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
@@ -397,32 +406,25 @@ function WorkspaceDashboardCard({
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">{title}</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">{context}</p>
           </div>
         </div>
         {badge ? <StatusPill label={badge} /> : null}
       </div>
 
-      <div className="mt-5 flex items-end justify-between gap-3">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.22em] text-primary/65">Leitura principal</p>
+      <p className="mt-3 min-h-[40px] text-xs leading-5 text-muted-foreground">{context}</p>
+
+      <div className="mt-4">
+        <p className="text-[11px] uppercase tracking-[0.22em] text-primary/65">Leitura principal</p>
+        {href ? (
+          <Link href={href} className="mt-2 block text-2xl font-semibold tracking-tight text-foreground transition-colors hover:text-primary">
+            {value}
+          </Link>
+        ) : (
           <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
-        </div>
+        )}
       </div>
-    </>
-  )
 
-  return (
-    <div className={`group rounded-[30px] border p-5 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/16 hover:bg-white/[0.05] ${toneClasses}`}>
-      {href ? (
-        <Link href={href} className="block">
-          {titleContent}
-        </Link>
-      ) : (
-        titleContent
-      )}
-
-      <div className="mt-5 space-y-2.5">
+      <div className="mt-5 flex-1 space-y-2.5">
         {visualItems.slice(0, 3).map((item, index) => (
           <div key={`${title}-${item.label}-${index}`} className="rounded-[20px] border border-white/8 bg-black/15 px-3.5 py-3">
             <div className="flex items-center justify-between gap-3 text-xs">
@@ -444,8 +446,8 @@ function WorkspaceDashboardCard({
         ))}
       </div>
 
-      {primaryAction || secondaryAction ? (
-        <div className="mt-5 flex flex-wrap gap-2">
+      {primaryAction || secondaryAction || onOpenQuickActions ? (
+        <div className="mt-5 flex items-center gap-2">
           {primaryAction ? (
             primaryAction.href ? (
               <Button asChild size="sm" className="rounded-full">
@@ -473,6 +475,18 @@ function WorkspaceDashboardCard({
                 {secondaryAction.label}
               </Button>
             )
+          ) : null}
+          {onOpenQuickActions ? (
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="outline"
+              className="ml-auto rounded-full border-white/10 bg-white/[0.03]"
+              onClick={onOpenQuickActions}
+              aria-label={`Abrir ações rápidas de ${title}`}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
           ) : null}
         </div>
       ) : null}
@@ -961,6 +975,7 @@ export function AgencyDashboardPage() {
   const [catalogProfile, setCatalogProfile] = useState<CatalogAgencyProfile | null>(null)
   const [catalogPackages, setCatalogPackages] = useState<CatalogItemResponse[]>([])
   const [selectedAttention, setSelectedAttention] = useState<DashboardPriorityItem | null>(null)
+  const [activeQuickActions, setActiveQuickActions] = useState<WorkspaceCardQuickActions | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const fire = (title: string, description: string) => toast({ title, description })
@@ -1039,6 +1054,11 @@ export function AgencyDashboardPage() {
   const attentionCount = attentionItems.length
   const healthTone =
     dashboard?.health.tone === "danger" ? "critical" : dashboard?.health.tone === "warning" ? "attention" : "default"
+  const condensedSummary = summaryCards[0]?.value || dashboard?.health.title || "Operação online"
+
+  const openQuickActions = (title: string, description: string, actions: WorkspaceCardAction[]) => {
+    setActiveQuickActions({ title, description, actions })
+  }
 
   const workspaceCards = [
     {
@@ -1058,6 +1078,11 @@ export function AgencyDashboardPage() {
       ],
       primaryAction: { label: "Novo lançamento", href: "/app/financeiro/novo" },
       secondaryAction: { label: "Ver pendências", href: "/app/financeiro" },
+      quickActions: [
+        { label: "Novo lançamento", href: "/app/financeiro/novo" },
+        { label: "Ver pendências", href: "/app/financeiro" },
+        { label: "Abrir financeiro", href: "/app/financeiro" },
+      ],
     },
     {
       key: "viagens",
@@ -1076,6 +1101,11 @@ export function AgencyDashboardPage() {
       })),
       primaryAction: { label: "Nova viagem", href: "/app/viagens/nova" },
       secondaryAction: { label: "Abrir viagens", href: "/app/viagens" },
+      quickActions: [
+        { label: "Nova viagem", href: "/app/viagens/nova" },
+        { label: "Compartilhar viagem", href: "/app/viagens" },
+        { label: "Abrir viagens", href: "/app/viagens" },
+      ],
     },
     {
       key: "documentos",
@@ -1094,6 +1124,11 @@ export function AgencyDashboardPage() {
       })),
       primaryAction: { label: "Novo documento", href: "/app/documentos/novo" },
       secondaryAction: { label: "Abrir central", href: "/app/documentos" },
+      quickActions: [
+        { label: "Novo documento", href: "/app/documentos/novo" },
+        { label: "Gerar contrato", href: "/app/documentos/contratos" },
+        { label: "Abrir central documental", href: "/app/documentos" },
+      ],
     },
     {
       key: "clientes",
@@ -1111,6 +1146,11 @@ export function AgencyDashboardPage() {
       })),
       primaryAction: { label: "Novo cliente", href: "/app/clientes/novo" },
       secondaryAction: { label: "Abrir CRM", href: "/app/clientes" },
+      quickActions: [
+        { label: "Novo cliente", href: "/app/clientes/novo" },
+        { label: "Clientes recentes", href: "/app/clientes" },
+        { label: "Abrir CRM", href: "/app/clientes" },
+      ],
     },
     {
       key: "leads",
@@ -1129,6 +1169,11 @@ export function AgencyDashboardPage() {
       })),
       primaryAction: { label: "Novo lead", href: "/app/leads/novo" },
       secondaryAction: { label: "Abrir leads", href: "/app/leads" },
+      quickActions: [
+        { label: "Novo lead", href: "/app/leads/novo" },
+        { label: "Pendências", href: "/app/leads" },
+        { label: "Abrir pipeline", href: "/app/leads" },
+      ],
     },
     {
       key: "roteiros",
@@ -1149,6 +1194,11 @@ export function AgencyDashboardPage() {
         })),
       primaryAction: { label: "Novo roteiro", href: "/app/viagens/roteiros/novo" },
       secondaryAction: { label: "Ver roteiros", href: "/app/viagens/roteiros" },
+      quickActions: [
+        { label: "Novo roteiro", href: "/app/viagens/roteiros/novo" },
+        { label: "Templates", href: "/app/documentos/templates" },
+        { label: "Abrir roteiros", href: "/app/viagens/roteiros" },
+      ],
     },
     {
       key: "cotacoes",
@@ -1169,6 +1219,11 @@ export function AgencyDashboardPage() {
         })),
       primaryAction: { label: "Nova cotação", href: "/app/viagens/cotacoes/nova" },
       secondaryAction: { label: "Abrir cotações", href: "/app/viagens/cotacoes" },
+      quickActions: [
+        { label: "Nova cotação", href: "/app/viagens/cotacoes/nova" },
+        { label: "Pendências", href: "/app/viagens/cotacoes" },
+        { label: "Abrir cotações", href: "/app/viagens/cotacoes" },
+      ],
     },
     {
       key: "templates",
@@ -1196,6 +1251,11 @@ export function AgencyDashboardPage() {
             ],
       primaryAction: { label: "Novo template", href: "/app/documentos/templates" },
       secondaryAction: { label: "Biblioteca", href: "/app/documentos/templates" },
+      quickActions: [
+        { label: "Novo template", href: "/app/documentos/templates" },
+        { label: "Biblioteca", href: "/app/documentos/templates" },
+        { label: "Usar como base", href: "/app/documentos/templates" },
+      ],
     },
     {
       key: "equipe",
@@ -1213,6 +1273,11 @@ export function AgencyDashboardPage() {
       })),
       primaryAction: { label: "Adicionar", href: "/app/equipe/novo" },
       secondaryAction: { label: "Abrir equipe", href: "/app/equipe" },
+      quickActions: [
+        { label: "Adicionar membro", href: "/app/equipe/novo" },
+        { label: "Abrir equipe", href: "/app/equipe" },
+        { label: "Convidar", onClick: () => fire("Em breve", "O convite avançado por e-mail será liberado quando o fluxo de equipe evoluir.") },
+      ],
     },
     {
       key: "relatorios",
@@ -1231,6 +1296,11 @@ export function AgencyDashboardPage() {
         })) ?? [],
       primaryAction: { label: "Gerar relatório", href: "/app/central-operacional/relatorios/novo" },
       secondaryAction: { label: "Abrir relatórios", href: "/app/central-operacional/relatorios" },
+      quickActions: [
+        { label: "Gerar relatório", href: "/app/central-operacional/relatorios/novo" },
+        { label: "Abrir relatórios", href: "/app/central-operacional/relatorios" },
+        { label: "Exportar", onClick: () => fire("Em breve", "A exportação rápida contextual será refinada na próxima etapa do workspace.") },
+      ],
     },
     {
       key: "catalogo",
@@ -1248,6 +1318,11 @@ export function AgencyDashboardPage() {
       })),
       primaryAction: { label: "Abrir catálogo", href: "/app/catalogo" },
       secondaryAction: catalogProfile?.slug ? { label: "Ver vitrine", href: `/catalogo/${catalogProfile.slug}` } : { label: "Ver vitrine", href: "/app/catalogo" },
+      quickActions: [
+        { label: "Abrir catálogo", href: "/app/catalogo" },
+        catalogProfile?.slug ? { label: "Ver vitrine", href: `/catalogo/${catalogProfile.slug}` } : { label: "Ver vitrine", href: "/app/catalogo" },
+        { label: "Novo pacote", href: "/app/catalogo/pacotes/novo" },
+      ],
     },
     {
       key: "creditos",
@@ -1267,6 +1342,11 @@ export function AgencyDashboardPage() {
         })) ?? [],
       primaryAction: { label: "Abrir créditos", href: "/app/creditos" },
       secondaryAction: { label: "Ver histórico", href: "/app/creditos" },
+      quickActions: [
+        { label: "Abrir créditos", href: "/app/creditos" },
+        { label: "Ver histórico", href: "/app/creditos" },
+        { label: "Comprar créditos", onClick: () => fire("Em breve", "A compra operacional de créditos será ligada a billing em uma fase futura.") },
+      ],
     },
     {
       key: "central",
@@ -1286,6 +1366,11 @@ export function AgencyDashboardPage() {
         })) ?? [],
       primaryAction: { label: "Abrir central", href: "/app/central-operacional" },
       secondaryAction: { label: "Ver tarefas", href: "/app/central-operacional/tarefas" },
+      quickActions: [
+        { label: "Abrir central", href: "/app/central-operacional" },
+        { label: "Ver tarefas", href: "/app/central-operacional/tarefas" },
+        { label: "Criar tarefa agora", href: "/app/central-operacional/tarefas/nova" },
+      ],
     },
     {
       key: "atlas",
@@ -1304,10 +1389,15 @@ export function AgencyDashboardPage() {
         })) ?? [],
       primaryAction: { label: "Abrir Atlas", href: "/app/atlas-advisor" },
       secondaryAction: { label: "Preciso de ajuda", href: "/app/atlas-advisor" },
+      quickActions: [
+        { label: "Abrir Atlas", href: "/app/atlas-advisor" },
+        { label: "Preciso de ajuda", href: "/app/atlas-advisor" },
+        { label: "Guia operacional", href: "/app/atlas-advisor" },
+      ],
     },
     {
       key: "expansoes",
-      span: "xl:col-span-6",
+      span: "xl:col-span-3",
       title: "Expansões premium",
       icon: Sparkles,
       value: "Disponíveis para ativação",
@@ -1325,62 +1415,56 @@ export function AgencyDashboardPage() {
         label: "Quero ativar",
         onClick: () => fire("Em breve", "As expansões premium continuam preparadas visualmente e serão ativadas em fases posteriores."),
       },
+      quickActions: [
+        { label: "Ver expansões", href: "/app/planos" },
+        { label: "Quero ativar", onClick: () => fire("Em breve", "As expansões premium continuam preparadas visualmente e serão ativadas em fases posteriores.") },
+        { label: "Falar com comercial", onClick: () => fire("Em breve", "O fluxo comercial das expansões será conectado em uma próxima fase.") },
+      ],
     },
   ] as const
 
   return (
     <PageShell>
-      <div className="overflow-hidden rounded-[34px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 shadow-[0_36px_120px_rgba(0,0,0,0.32)] backdrop-blur-2xl md:p-6">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_380px]">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.08] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary/80">
-              <Sparkles className="h-3.5 w-3.5" />
-              Operação em foco
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.055),rgba(255,255,255,0.02))] px-5 py-4 shadow-[0_28px_90px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-primary/68">Workspace operacional</p>
+          <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-lg font-semibold text-foreground">Sua operação está ativa hoje.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {attentionCount > 0 ? `${attentionCount} ponto${attentionCount > 1 ? "s" : ""} pedem atenção.` : condensedSummary}
+              </p>
             </div>
-            <h2 className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-              O dashboard agora é o seu workspace operacional vivo.
-            </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground md:text-[15px]">
-              Menos peso de ERP, mais contexto prático: clientes, viagens, documentos, caixa, catálogo e central operacional no mesmo plano de trabalho.
-            </p>
-
-            <div className="mt-5 flex flex-wrap gap-2.5">
-              <Button asChild className="rounded-full">
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm" className="rounded-full">
                 <Link href="/app/viagens/nova">Nova viagem</Link>
               </Button>
-              <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+              <Button asChild size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
                 <Link href="/app/central-operacional">Abrir central</Link>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-full border-white/10 bg-white/[0.03]"
-                onClick={() => fire("Personalização em breve", "A reorganização manual dos cards será liberada na próxima etapa do redesign do workspace.")}
-              >
-                Personalizar cards
               </Button>
             </div>
           </div>
+        </div>
 
-          <div className={`rounded-[30px] border p-5 backdrop-blur-xl ${healthTone === "critical" ? "border-rose-400/18 bg-rose-400/10" : healthTone === "attention" ? "border-amber-400/18 bg-amber-400/10" : "border-emerald-400/15 bg-emerald-400/10"}`}>
-            <p className={`text-[11px] uppercase tracking-[0.22em] ${healthTone === "critical" ? "text-rose-100/80" : healthTone === "attention" ? "text-amber-100/80" : "text-emerald-100/80"}`}>
-              {dashboard?.health.label || "Operação ativa"}
-            </p>
-            <p className="mt-3 text-xl font-semibold text-foreground">{dashboard?.health.title || "Lendo sinais reais da agência"}</p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {dashboard?.health.description || "O workspace monitora caixa, documentação, viagens, clientes e ritmo comercial em segundo plano."}
-            </p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              {isLoading
-                ? Array.from({ length: 3 }).map((_, index) => <div key={`hero-skeleton-${index}`} className="h-20 animate-pulse rounded-[22px] bg-white/10" />)
-                : summaryCards.map((item) => (
-                    <div key={item.label} className="rounded-[22px] border border-white/10 bg-black/18 px-4 py-3.5">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">{item.label}</p>
-                      <p className="mt-2 text-sm font-semibold text-foreground">{item.value}</p>
-                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.hint}</p>
-                    </div>
-                  ))}
+        <div className={`rounded-[28px] border px-5 py-4 backdrop-blur-xl shadow-[0_24px_80px_rgba(0,0,0,0.18)] ${healthTone === "critical" ? "border-rose-400/18 bg-rose-400/10" : healthTone === "attention" ? "border-amber-400/18 bg-amber-400/10" : "border-emerald-400/15 bg-emerald-400/10"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className={`text-[11px] uppercase tracking-[0.22em] ${healthTone === "critical" ? "text-rose-100/80" : healthTone === "attention" ? "text-amber-100/80" : "text-emerald-100/80"}`}>
+                {dashboard?.health.label || "Operação ativa"}
+              </p>
+              <p className="mt-2 text-base font-semibold text-foreground">{dashboard?.health.title || "Lendo sinais reais da agência"}</p>
             </div>
+            <StatusPill label={dashboard?.health.tone === "success" ? "Estável" : dashboard?.health.tone === "warning" ? "Atenção" : "Crítico"} />
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {isLoading
+              ? Array.from({ length: 3 }).map((_, index) => <div key={`hero-skeleton-${index}`} className="h-16 animate-pulse rounded-[18px] bg-white/10" />)
+              : summaryCards.map((item) => (
+                  <div key={item.label} className="rounded-[18px] border border-white/10 bg-black/18 px-3.5 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70">{item.label}</p>
+                    <p className="mt-1.5 text-sm font-semibold text-foreground">{item.value}</p>
+                  </div>
+                ))}
           </div>
         </div>
       </div>
@@ -1436,10 +1520,10 @@ export function AgencyDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-12">
+      <div className="grid auto-rows-fr gap-4 xl:grid-cols-12">
         {isLoading
           ? Array.from({ length: 14 }).map((_, index) => (
-              <div key={`workspace-card-skeleton-${index}`} className={cn("rounded-[30px] border border-white/8 bg-white/[0.03] p-5 animate-pulse", index < 3 ? "xl:col-span-4" : index === 13 ? "xl:col-span-6" : "xl:col-span-3")}>
+              <div key={`workspace-card-skeleton-${index}`} className={cn("rounded-[30px] border border-white/8 bg-white/[0.03] p-5 animate-pulse", index < 3 ? "xl:col-span-4" : "xl:col-span-3")}>
                 <div className="h-4 w-28 rounded-full bg-white/10" />
                 <div className="mt-5 h-7 w-32 rounded-full bg-white/10" />
                 <div className="mt-6 space-y-2">
@@ -1449,11 +1533,22 @@ export function AgencyDashboardPage() {
                 </div>
               </div>
             ))
-          : workspaceCards.map((card) => (
+          : workspaceCards.map((card) => {
+              const { quickActions, ...cardProps } = card
+              return (
               <div key={card.key} className={card.span}>
-                <WorkspaceDashboardCard {...card} />
+                <WorkspaceDashboardCard
+                  {...cardProps}
+                  onOpenQuickActions={() =>
+                    openQuickActions(
+                      card.title,
+                      card.context,
+                      quickActions,
+                    )
+                  }
+                />
               </div>
-            ))}
+            )})}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
@@ -1540,6 +1635,47 @@ export function AgencyDashboardPage() {
                     Fechar
                   </Button>
                 </div>
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(activeQuickActions)} onOpenChange={(open) => (!open ? setActiveQuickActions(null) : null)}>
+        <DialogContent className="max-w-xl border-white/10 bg-[#0e0b0c]/96 p-0 shadow-[0_34px_120px_rgba(0,0,0,0.58)]">
+          {activeQuickActions ? (
+            <>
+              <DialogHeader className="border-b border-white/8 px-6 py-5">
+                <DialogTitle>{activeQuickActions.title}</DialogTitle>
+                <DialogDescription>{activeQuickActions.description}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 px-6 py-5">
+                {activeQuickActions.actions.map((action, index) =>
+                  action.href ? (
+                    <Link
+                      key={`${activeQuickActions.title}-action-${index}`}
+                      href={action.href}
+                      onClick={() => setActiveQuickActions(null)}
+                      className="flex items-center justify-between rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-foreground transition-all hover:border-primary/18 hover:bg-white/[0.05]"
+                    >
+                      <span>{action.label}</span>
+                      <Plus className="h-3.5 w-3.5 rotate-45 text-primary" />
+                    </Link>
+                  ) : (
+                    <button
+                      key={`${activeQuickActions.title}-action-${index}`}
+                      type="button"
+                      onClick={() => {
+                        action.onClick?.()
+                        setActiveQuickActions(null)
+                      }}
+                      className="flex w-full items-center justify-between rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-left text-sm text-foreground transition-all hover:border-primary/18 hover:bg-white/[0.05]"
+                    >
+                      <span>{action.label}</span>
+                      <Plus className="h-3.5 w-3.5 rotate-45 text-primary" />
+                    </button>
+                  ),
+                )}
               </div>
             </>
           ) : null}
