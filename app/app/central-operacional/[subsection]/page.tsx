@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation"
-import { PortalPage } from "@/components/system/portal-page"
 import { agencyOperationalPages } from "@/lib/services/agency-extra-pages"
 import {
   AgencyCreditsOperationalPage,
@@ -23,5 +22,5 @@ export default async function AgencyOperationalSubsectionPage({ params }: { para
   if (subsection === "tarefas") return <AgencyTasksOperationalPage />
   if (subsection === "relatorios") return <AgencyReportsOperationalPage />
 
-  return <PortalPage config={config} />
+  notFound()
 }

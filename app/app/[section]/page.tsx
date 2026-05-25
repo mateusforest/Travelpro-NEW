@@ -1,11 +1,11 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { agencyPages } from "@/lib/services/portal-pages"
-import { PortalPage } from "@/components/system/portal-page"
 import {
   AgencyAgentPage,
   AgencyAtlasAdvisorPage,
   AgencyAutomationsPage,
   AgencyClientsPage,
+  AgencyContractsPage,
   AgencyCreditsPage,
   AgencyDashboardPage,
   AgencyDocumentsPage,
@@ -14,6 +14,9 @@ import {
   AgencyLeadsPage,
   AgencyMarketingPage,
   AgencyOperationalOverviewPage,
+  AgencyCotacoesPage as AgencyCotacoesAliasPage,
+  AgencyRoteirosPage as AgencyRoteirosAliasPage,
+  AgencySettingsPage,
   AgencyTeamPage,
   AgencyTravelProGoPage,
   AgencyTripsPage,
@@ -33,7 +36,11 @@ export default async function AgencySectionPage({ params }: { params: Promise<{ 
   if (section === "clientes") return <AgencyClientsPage />
   if (section === "leads") return <AgencyLeadsPage />
   if (section === "viagens") return <AgencyTripsPage />
+  if (section === "roteiros") return <AgencyRoteirosAliasPage />
   if (section === "documentos") return <AgencyDocumentsPage />
+  if (section === "cotacoes") return <AgencyCotacoesAliasPage />
+  if (section === "contratos") return <AgencyContractsPage />
+  if (section === "travelpro-match") redirect("/app/catalogo/travelpro-match")
   if (section === "travelpro-go") return <AgencyTravelProGoPage />
   if (section === "agent") return <AgencyAgentPage />
   if (section === "central-operacional") return <AgencyOperationalOverviewPage />
@@ -44,6 +51,7 @@ export default async function AgencySectionPage({ params }: { params: Promise<{ 
   if (section === "equipe") return <AgencyTeamPage />
   if (section === "atlas-advisor") return <AgencyAtlasAdvisorPage />
   if (section === "automacoes") return <AgencyAutomationsPage />
+  if (section === "configuracoes") return <AgencySettingsPage />
 
-  return <PortalPage config={config} />
+  notFound()
 }

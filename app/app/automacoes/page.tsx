@@ -1,6 +1,5 @@
-import { PortalPage } from "@/components/system/portal-page"
-import { agencyStandalonePages } from "@/lib/services/agency-extra-pages"
+import { AgencyAutomationsPage } from "@/components/agency/agency-pages"
 
 export default function AutomacoesPage() {
-  return <PortalPage config={agencyStandalonePages.automacoes} />
+  return <AgencyAutomationsPage />
 }

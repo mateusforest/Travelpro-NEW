@@ -5769,6 +5769,151 @@ export function AgencyTeamPage() {
   )
 }
 
+export function AgencySettingsPage() {
+  const router = useRouter()
+  const fire = (title: string, description: string) => toast({ title, description })
+
+  return (
+    <PageShell>
+      <WorkspaceSectionHeader
+        eyebrow="Identidade operacional"
+        title="Configuracoes da agencia"
+        description="Central premium para branding, canais, preferencias e pontos de ativacao do ecossistema sem depender de telas genericas antigas."
+        summary="Base pronta para operacao e suporte."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button asChild className="rounded-full">
+              <Link href="/app/documentos/templates/personalizar">Editar branding</Link>
+            </Button>
+            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/planos")}>
+              Billing
+            </Button>
+          </div>
+        }
+      />
+
+      <WorkspaceMetricStrip
+        items={[
+          { label: "Branding", value: "Ativo", hint: "Logo, favicon e materiais prontos para documentos e vitrine.", tone: "success" },
+          { label: "Canal principal", value: "WhatsApp", hint: "Contato publico e jornada compartilhavel conectados.", tone: "default" },
+          { label: "Equipe", value: "4 acessos", hint: "Papeis e permissoes seguem pela central da equipe.", tone: "default" },
+          { label: "Billing", value: "Scale", hint: "Upgrade e cobranca automatica ainda seguem etapa controlada.", tone: "warning" },
+        ]}
+      />
+
+      <div className="grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
+        <WorkspacePanel
+          eyebrow="Base da agencia"
+          title="Identidade, presencia e atendimento"
+          description="Ajustes centrais para deixar a agencia coerente em catalogo, documentos e experiencia publica."
+        >
+          <div className="grid gap-3">
+            <WorkspaceInlineCard
+              title="Branding e materiais"
+              detail="Logo, favicon, capa e assets operacionais centralizados para contratos, templates e vitrine."
+              meta="Documentos, vitrine e compartilhamento"
+              status="Pronto"
+              actions={
+                <>
+                  <Button asChild variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
+                    <Link href="/app/documentos/templates/personalizar">Abrir branding</Link>
+                  </Button>
+                  <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/catalogo")}>
+                    Ver vitrine
+                  </Button>
+                </>
+              }
+            />
+            <WorkspaceInlineCard
+              title="Contato e disponibilidade"
+              detail="Telefone, email e contexto de atendimento usados nas experiencias publicas e nos atalhos do cliente."
+              meta="Catalogo e /v/[token]"
+              status="Atencao leve"
+              actions={
+                <>
+                  <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Contato em breve", "A edição consolidada de canais sera liberada na proxima etapa segura da configuracao da agencia.")}>
+                    Ajustar canais
+                  </Button>
+                  <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Suporte preparado", "Se precisar atualizar o telefone publico agora, o time de suporte pode fazer isso com seguranca.")}>
+                    Falar com suporte
+                  </Button>
+                </>
+              }
+            />
+            <WorkspaceInlineCard
+              title="Preferencias operacionais"
+              detail="Idioma, alertas, rotina e ajustes de comportamento que afetam a operacao da equipe."
+              meta="Agencia V2"
+              status="Em evolucao"
+              actions={
+                <>
+                  <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Preferencias salvas", "A camada de preferencias locais foi registrada e os ajustes avancados seguem em preparacao.")}>
+                    Salvar preferencias
+                  </Button>
+                </>
+              }
+            />
+          </div>
+        </WorkspacePanel>
+
+        <div className="space-y-4">
+          <WorkspacePanel
+            eyebrow="Governanca"
+            title="Equipe, permissoes e suporte"
+            description="Pontos principais para manter a agencia organizada sem voltar para telas administrativas pesadas."
+          >
+            <div className="grid gap-3">
+              <WorkspaceFeatureCard
+                title="Equipe e acessos"
+                description="Gerencie papeis, convites e modulos acessiveis com a mesma linguagem V2 da operacao."
+                badge="Equipe"
+                actions={
+                  <Button className="rounded-full" onClick={() => router.push("/app/equipe")}>
+                    Abrir equipe
+                  </Button>
+                }
+              />
+              <WorkspaceFeatureCard
+                title="Plano, cobranca e expansoes"
+                description="Leitura clara do plano atual, recursos incluidos e ativacoes futuras sem billing fake."
+                badge="Billing"
+                actions={
+                  <Button className="rounded-full" onClick={() => router.push("/app/planos")}>
+                    Abrir planos
+                  </Button>
+                }
+              />
+              <WorkspaceFeatureCard
+                title="Integrações futuras"
+                description="WhatsApp oficial, billing automatico e camadas avancadas continuam como evolucao controlada."
+                badge="Em breve"
+                actions={
+                  <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Integracoes em preparo", "Essa area continua pronta para evolucao sem prometer automacao ou backend inexistente.")}>
+                    Ver contexto
+                  </Button>
+                }
+              />
+            </div>
+          </WorkspacePanel>
+
+          <WorkspacePanel
+            eyebrow="Leituras rápidas"
+            title="Sinais da configuracao"
+            description="Resumo curto do que esta pronto, do que depende de suporte e do que segue como expansao."
+          >
+            <div className="grid gap-3 md:grid-cols-2">
+              <InfoCard label="Branding" value="Padrao TravelPro aplicado" />
+              <InfoCard label="Catalogo" value="Vitrine publica conectada" />
+              <InfoCard label="Equipe" value="Permissoes por papel ativas" />
+              <InfoCard label="Suporte" value="Ativacao assistida quando necessario" />
+            </div>
+          </WorkspacePanel>
+        </div>
+      </div>
+    </PageShell>
+  )
+}
+
 export function AgencyDocumentsPage() {
   return (
     <DocumentHub
