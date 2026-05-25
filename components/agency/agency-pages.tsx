@@ -41,6 +41,7 @@ import { leads } from "@/mock/leads"
 import { PageShell } from "@/components/system/page-shell"
 import { SectionHeader } from "@/components/system/section-header"
 import { DashboardCard } from "@/components/system/dashboard-card"
+import { AgencyActionButton } from "@/components/system/agency-action-button"
 import { SearchInput } from "@/components/system/search-input"
 import { FilterTabs } from "@/components/system/filter-tabs"
 import { Button } from "@/components/ui/button"
@@ -2982,12 +2983,20 @@ export function AgencyDashboardPage() {
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button type="button" className="rounded-full" onClick={() => void handleAssistantAction(assistantActionId)}>
-                          Abrir fluxo
-                        </Button>
-                        <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closeAssistant}>
-                          Fechar
-                        </Button>
+                        <AgencyActionButton
+                          actionType="modal"
+                          label="Abrir fluxo"
+                          className="rounded-full"
+                          loadingLabel="Abrindo..."
+                          onClick={() => handleAssistantAction(assistantActionId)}
+                        />
+                        <AgencyActionButton
+                          actionType="modal"
+                          label="Fechar"
+                          variant="outline"
+                          className="rounded-full border-white/10 bg-white/[0.03]"
+                          onClick={closeAssistant}
+                        />
                       </div>
                     </div>
                   ) : null}
@@ -4262,9 +4271,9 @@ export function AgencyTripsPage() {
                       {shareLink ? <p className="mt-2 text-xs text-muted-foreground">Vitrine pública {shareLink.is_active ? "ativa" : "inativa"} • {shareLink.view_count} visualizações</p> : null}
                     </button>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Button type="button" size="sm" className="rounded-full" onClick={() => setSelected(trip)}>Abrir viagem</Button>
-                      <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => void copyTripShareLink(trip)}>Compartilhar</Button>
-                      <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openTripEditor(trip)}>Editar</Button>
+                      <AgencyActionButton actionType="modal" label="Abrir viagem" size="sm" className="rounded-full" onClick={() => setSelected(trip)} />
+                      <AgencyActionButton actionType="api" label="Compartilhar" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" loadingLabel="Gerando..." onClick={() => copyTripShareLink(trip)} />
+                      <AgencyActionButton actionType="modal" label="Editar" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openTripEditor(trip)} />
                       <ActionMenu
                         items={[
                           { label: "Visualizar", icon: Eye, onClick: () => setSelected(trip) },
@@ -4700,12 +4709,8 @@ function DocumentHub({
                   </div>
                 </button>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button type="button" size="sm" className="rounded-full" onClick={() => setSelected(doc)}>
-                    Visualizar
-                  </Button>
-                  <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push(editHref ? editHref(doc) : `/app/documentos/novo?id=${doc.id}`)}>
-                    Editar
-                  </Button>
+                  <AgencyActionButton actionType="modal" label="Visualizar" size="sm" className="rounded-full" onClick={() => setSelected(doc)} />
+                  <AgencyActionButton actionType="navigate" label="Editar" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" href={editHref ? editHref(doc) : `/app/documentos/novo?id=${doc.id}`} />
                   <ActionMenu
                   items={[
                     { label: "Visualizar", icon: Eye, onClick: () => setSelected(doc) },
@@ -5433,11 +5438,9 @@ export function AgencyFinancePage() {
         summary={`${filteredRecordsByView.length} lançamentos no recorte atual.`}
         actions={
           <>
-            <Button asChild className="rounded-full">
-              <Link href="/app/financeiro/novo">Novo lançamento</Link>
-            </Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openFinancialReport()}>Gerar relatório</Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openFinancialReport(undefined, "HTML")}>Exportar</Button>
+            <AgencyActionButton actionType="navigate" label="Novo lançamento" href="/app/financeiro/novo" className="rounded-full" />
+            <AgencyActionButton actionType="api" label="Gerar relatório" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" loadingLabel="Gerando..." onClick={() => openFinancialReport()} />
+            <AgencyActionButton actionType="api" label="Exportar" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" loadingLabel="Exportando..." onClick={() => openFinancialReport(undefined, "HTML")} />
           </>
         }
       />
@@ -5468,8 +5471,8 @@ export function AgencyFinancePage() {
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={applyFinanceFilters}>Aplicar filtros</Button>
-          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={clearFinanceFilters}>Limpar filtros</Button>
+          <AgencyActionButton actionType="api" label="Aplicar filtros" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={applyFinanceFilters} />
+          <AgencyActionButton actionType="api" label="Limpar filtros" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={clearFinanceFilters} />
         </div>
       </div>
 
@@ -5931,9 +5934,7 @@ export function AgencySettingsPage() {
                 description="Gerencie papeis, convites e modulos acessiveis com a mesma linguagem V2 da operacao."
                 badge="Equipe"
                 actions={
-                  <Button className="rounded-full" onClick={() => router.push("/app/equipe")}>
-                    Abrir equipe
-                  </Button>
+                  <AgencyActionButton actionType="navigate" label="Abrir equipe" href="/app/equipe" className="rounded-full" />
                 }
               />
               <WorkspaceFeatureCard
@@ -5941,9 +5942,7 @@ export function AgencySettingsPage() {
                 description="Leitura clara do plano atual, recursos incluidos e ativacoes futuras sem billing fake."
                 badge="Billing"
                 actions={
-                  <Button className="rounded-full" onClick={() => router.push("/app/planos")}>
-                    Abrir planos
-                  </Button>
+                  <AgencyActionButton actionType="navigate" label="Abrir planos" href="/app/planos" className="rounded-full" />
                 }
               />
               <WorkspaceFeatureCard
@@ -5951,9 +5950,7 @@ export function AgencySettingsPage() {
                 description="WhatsApp oficial, billing automatico e camadas avancadas continuam como evolucao controlada."
                 badge="Em breve"
                 actions={
-                  <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Integracoes em preparo", "Essa area continua pronta para evolucao sem prometer automacao ou backend inexistente.")}>
-                    Ver contexto
-                  </Button>
+                  <AgencyActionButton actionType="future" label="Ver contexto" futureMessage="Essa area continua pronta para evolucao sem prometer automacao ou backend inexistente." variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" />
                 }
               />
             </div>
@@ -6368,7 +6365,6 @@ export function AgencyLeadsPage() {
 }
 
 export function AgencyTravelProGoPage() {
-  const fire = (title: string, description: string) => toast({ title, description })
   const entries = [
     { id: "go-1", title: "Criar roteiro para João em Gramado", response: "Roteiro criado e salvo no sistema.", href: "/app/viagens/roteiros" },
     { id: "go-2", title: "Gerar contrato da viagem da Ana", response: "Contrato criado com a identidade da agência.", href: "/app/documentos/contratos" },
@@ -6384,8 +6380,8 @@ export function AgencyTravelProGoPage() {
         summary="Em breve"
         actions={
           <>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Configuração em breve", "A configuração operacional do TravelPro Go será liberada quando a integração oficial for ativada.")}>Configurar módulo</Button>
-            <Button className="rounded-full" onClick={() => fire("TravelPro Go em breve", "O controle operacional do número será liberado quando a integração real de WhatsApp entrar na próxima fase.")}>Quero ativar</Button>
+            <AgencyActionButton actionType="future" label="Configurar módulo" futureMessage="A configuração operacional do TravelPro Go será liberada quando a integração oficial for ativada." variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" />
+            <AgencyActionButton actionType="future" label="Quero ativar" futureMessage="O controle operacional do número será liberado quando a integração real de WhatsApp entrar na próxima fase." className="rounded-full" />
           </>
         }
       />
@@ -6423,12 +6419,8 @@ export function AgencyTravelProGoPage() {
                 status="Em breve"
                 actions={
                   <>
-                    <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Origem em breve", `A trilha completa de ${entry.title} será exibida quando o histórico real do Go estiver disponível.`)}>
-                      Abrir origem
-                    </Button>
-                    <Button className="rounded-full" onClick={() => fire("Detalhes preparados", `O cenário de ${entry.title} já está mapeado para a próxima fase.`)}>
-                      Ver cenário
-                    </Button>
+                    <AgencyActionButton actionType="future" label="Abrir origem" futureMessage={`A trilha completa de ${entry.title} sera exibida quando o historico real do Go estiver disponivel.`} variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" />
+                    <AgencyActionButton actionType="future" label="Ver cenário" futureMessage={`O cenario de ${entry.title} ja esta mapeado para a proxima fase.`} className="rounded-full" />
                   </>
                 }
               />
@@ -6455,8 +6447,8 @@ export function AgencyAgentPage() {
         summary={`${items.length} conversas mapeadas.`}
         actions={
           <>
-            <Button className="rounded-full" onClick={() => fire("Agent em breve", "O controle fino do Agent será liberado quando a operação conversacional entrar na próxima fase.")}>Pausar / ativar</Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setStyleOpen(true)}>Editar estilo de atendimento</Button>
+            <AgencyActionButton actionType="future" label="Pausar / ativar" futureMessage="O controle fino do Agent sera liberado quando a operacao conversacional entrar na proxima fase." className="rounded-full" />
+            <AgencyActionButton actionType="modal" label="Editar estilo de atendimento" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setStyleOpen(true)} />
           </>
         }
       />
@@ -6797,7 +6789,6 @@ export function AgencyOperationalOverviewPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const router = useRouter()
-  const fire = (title: string, description: string) => toast({ title, description })
 
   useEffect(() => {
     let active = true
@@ -6833,10 +6824,8 @@ export function AgencyOperationalOverviewPage() {
         summary={`${data?.priorities.length ?? 0} pontos em foco.`}
         actions={
           <>
-            <Button asChild className="rounded-full">
-              <Link href="/app/central-operacional/tarefas/nova">Nova tarefa</Link>
-            </Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Rotas rápidas em breve", "As rotas rápidas configuráveis serão liberadas em uma próxima etapa da central.")}>Adicionar rota rápida</Button>
+            <AgencyActionButton actionType="navigate" label="Nova tarefa" href="/app/central-operacional/tarefas/nova" className="rounded-full" />
+            <AgencyActionButton actionType="future" label="Adicionar rota rápida" futureMessage="As rotas rápidas configuráveis serão liberadas em uma próxima etapa da central." variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" />
           </>
         }
       />
@@ -6877,9 +6866,7 @@ export function AgencyOperationalOverviewPage() {
                       meta="Prioridade operacional"
                       status={item.value}
                       actions={
-                        <Button className="rounded-full" onClick={() => router.push(item.href)}>
-                          Abrir prioridade
-                        </Button>
+                        <AgencyActionButton actionType="navigate" label="Abrir prioridade" href={item.href} className="rounded-full" />
                       }
                     />
                   ))}

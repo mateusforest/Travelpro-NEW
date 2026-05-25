@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { ChevronDown, CreditCard, LockKeyhole, LogOut, Save, Settings, Settings2, Shield, UserRound, Wallet } from "lucide-react"
 import type { PortalKey, UserProfile } from "@/lib/services/portal-types"
 import { UserAvatar } from "@/components/system/user-avatar"
-import { Button } from "@/components/ui/button"
+import { AgencyActionButton } from "@/components/system/agency-action-button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -57,6 +57,14 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
     } finally {
       closePanel()
       router.push("/login")
+    }
+  }
+
+  const handleMockSave = async (title: string, description?: string, closeAfterSuccess = false) => {
+    await new Promise((resolve) => setTimeout(resolve, 350))
+    fireMockFeedback(title, description)
+    if (closeAfterSuccess) {
+      closePanel()
     }
   }
 
@@ -166,9 +174,13 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
               </div>
               <p className="mt-4 text-sm font-medium">{profile.name}</p>
               <p className="mt-1 text-xs text-muted-foreground">{profile.role}</p>
-              <Button variant="outline" className="mt-5 w-full rounded-full border-white/10 bg-white/[0.03]" onClick={() => fireMockFeedback("Foto preparada")}>
-                Alterar foto
-              </Button>
+              <AgencyActionButton
+                actionType="future"
+                label="Alterar foto"
+                futureMessage="O upload seguro de foto de perfil sera conectado em breve a este painel."
+                variant="outline"
+                className="mt-5 w-full rounded-full border-white/10 bg-white/[0.03]"
+              />
             </div>
             <div className="grid gap-4">
               <Field label="Nome" value={profile.name} />
@@ -181,13 +193,15 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
             </div>
           </div>
           <DialogFooter className="border-t border-white/8 px-5 py-4.5">
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel}>
-              Fechar
-            </Button>
-            <Button className="rounded-full" onClick={() => fireMockFeedback("Dados salvos")}>
-              <Save className="h-4 w-4" />
-              Salvar
-            </Button>
+            <AgencyActionButton actionType="modal" label="Fechar" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel} />
+            <AgencyActionButton
+              actionType="api"
+              label="Salvar"
+              icon={Save}
+              loadingLabel="Salvando..."
+              className="rounded-full"
+              onClick={() => handleMockSave("Dados salvos", "Seus dados principais foram registrados nesta camada V2.", true)}
+            />
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -210,13 +224,15 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
               <InfoCard label={isMasterPortal ? "Painel inicial" : "Operação"} value={isMasterPortal ? "Resumo executivo com ranking e alertas" : "Follow-up inteligente e alertas prioritários"} />
             </div>
             <DialogFooter className="border-t border-white/8 px-5 py-4.5">
-              <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel}>
-                Fechar
-              </Button>
-              <Button className="rounded-full" onClick={() => fireMockFeedback("Preferências atualizadas")}>
-                <Save className="h-4 w-4" />
-                Salvar
-              </Button>
+              <AgencyActionButton actionType="modal" label="Fechar" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel} />
+              <AgencyActionButton
+                actionType="api"
+                label="Salvar"
+                icon={Save}
+                loadingLabel="Salvando..."
+                className="rounded-full"
+                onClick={() => handleMockSave("Preferências atualizadas")}
+              />
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -240,13 +256,15 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
               <Field label="Canal crítico" value="SMS + e-mail" />
             </div>
             <DialogFooter className="border-t border-white/8 px-5 py-4.5">
-              <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel}>
-                Fechar
-              </Button>
-              <Button className="rounded-full" onClick={() => fireMockFeedback("Segurança atualizada")}>
-                <Save className="h-4 w-4" />
-                Aplicar
-              </Button>
+              <AgencyActionButton actionType="modal" label="Fechar" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel} />
+              <AgencyActionButton
+                actionType="api"
+                label="Aplicar"
+                icon={Save}
+                loadingLabel="Aplicando..."
+                className="rounded-full"
+                onClick={() => handleMockSave("Segurança atualizada")}
+              />
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -286,9 +304,9 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                       <InfoCard label="Agent e Match" value="3 jornadas • 12 pacotes impulsionados" />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button className="rounded-full" onClick={() => setSubscriptionTab("plans")}>Alterar plano</Button>
-                      <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setSubscriptionTab("credits")}>Comprar créditos</Button>
-                      <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setSubscriptionTab("extras")}>Ver pacotes extras</Button>
+                      <AgencyActionButton actionType="modal" label="Alterar plano" className="rounded-full" onClick={() => setSubscriptionTab("plans")} />
+                      <AgencyActionButton actionType="modal" label="Comprar créditos" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setSubscriptionTab("credits")} />
+                      <AgencyActionButton actionType="modal" label="Ver pacotes extras" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => setSubscriptionTab("extras")} />
                     </div>
                   </TabsContent>
 
@@ -328,7 +346,13 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                               <div key={feature} className="rounded-2xl border border-white/8 bg-black/10 px-3 py-2 text-[13px] text-foreground">{feature}</div>
                             ))}
                           </div>
-                          <Button className="mt-4 w-full rounded-full" variant={plan.name === "Scale" ? "outline" : "default"} onClick={() => fireMockFeedback("Plano " + plan.name + " selecionado")}>Selecionar plano</Button>
+                          <AgencyActionButton
+                            actionType="future"
+                            label="Selecionar plano"
+                            futureMessage={`A solicitacao do plano ${plan.name} sera tratada com seguranca enquanto o billing oficial continua em preparacao.`}
+                            variant={plan.name === "Scale" ? "outline" : "default"}
+                            className="mt-4 w-full rounded-full"
+                          />
                         </div>
                       ))}
                     </div>
@@ -347,7 +371,12 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                         <div key={item.title} className="rounded-[26px] border border-white/8 bg-white/[0.03] p-4">
                           <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
                           <p className="mt-2 text-sm leading-5 text-muted-foreground">{item.description}</p>
-                          <Button className="mt-4 w-full rounded-full" onClick={() => fireMockFeedback(item.title)}>{item.cta}</Button>
+                          <AgencyActionButton
+                            actionType="future"
+                            label={item.cta}
+                            futureMessage={`${item.title} sera liberado com ativacao assistida quando o fluxo comercial oficial estiver disponivel.`}
+                            className="mt-4 w-full rounded-full"
+                          />
                         </div>
                       ))}
                     </div>
@@ -364,7 +393,12 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                           <p className="text-base font-semibold text-foreground">{item.title}</p>
                           <p className="mt-1 text-sm text-primary">{item.price}</p>
                           <p className="mt-3 text-sm leading-5 text-muted-foreground">{item.usage}</p>
-                          <Button className="mt-4 w-full rounded-full" onClick={() => fireMockFeedback("Compra em breve: " + item.title, "A compra segura desse pacote será conectada quando o billing oficial estiver ativo.")}>Comprar pacote</Button>
+                          <AgencyActionButton
+                            actionType="future"
+                            label="Comprar pacote"
+                            futureMessage={`A compra segura de ${item.title} sera conectada quando o billing oficial estiver ativo.`}
+                            className="mt-4 w-full rounded-full"
+                          />
                         </div>
                       ))}
                     </div>
@@ -386,19 +420,34 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fireMockFeedback("Faturas em breve", "A listagem operacional de faturas será liberada quando o portal de cobrança oficial estiver ativo.")}>Ver faturas</Button>
-                      <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fireMockFeedback("Portal de cobrança preparado", "O portal seguro será conectado futuramente ao Stripe.")}>Abrir portal de cobrança</Button>
-                      <Button className="rounded-full" onClick={() => setActivePanel("payment-update")}>
-                        <CreditCard className="h-4 w-4" />
-                        Atualizar forma de pagamento
-                      </Button>
+                      <AgencyActionButton
+                        actionType="future"
+                        label="Ver faturas"
+                        futureMessage="A listagem operacional de faturas sera liberada quando o portal de cobranca oficial estiver ativo."
+                        variant="outline"
+                        className="rounded-full border-white/10 bg-white/[0.03]"
+                      />
+                      <AgencyActionButton
+                        actionType="future"
+                        label="Abrir portal de cobranca"
+                        futureMessage="O portal seguro de cobranca sera conectado futuramente ao Stripe."
+                        variant="outline"
+                        className="rounded-full border-white/10 bg-white/[0.03]"
+                      />
+                      <AgencyActionButton
+                        actionType="modal"
+                        label="Atualizar forma de pagamento"
+                        icon={CreditCard}
+                        className="rounded-full"
+                        onClick={() => setActivePanel("payment-update")}
+                      />
                     </div>
                   </TabsContent>
                 </div>
               </Tabs>
 
               <DialogFooter className="border-t border-white/8 px-5 py-4.5">
-                <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel}>Fechar</Button>
+                <AgencyActionButton actionType="modal" label="Fechar" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel} />
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -414,9 +463,7 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
                 A integração com o portal seguro de cobrança será conectada quando o fluxo Stripe estiver ativo no sistema.
               </div>
               <DialogFooter className="border-t border-white/8 px-5 py-4.5">
-                <Button className="rounded-full" onClick={() => setActivePanel("subscription")}>
-                  Entendi
-                </Button>
+                <AgencyActionButton actionType="modal" label="Entendi" className="rounded-full" onClick={() => setActivePanel("subscription")} />
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -482,18 +529,24 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
           )}
 
           <DialogFooter className="border-t border-white/8 px-5 py-4.5">
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel}>
-              Fechar
-            </Button>
+            <AgencyActionButton actionType="modal" label="Fechar" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel} />
             {isMasterPortal ? (
-              <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fireMockFeedback("Chaves futuras mapeadas", "A preparação das chaves e integrações futuras foi registrada sem criar configuração fake nesta etapa.")}>
-                Mapear chaves futuras
-              </Button>
+              <AgencyActionButton
+                actionType="future"
+                label="Mapear chaves futuras"
+                futureMessage="A preparacao das chaves e integracoes futuras foi registrada sem criar configuracao fake nesta etapa."
+                variant="outline"
+                className="rounded-full border-white/10 bg-white/[0.03]"
+              />
             ) : null}
-            <Button className="rounded-full" onClick={() => fireMockFeedback(isClientPortal ? "Configurações salvas" : isMasterPortal ? "Configurações da plataforma salvas" : "Configurações da agência salvas")}>
-              <Save className="h-4 w-4" />
-              {isClientPortal ? "Salvar" : isMasterPortal ? "Salvar parâmetros" : "Salvar configurações"}
-            </Button>
+            <AgencyActionButton
+              actionType="api"
+              label={isClientPortal ? "Salvar" : isMasterPortal ? "Salvar parâmetros" : "Salvar configurações"}
+              icon={Save}
+              loadingLabel="Salvando..."
+              className="rounded-full"
+              onClick={() => handleMockSave(isClientPortal ? "Configuracoes salvas" : isMasterPortal ? "Configuracoes da plataforma salvas" : "Configuracoes da agencia salvas")}
+            />
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -505,12 +558,8 @@ export function ProfileMenu({ portal, profile }: { portal: PortalKey; profile: U
             <DialogDescription>Você quer encerrar a sessão agora?</DialogDescription>
           </DialogHeader>
           <DialogFooter className="px-5 py-4.5">
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel}>
-              Cancelar
-            </Button>
-            <Button className="rounded-full" onClick={handleLogout}>
-              Sair
-            </Button>
+            <AgencyActionButton actionType="modal" label="Cancelar" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={closePanel} />
+            <AgencyActionButton actionType="api" label="Sair" className="rounded-full" onClick={handleLogout} />
           </DialogFooter>
         </DialogContent>
       </Dialog>
