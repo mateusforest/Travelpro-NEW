@@ -193,9 +193,10 @@ export function DedicatedActionWorkspace({
             </SecondaryButton>
             {aiActionLabel ? <SmartActionButton label={aiActionLabel} description={aiActionDescription} /> : null}
             {hideDraftAction ? null : (
-              <SecondaryButton
-                onClick={async () => {
-                  if (isSavingDraft || isSubmitting) return
+            <SecondaryButton
+              type="button"
+              onClick={async () => {
+                if (isSavingDraft || isSubmitting) return
 
                   if (!onDraftAction) {
                     toast({
@@ -227,6 +228,7 @@ export function DedicatedActionWorkspace({
               </SecondaryButton>
             )}
             <PrimaryButton
+              type="button"
               onClick={async () => {
                 if (isSubmitting || isSavingDraft) return
 
@@ -270,6 +272,7 @@ export function DedicatedActionWorkspace({
               description={previewDescription}
               footer={hidePreviewAction ? null : (
                 <SecondaryButton
+                  type="button"
                   onClick={() =>
                     toast({
                       title: "Preview em preparacao",

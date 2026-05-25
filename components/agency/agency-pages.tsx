@@ -786,7 +786,7 @@ type ConfirmAction = {
   title: string
   description: string
   confirmLabel?: string
-  onConfirm: () => void
+  onConfirm: () => Promise<void> | void
 } | null
 
 type MockField = {
@@ -804,6 +804,8 @@ function ModalField({ label, value }: MockField) {
 }
 
 function ConfirmationDialog({ action, onClose }: { action: ConfirmAction; onClose: () => void }) {
+  const [isConfirming, setIsConfirming] = useState(false)
+
   return (
     <Dialog open={Boolean(action)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-lg rounded-[30px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
@@ -812,17 +814,33 @@ function ConfirmationDialog({ action, onClose }: { action: ConfirmAction; onClos
           <DialogDescription>{action?.description}</DialogDescription>
         </DialogHeader>
         <DialogFooter className="border-t border-white/8 px-5 py-4.5">
-          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={onClose}>
+          <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={onClose} disabled={isConfirming}>
             Cancelar
           </Button>
           <Button
+            type="button"
             className="rounded-full"
-            onClick={() => {
-              action?.onConfirm()
-              onClose()
+            disabled={isConfirming}
+            onClick={async () => {
+              if (!action || isConfirming) return
+              try {
+                setIsConfirming(true)
+                await action.onConfirm()
+                onClose()
+              } catch (error) {
+                if (process.env.NODE_ENV !== "production") {
+                  console.error("[ConfirmationDialog] confirmation failed", error)
+                }
+                toast({
+                  title: "Nao foi possivel concluir a acao",
+                  description: error instanceof Error ? error.message : "Tente novamente em instantes.",
+                })
+              } finally {
+                setIsConfirming(false)
+              }
             }}
           >
-            {action?.confirmLabel ?? "Confirmar"}
+            {isConfirming ? "Confirmando..." : action?.confirmLabel ?? "Confirmar"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -845,8 +863,10 @@ function MockFormDialog({
   description: string
   fields: MockField[]
   confirmLabel: string
-  onConfirm: () => void
+  onConfirm: () => Promise<void> | void
 }) {
+  const [isConfirming, setIsConfirming] = useState(false)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl rounded-[30px] border border-white/10 bg-black/90 p-0 text-foreground shadow-2xl shadow-black/50 backdrop-blur-2xl">
@@ -860,17 +880,32 @@ function MockFormDialog({
           ))}
         </div>
         <DialogFooter className="border-t border-white/8 px-5 py-4.5">
-          <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => onOpenChange(false)} disabled={isConfirming}>
             Fechar
           </Button>
           <Button
+            type="button"
             className="rounded-full"
-            onClick={() => {
-              onConfirm()
-              onOpenChange(false)
+            disabled={isConfirming}
+            onClick={async () => {
+              try {
+                setIsConfirming(true)
+                await onConfirm()
+                onOpenChange(false)
+              } catch (error) {
+                if (process.env.NODE_ENV !== "production") {
+                  console.error("[MockFormDialog] confirmation failed", error)
+                }
+                toast({
+                  title: "Nao foi possivel concluir a acao",
+                  description: error instanceof Error ? error.message : "Tente novamente em instantes.",
+                })
+              } finally {
+                setIsConfirming(false)
+              }
             }}
           >
-            {confirmLabel}
+            {isConfirming ? "Salvando..." : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1787,6 +1822,13 @@ export function AgencyDashboardPage() {
     setIsSavingQuickAction(true)
     try {
       await action()
+      return true
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[AgencyDashboardPage] quick action failed", error)
+      }
+      fire("Nao foi possivel concluir a acao", error instanceof Error ? error.message : "Tente novamente em instantes.")
+      return false
     } finally {
       setIsSavingQuickAction(false)
     }
@@ -1795,10 +1837,10 @@ export function AgencyDashboardPage() {
   const handleAssistantTaskCreate = async () => {
     if (!assistantTaskValues.title.trim()) {
       fire("Informe um título", "Defina a tarefa para concluir essa ação assistida.")
-      return
+      return false
     }
 
-    await withQuickActionSaving(async () => {
+    return withQuickActionSaving(async () => {
       await requestJson<TaskRow>("/api/tasks", {
         method: "POST",
         body: JSON.stringify({
@@ -1817,7 +1859,6 @@ export function AgencyDashboardPage() {
         status: "Aberta",
         dueAt: "",
       })
-      closeAssistant()
       await loadDashboard()
       fire("Tarefa criada", "A tarefa foi adicionada e já entrou na leitura operacional.")
     })
@@ -1869,8 +1910,8 @@ export function AgencyDashboardPage() {
         fire("Escolha uma viagem", "Selecione a viagem antes de atualizar o status.")
         return
       }
-      await handleTripStatusUpdate(assistantTripStatusValues.tripId, assistantTripStatusValues.status)
-      closeAssistant()
+      const updated = await handleTripStatusUpdate(assistantTripStatusValues.tripId, assistantTripStatusValues.status)
+      if (updated) closeAssistant()
       return
     }
     if (actionId === "share-trip-link") {
@@ -1878,8 +1919,8 @@ export function AgencyDashboardPage() {
         fire("Escolha uma viagem", "Selecione a viagem antes de gerar ou copiar o link.")
         return
       }
-      await handleCopyTripLink(assistantShareTripId)
-      closeAssistant()
+      const copied = await handleCopyTripLink(assistantShareTripId)
+      if (copied) closeAssistant()
       return
     }
     if (actionId === "mark-finance-paid") {
@@ -1887,12 +1928,13 @@ export function AgencyDashboardPage() {
         fire("Escolha um lançamento", "Selecione o lançamento antes de marcar como pago.")
         return
       }
-      await handleMarkFinanceAsPaid(assistantFinanceRecordId)
-      closeAssistant()
+      const updated = await handleMarkFinanceAsPaid(assistantFinanceRecordId)
+      if (updated) closeAssistant()
       return
     }
     if (actionId === "new-task") {
-      await handleAssistantTaskCreate()
+      const created = await handleAssistantTaskCreate()
+      if (created) closeAssistant()
       return
     }
     if (actionId === "open-priority") {
@@ -2039,7 +2081,12 @@ export function AgencyDashboardPage() {
   }
 
   const handleMarkFinanceAsPaid = async (recordId: string) => {
-    await withQuickActionSaving(async () => {
+    if (!recordId) {
+      fire("Lançamento inválido", "Selecione um lançamento válido antes de atualizar o status.")
+      return false
+    }
+
+    return withQuickActionSaving(async () => {
       await requestJson<FinancialRecordRow>(`/api/finance/${recordId}`, {
         method: "PATCH",
         body: JSON.stringify({ status: "Pago" }),
@@ -2050,7 +2097,7 @@ export function AgencyDashboardPage() {
   }
 
   const handleUpdateDocumentStatus = async (recordId: string, status: string, successMessage: string) => {
-    await withQuickActionSaving(async () => {
+    return withQuickActionSaving(async () => {
       await requestJson<DocumentRow>(`/api/documents/${recordId}`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
@@ -2061,7 +2108,12 @@ export function AgencyDashboardPage() {
   }
 
   const handleTripStatusUpdate = async (tripId: string, status: string) => {
-    await withQuickActionSaving(async () => {
+    if (!tripId) {
+      fire("Viagem inválida", "Selecione uma viagem válida antes de alterar o status.")
+      return false
+    }
+
+    return withQuickActionSaving(async () => {
       await requestJson<TripRow>(`/api/trips/${tripId}`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
@@ -2072,6 +2124,9 @@ export function AgencyDashboardPage() {
   }
 
   const handleEnsureShareLink = async (tripId: string) => {
+    if (!tripId) {
+      throw new Error("Selecione uma viagem válida antes de gerar o link compartilhável.")
+    }
     const existing = shareLinksByTrip[tripId]
     if (existing?.token) return existing
 
@@ -2083,7 +2138,7 @@ export function AgencyDashboardPage() {
   }
 
   const handleCopyTripLink = async (tripId: string) => {
-    await withQuickActionSaving(async () => {
+    return withQuickActionSaving(async () => {
       const link = await handleEnsureShareLink(tripId)
       const publicUrl = link.public_url || `${window.location.origin}/v/${link.token}`
       await navigator.clipboard.writeText(publicUrl)
@@ -2093,7 +2148,7 @@ export function AgencyDashboardPage() {
 
   const handleOpenTripLink = async (tripId: string) => {
     const popup = window.open("about:blank", "_blank", "noopener,noreferrer")
-    await withQuickActionSaving(async () => {
+    return withQuickActionSaving(async () => {
       try {
         const link = await handleEnsureShareLink(tripId)
         if (popup) {
@@ -2110,7 +2165,12 @@ export function AgencyDashboardPage() {
   }
 
   const handleDisableTripLink = async (tripId: string) => {
-    await withQuickActionSaving(async () => {
+    if (!tripId) {
+      fire("Viagem inválida", "Selecione uma viagem válida antes de alterar o compartilhamento.")
+      return false
+    }
+
+    return withQuickActionSaving(async () => {
       const result = await requestJson<TripShareLinkSummary>(`/api/trips/${tripId}/share-link`, {
         method: "PATCH",
         body: JSON.stringify({ is_active: false }),
@@ -4016,6 +4076,9 @@ export function AgencyTripsPage() {
   }
 
   const requestTripShareLink = async (tripId: string) => {
+    if (!tripId) {
+      throw new Error("Selecione uma viagem válida antes de gerar o link compartilhável.")
+    }
     const link = await requestJson<TripShareLinkSummary>(`/api/trips/${tripId}/share-link`, { method: "POST" })
     setShareLinks((current) => ({ ...current, [tripId]: link }))
     return link

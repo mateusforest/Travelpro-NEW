@@ -36,7 +36,7 @@ async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> 
 
   const payload = (await response.json().catch(() => null)) as { error?: string } | T | null
   if (!response.ok) {
-    throw new Error((payload as { error?: string } | null)?.error || "Não foi possível concluir a operação.")
+    throw new Error((payload as { error?: string } | null)?.error || "Nao foi possivel concluir a operacao.")
   }
 
   return payload as T
@@ -61,7 +61,7 @@ function buildFinancialValues(record?: FinancialRecordRow): Record<string, strin
     amount: record?.amount != null ? String(record.amount) : "",
     occurredAt: toDateInput(record?.occurred_at),
     description: record?.description ?? "",
-    planMode: "Único",
+    planMode: "Unico",
     installments: "3",
     recurrenceCount: "12",
   }
@@ -71,7 +71,7 @@ function parseAmount(value: string) {
   const normalized = value.replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".")
   const parsed = Number(normalized)
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error("Informe um valor numérico válido para o lançamento.")
+    throw new Error("Informe um valor numerico valido para o lancamento.")
   }
   return parsed
 }
@@ -85,7 +85,7 @@ function toIsoOrNull(value: string) {
   if (!value.trim()) return null
   const parsed = new Date(`${value.trim()}T00:00:00`)
   if (Number.isNaN(parsed.getTime())) {
-    throw new Error("Informe uma data válida para o lançamento.")
+    throw new Error("Informe uma data valida para o lancamento.")
   }
   return parsed.toISOString()
 }
@@ -124,7 +124,7 @@ export function FinancialRecordWorkspace() {
         if (process.env.NODE_ENV !== "production") {
           console.error("[FinancialRecordWorkspace] failed to load workspace", error)
         }
-        setLoadError(error instanceof Error ? error.message : "Não foi possível carregar o workspace financeiro.")
+        setLoadError(error instanceof Error ? error.message : "Nao foi possivel carregar o workspace financeiro.")
       } finally {
         if (active) {
           setIsLoading(false)
@@ -158,8 +158,8 @@ export function FinancialRecordWorkspace() {
   const sections: WorkspaceSectionConfig[] = useMemo(
     () => [
       {
-        title: "Dados do lançamento",
-        description: "Base real do financeiro conectada a cliente, viagem e competência do registro.",
+        title: "Dados do lancamento",
+        description: "Base real do financeiro conectada a cliente, viagem e competencia do registro.",
         fields: [
           { key: "type", label: "Tipo", type: "select", options: [...FINANCE_TYPE_OPTIONS] },
           {
@@ -169,31 +169,31 @@ export function FinancialRecordWorkspace() {
             options: (values) => getFinanceCategoryOptions(values.type || record?.type || "Receita"),
           },
           { key: "amount", label: "Valor" },
-          { key: "occurredAt", label: "Data do lançamento/competência", placeholder: "AAAA-MM-DD" },
+          { key: "occurredAt", label: "Data do lancamento/competencia", placeholder: "AAAA-MM-DD" },
           { key: "status", label: "Status", type: "select", options: [...FINANCE_STATUS_OPTIONS] },
           { key: "clientId", label: "Cliente vinculado", type: "select", options: clientOptions },
           { key: "tripId", label: "Viagem vinculada", type: "select", options: tripOptions },
-          { key: "description", label: "Descrição", type: "textarea", rows: 5, colSpan: 2 },
+          { key: "description", label: "Descricao", type: "textarea", rows: 5, colSpan: 2 },
         ],
       },
       {
         title: "Planejamento financeiro",
-        description: "Escolha se o lançamento é único, parcelado ou recorrente. Os registros futuros são criados automaticamente.",
+        description: "Escolha se o lancamento e unico, parcelado ou recorrente. Os registros futuros sao criados automaticamente.",
         fields: [
-          { key: "planMode", label: "Modo de lançamento", type: "select", options: [...FINANCE_PLAN_OPTIONS], readOnly: isEditing },
+          { key: "planMode", label: "Modo de lancamento", type: "select", options: [...FINANCE_PLAN_OPTIONS], readOnly: isEditing },
           {
             key: "installments",
             label: "Parcelas",
             placeholder: "Ex.: 6",
             hidden: (values) => values.planMode !== "Parcelado" || isEditing,
-            description: "O valor total será dividido em lançamentos mensais com datas futuras.",
+            description: "O valor total sera dividido em lancamentos mensais com datas futuras.",
           },
           {
             key: "recurrenceCount",
-            label: "Repetições mensais",
+            label: "Repeticoes mensais",
             placeholder: "Ex.: 12",
             hidden: (values) => values.planMode !== "Recorrente mensal" || isEditing,
-            description: "Cada repetição cria um novo lançamento mensal com o mesmo valor.",
+            description: "Cada repeticao cria um novo lancamento mensal com o mesmo valor.",
           },
         ],
       },
@@ -204,7 +204,7 @@ export function FinancialRecordWorkspace() {
   if (isLoading) {
     return (
       <PageShell>
-        <DashboardCard title="Carregando financeiro" description="Sincronizando clientes, viagens e dados reais do lançamento.">
+        <DashboardCard title="Carregando financeiro" description="Sincronizando clientes, viagens e dados reais do lancamento.">
           <div className="space-y-3">
             <div className="h-4 w-48 animate-pulse rounded-full bg-white/10" />
             <div className="h-4 w-64 animate-pulse rounded-full bg-white/10" />
@@ -218,8 +218,8 @@ export function FinancialRecordWorkspace() {
   if (loadError) {
     return (
       <PageShell>
-        <DashboardCard title="Não foi possível abrir o lançamento" description={loadError}>
-          <Button className="rounded-full" onClick={() => router.replace("/app/financeiro")}>
+        <DashboardCard title="Nao foi possivel abrir o lancamento" description={loadError}>
+          <Button type="button" className="rounded-full" onClick={() => router.replace("/app/financeiro")}>
             Voltar para financeiro
           </Button>
         </DashboardCard>
@@ -229,19 +229,19 @@ export function FinancialRecordWorkspace() {
 
   return (
     <DedicatedActionWorkspace
-      title={isEditing ? "Editar lançamento" : "Novo lançamento"}
-      description="Registre receitas e despesas com dados reais, contexto operacional e leitura pronta para o módulo."
+      title={isEditing ? "Editar lancamento" : "Novo lancamento"}
+      description="Registre receitas e despesas com dados reais, contexto operacional e leitura pronta para o modulo."
       backHref="/app/financeiro"
       backLabel="Voltar para financeiro"
       aiActionLabel="Analisar com IA"
-      aiActionDescription="A categorização automática com IA ainda está em planejamento para este módulo."
-      primaryActionLabel={isEditing ? "Salvar lançamento" : "Criar lançamento agora"}
+      aiActionDescription="A categorizacao automatica com IA ainda esta em planejamento para este modulo."
+      primaryActionLabel={isEditing ? "Salvar lancamento" : "Criar lancamento agora"}
       hideDraftAction
-      previewActionDescription="O preview contábil detalhado ainda será expandido em uma próxima etapa."
+      previewActionDescription="O preview contabil detalhado ainda sera expandido em uma proxima etapa."
       initialValues={buildFinancialValues(record ?? undefined)}
       sections={sections}
       previewTitle="Resumo financeiro"
-      previewDescription="Leitura rápida do lançamento antes de salvar."
+      previewDescription="Leitura rapida do lancamento antes de salvar."
       transformValues={(nextValues, changedKey) => {
         const next = { ...nextValues }
 
@@ -256,7 +256,7 @@ export function FinancialRecordWorkspace() {
           }
         }
 
-        if (changedKey === "planMode" && next.planMode === "Único") {
+        if (changedKey === "planMode" && next.planMode === "Unico") {
           next.installments = "3"
           next.recurrenceCount = "12"
         }
@@ -269,73 +269,108 @@ export function FinancialRecordWorkspace() {
 
         return (
           <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-primary/75">{values.type || "Lançamento"}</p>
-            <h2 className="mt-2 text-xl font-semibold text-foreground">{values.amount ? `R$ ${values.amount}` : "Valor não informado"}</h2>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-primary/75">{values.type || "Lancamento"}</p>
+            <h2 className="mt-2 text-xl font-semibold text-foreground">{values.amount ? `R$ ${values.amount}` : "Valor nao informado"}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              {(selectedClient?.name ?? "Sem cliente vinculado")} • {(selectedTrip?.destination ?? "Sem viagem vinculada")}
+              {(selectedClient?.name ?? "Sem cliente vinculado")} - {(selectedTrip?.destination ?? "Sem viagem vinculada")}
             </p>
             <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.04] p-4 text-sm text-muted-foreground">
-              {values.category ? `${values.category} • ${values.status || "Pendente"}` : values.description || "Descrição ainda não preenchida."}
+              {values.category ? `${values.category} - ${values.status || "Pendente"}` : values.description || "Descricao ainda nao preenchida."}
             </div>
-            {!isEditing && values.planMode !== "Único" ? (
+            {!isEditing && values.planMode !== "Unico" ? (
               <p className="mt-3 text-xs uppercase tracking-[0.18em] text-primary/80">
                 {values.planMode === "Parcelado"
                   ? `Parcelamento em ${values.installments || "1"}x`
-                  : `Recorrência mensal por ${values.recurrenceCount || "1"} meses`}
+                  : `Recorrencia mensal por ${values.recurrenceCount || "1"} meses`}
               </p>
             ) : null}
           </div>
         )
       }}
       sidebarInfo={{
-        title: "Leitura contábil",
-        description: "O lançamento fica persistido no Supabase e respeita o isolamento por agência.",
+        title: "Leitura contabil",
+        description: "O lancamento fica persistido no Supabase e respeita o isolamento por agencia.",
         items: [
           { label: "Status", value: (values) => values.status || "Pendente" },
-          { label: "Categoria", value: (values) => values.category || "Não definida" },
-          { label: "Competência", value: (values) => values.occurredAt || "Não informada" },
+          { label: "Categoria", value: (values) => values.category || "Nao definida" },
+          { label: "Competencia", value: (values) => values.occurredAt || "Nao informada" },
         ],
       }}
       extraSidebar={
         <div className="grid gap-3">
           <Button
+            type="button"
             variant="outline"
             className="rounded-full border-white/10 bg-white/[0.03]"
-            onClick={() => toast({ title: "Stripe em breve", description: "A conexão automática com Stripe ainda será integrada a este módulo." })}
+            onClick={() => toast({ title: "Stripe em breve", description: "A conexao automatica com Stripe ainda sera integrada a este modulo." })}
           >
             Conectar Stripe
           </Button>
           <Button
+            type="button"
             variant="outline"
             className="rounded-full border-white/10 bg-white/[0.03]"
-            onClick={() => toast({ title: "Relatórios em foco", description: "Salve o lançamento e use o CTA do módulo financeiro para gerar o relatório com o recorte atual." })}
+            onClick={() => toast({ title: "Relatorios em foco", description: "Salve o lancamento e use o CTA do modulo financeiro para gerar o relatorio com o recorte atual." })}
           >
-            Gerar relatório
+            Gerar relatorio
           </Button>
         </div>
       }
       onPrimaryAction={async (values) => {
         const selectedClientId = values.clientId || null
         const selectedTripId = values.tripId || null
-        const occurredAt = toIsoOrNull(values.occurredAt)
+        let occurredAt: string | null = null
+        let amount = 0
 
         if (!values.category.trim()) {
-          throw new Error("Selecione uma categoria para o lançamento.")
+          toast({
+            title: "Categoria obrigatoria",
+            description: "Selecione uma categoria para o lancamento antes de salvar.",
+          })
+          return
         }
 
         if (!values.description.trim()) {
-          throw new Error("Descreva o contexto do lançamento antes de salvar.")
+          toast({
+            title: "Descricao obrigatoria",
+            description: "Descreva o contexto do lancamento antes de salvar.",
+          })
+          return
+        }
+
+        try {
+          occurredAt = toIsoOrNull(values.occurredAt)
+        } catch (error) {
+          toast({
+            title: "Data invalida",
+            description: error instanceof Error ? error.message : "Informe uma data valida para o lancamento.",
+          })
+          return
         }
 
         if (!occurredAt) {
-          throw new Error("Informe a data do lançamento/competência.")
+          toast({
+            title: "Data obrigatoria",
+            description: "Informe a data do lancamento/competencia.",
+          })
+          return
+        }
+
+        try {
+          amount = parseAmount(values.amount)
+        } catch (error) {
+          toast({
+            title: "Valor invalido",
+            description: error instanceof Error ? error.message : "Informe um valor numerico valido para o lancamento.",
+          })
+          return
         }
 
         await fetchJson<FinancialRecordRow | FinancialRecordRow[]>(isEditing ? `/api/financial-records/${recordId}` : "/api/financial-records", {
           method: isEditing ? "PATCH" : "POST",
           body: JSON.stringify({
             type: normalizeFinanceType(values.type || "Receita"),
-            amount: parseAmount(values.amount),
+            amount,
             status: normalizeFinanceStatus(values.status || "Pendente"),
             client_id: selectedClientId,
             trip_id: selectedTripId,
@@ -353,15 +388,15 @@ export function FinancialRecordWorkspace() {
         })
 
         const successDescription = isEditing
-          ? "O lançamento foi atualizado no Supabase."
+          ? "O lancamento foi atualizado no Supabase."
           : values.planMode === "Parcelado"
-            ? `O lançamento foi dividido em ${parsePositiveInt(values.installments, 1)} parcelas futuras.`
+            ? `O lancamento foi dividido em ${parsePositiveInt(values.installments, 1)} parcelas futuras.`
             : values.planMode === "Recorrente mensal"
-              ? `A recorrência mensal foi criada para ${parsePositiveInt(values.recurrenceCount, 1)} competências.`
-              : "O lançamento foi salvo no Supabase e já aparece na listagem."
+              ? `A recorrencia mensal foi criada para ${parsePositiveInt(values.recurrenceCount, 1)} competencias.`
+              : "O lancamento foi salvo no Supabase e ja aparece na listagem."
 
         toast({
-          title: isEditing ? "Lançamento atualizado" : "Lançamento criado",
+          title: isEditing ? "Lancamento atualizado" : "Lancamento criado",
           description: successDescription,
         })
 
