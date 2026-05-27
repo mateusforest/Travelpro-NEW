@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
+import { AgencyActionButton } from "@/components/system/agency-action-button"
 import { DedicatedActionWorkspace, type WorkspaceSectionConfig } from "@/components/system/dedicated-action-workspace"
 import { DashboardCard } from "@/components/system/dashboard-card"
 import { PageShell } from "@/components/system/page-shell"
@@ -254,9 +254,9 @@ function ReportWorkspaceInner() {
     return (
       <PageShell>
         <DashboardCard title="Nao foi possivel abrir o relatorio" description={loadError}>
-          <Button className="rounded-full" onClick={() => router.replace("/app/relatorios")}>
+          <AgencyActionButton actionType="navigate" href="/app/relatorios" className="rounded-full">
             Voltar para relatorios
-          </Button>
+          </AgencyActionButton>
         </DashboardCard>
       </PageShell>
     )

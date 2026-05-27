@@ -2,9 +2,9 @@
 
 import Link from "next/link"
 import { BarChart3, ExternalLink, Sparkles, Target, Users } from "lucide-react"
+import { AgencyActionButton } from "@/components/system/agency-action-button"
 import { PageShell } from "@/components/system/page-shell"
 import { Button } from "@/components/ui/button"
-import { toast } from "@/components/ui/use-toast"
 
 function MatchPanel({
   eyebrow,
@@ -35,47 +35,54 @@ function MatchPanel({
 }
 
 export default function AgencyCatalogMatchPage() {
-  const fire = (title: string, description: string) => toast({ title, description })
-
   return (
     <PageShell>
       <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] px-5 py-4 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-primary/68">Marketplace em preparação</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-primary/68">Marketplace em preparacao</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <h1 className="text-base font-semibold text-foreground">TravelPro Match</h1>
-              <span className="text-sm text-muted-foreground">Disponível para ativação futura.</span>
+              <span className="text-sm text-muted-foreground">Disponivel para ativacao futura.</span>
             </div>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              O Match será a camada pública de distribuição e descoberta de pacotes, mas ainda não está ativo para operação real.
+              O Match sera a camada publica de distribuicao e descoberta de pacotes, mas ainda nao esta ativo para operacao real.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Desempenho em breve", "A leitura operacional do Match será conectada quando a camada pública do marketplace estiver ativa.")}>
-              <BarChart3 className="h-4 w-4" />
+            <AgencyActionButton
+              actionType="future"
+              variant="outline"
+              className="rounded-full border-white/10 bg-white/[0.03]"
+              futureMessage="A leitura operacional do Match sera conectada quando a camada publica do marketplace estiver ativa."
+              icon={<BarChart3 className="h-4 w-4" />}
+            >
               Ver desempenho
-            </Button>
+            </AgencyActionButton>
             <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" asChild>
               <Link href="/marketplace">
                 <ExternalLink className="h-4 w-4" />
                 Ver marketplace
               </Link>
             </Button>
-            <Button className="rounded-full" onClick={() => fire("Match em breve", "A ativação do TravelPro Match continua planejada para a fase pública do marketplace.")}>
-              <Target className="h-4 w-4" />
+            <AgencyActionButton
+              actionType="future"
+              className="rounded-full"
+              futureMessage="A ativacao do TravelPro Match continua planejada para a fase publica do marketplace."
+              icon={<Target className="h-4 w-4" />}
+            >
               Quero ativar
-            </Button>
+            </AgencyActionButton>
           </div>
         </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {[
-          ["Estado", "Em breve", "A distribuição pública ainda não está liberada."],
-          ["Pacotes elegíveis", "Catálogo ativo", "Seus pacotes publicados poderão alimentar o Match."],
-          ["Leads qualificados", "Preparação", "O roteamento comercial será conectado na próxima fase."],
-          ["Destaque premium", "Solicitável", "Impulsionamento e score continuam fora do escopo atual."],
+          ["Estado", "Em breve", "A distribuicao publica ainda nao esta liberada."],
+          ["Pacotes elegiveis", "Catalogo ativo", "Seus pacotes publicados poderao alimentar o Match."],
+          ["Leads qualificados", "Preparacao", "O roteamento comercial sera conectado na proxima fase."],
+          ["Destaque premium", "Solicitavel", "Impulsionamento e score continuam fora do escopo atual."],
         ].map(([label, value, hint]) => (
           <div key={label} className="rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-3 shadow-[0_14px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl">
             <p className="text-[11px] uppercase tracking-[0.18em] text-primary/70">{label}</p>
@@ -88,20 +95,20 @@ export default function AgencyCatalogMatchPage() {
       <div className="grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
         <MatchPanel
           eyebrow="Como vai funcionar"
-          title="Distribuição orientada por catálogo"
-          description="O Match vai usar o catálogo já publicado pela agência como base de visibilidade, score e geração de oportunidades."
+          title="Distribuicao orientada por catalogo"
+          description="O Match vai usar o catalogo ja publicado pela agencia como base de visibilidade, score e geracao de oportunidades."
         >
           <div className="grid gap-3 md:grid-cols-2">
             {[
               {
                 icon: Sparkles,
                 title: "Pacotes em destaque",
-                body: "Pacotes publicados poderão ser impulsionados com leitura de aderência e priorização comercial.",
+                body: "Pacotes publicados poderao ser impulsionados com leitura de aderencia e priorizacao comercial.",
               },
               {
                 icon: Users,
                 title: "Leads mais qualificados",
-                body: "A camada futura vai ajudar a entregar contexto mais útil antes do primeiro atendimento da agência.",
+                body: "A camada futura vai ajudar a entregar contexto mais util antes do primeiro atendimento da agencia.",
               },
             ].map((item) => (
               <div key={item.title} className="rounded-[24px] border border-white/8 bg-black/10 p-4">
@@ -121,20 +128,25 @@ export default function AgencyCatalogMatchPage() {
 
         <MatchPanel
           eyebrow="Estado honesto"
-          title="O que já está pronto"
-          description="Sem números fake: apenas o que o produto já preparou para a evolução do Match."
+          title="O que ja esta pronto"
+          description="Sem numeros fake: apenas o que o produto ja preparou para a evolucao do Match."
           actions={
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Destaque em breve", "O destaque do Match será liberado na próxima fase comercial.")}>
+            <AgencyActionButton
+              actionType="future"
+              variant="outline"
+              className="rounded-full border-white/10 bg-white/[0.03]"
+              futureMessage="O destaque do Match sera liberado na proxima fase comercial."
+            >
               Configurar destaque
-            </Button>
+            </AgencyActionButton>
           }
         >
           <div className="space-y-3">
             {[
-              "Catálogo público já conectado como origem de pacotes.",
-              "Vitrine pública pronta para alimentar descoberta futura.",
-              "Expansão comercial ainda sem backend de score, impulso ou roteamento.",
-              "Ativação seguirá com solicitação comercial, não com cobrança fake.",
+              "Catalogo publico ja conectado como origem de pacotes.",
+              "Vitrine publica pronta para alimentar descoberta futura.",
+              "Expansao comercial ainda sem backend de score, impulso ou roteamento.",
+              "Ativacao seguira com solicitacao comercial, nao com cobranca fake.",
             ].map((item) => (
               <div key={item} className="rounded-[24px] border border-white/8 bg-black/10 px-4 py-3.5 text-sm leading-6 text-muted-foreground">
                 {item}
@@ -142,12 +154,21 @@ export default function AgencyCatalogMatchPage() {
             ))}
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button className="rounded-full" onClick={() => fire("Solicitação registrada", "Seu interesse no Match foi registrado para ativação futura.")}>
+            <AgencyActionButton
+              actionType="future"
+              className="rounded-full"
+              futureMessage="Seu interesse no Match foi registrado para ativacao futura."
+            >
               Enviar interesse
-            </Button>
-            <Button variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Envio em breve", "O envio de pacotes ao Match será liberado quando a distribuição pública estiver ativa.")}>
+            </AgencyActionButton>
+            <AgencyActionButton
+              actionType="future"
+              variant="outline"
+              className="rounded-full border-white/10 bg-white/[0.03]"
+              futureMessage="O envio de pacotes ao Match sera liberado quando a distribuicao publica estiver ativa."
+            >
               Enviar pacotes ao Match
-            </Button>
+            </AgencyActionButton>
           </div>
         </MatchPanel>
       </div>

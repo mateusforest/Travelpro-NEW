@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
+import { AgencyActionButton } from "@/components/system/agency-action-button"
 import {
   DedicatedActionWorkspace,
   type WorkspaceSectionConfig,
@@ -219,9 +219,9 @@ export function FinancialRecordWorkspace() {
     return (
       <PageShell>
         <DashboardCard title="Nao foi possivel abrir o lancamento" description={loadError}>
-          <Button type="button" className="rounded-full" onClick={() => router.replace("/app/financeiro")}>
+          <AgencyActionButton actionType="navigate" href="/app/financeiro" className="rounded-full">
             Voltar para financeiro
-          </Button>
+          </AgencyActionButton>
         </DashboardCard>
       </PageShell>
     )
@@ -298,22 +298,22 @@ export function FinancialRecordWorkspace() {
       }}
       extraSidebar={
         <div className="grid gap-3">
-          <Button
-            type="button"
+          <AgencyActionButton
+            actionType="future"
             variant="outline"
             className="rounded-full border-white/10 bg-white/[0.03]"
-            onClick={() => toast({ title: "Stripe em breve", description: "A conexao automatica com Stripe ainda sera integrada a este modulo." })}
+            futureMessage="A conexao automatica com Stripe ainda sera integrada a este modulo."
           >
             Conectar Stripe
-          </Button>
-          <Button
-            type="button"
+          </AgencyActionButton>
+          <AgencyActionButton
+            actionType="future"
             variant="outline"
             className="rounded-full border-white/10 bg-white/[0.03]"
-            onClick={() => toast({ title: "Relatorios em foco", description: "Salve o lancamento e use o CTA do modulo financeiro para gerar o relatorio com o recorte atual." })}
+            futureMessage="Salve o lancamento e use o CTA do modulo financeiro para gerar o relatorio com o recorte atual."
           >
             Gerar relatorio
-          </Button>
+          </AgencyActionButton>
         </div>
       }
       onPrimaryAction={async (values) => {

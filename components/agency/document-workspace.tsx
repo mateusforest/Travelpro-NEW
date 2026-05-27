@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { AgencyActionButton } from "@/components/system/agency-action-button"
 import { Button } from "@/components/ui/button"
 import {
   DedicatedActionWorkspace,
@@ -288,9 +289,9 @@ export function DocumentWorkspace({ mode: forcedMode }: DocumentWorkspaceProps =
     return (
       <PageShell>
         <DashboardCard title="Não foi possível abrir o workspace" description={loadError}>
-          <Button className="rounded-full" onClick={() => router.replace(config.backHref)}>
+          <AgencyActionButton actionType="navigate" href={config.backHref} className="rounded-full">
             {config.backLabel}
-          </Button>
+          </AgencyActionButton>
         </DashboardCard>
       </PageShell>
     )

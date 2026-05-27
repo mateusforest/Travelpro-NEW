@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { AgencyActionButton } from "@/components/system/agency-action-button"
 import { Button } from "@/components/ui/button"
 import { DedicatedActionWorkspace, type WorkspaceSectionConfig } from "@/components/system/dedicated-action-workspace"
 import { DashboardCard } from "@/components/system/dashboard-card"
@@ -117,9 +118,9 @@ function TeamWorkspaceInner() {
     return (
       <PageShell>
         <DashboardCard title="Nao foi possivel abrir a equipe" description={loadError}>
-          <Button className="rounded-full" onClick={() => router.replace("/app/equipe")}>
+          <AgencyActionButton actionType="navigate" href="/app/equipe" className="rounded-full">
             Voltar para equipe
-          </Button>
+          </AgencyActionButton>
         </DashboardCard>
       </PageShell>
     )

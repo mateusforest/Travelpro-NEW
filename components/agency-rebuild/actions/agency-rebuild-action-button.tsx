@@ -1,53 +1,63 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { isValidElement, useState, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import type { VariantProps } from "class-variance-authority"
-import type { LucideIcon } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
 
-type CommonProps = {
-  label?: ReactNode
-  children?: ReactNode
-  icon?: ReactNode | LucideIcon
+type BaseProps = {
+  label: ReactNode
+  icon?: ReactNode
   className?: string
   variant?: VariantProps<typeof buttonVariants>["variant"]
   size?: VariantProps<typeof buttonVariants>["size"]
   loadingLabel?: ReactNode
   disabled?: boolean
+  successMessage?: string
+  errorMessage?: string
+  tooltip?: string
 }
 
-type NavigateAction = CommonProps & {
+type NavigateAction = BaseProps & {
   actionType: "navigate"
   href: string
   openInNewTab?: boolean
 }
 
-type InteractiveAction = CommonProps & {
-  actionType: "modal" | "api"
-  onClick: () => void | Promise<void>
+type ModalAction = BaseProps & {
+  actionType: "modal"
+  onAction: () => void | Promise<void>
 }
 
-type FutureAction = CommonProps & {
+type ApiAction = BaseProps & {
+  actionType: "api"
+  onAction: () => void | Promise<void>
+}
+
+type FutureAction = BaseProps & {
   actionType: "future"
   futureMessage: string
 }
 
-type DisabledAction = CommonProps & {
+type DisabledAction = BaseProps & {
   actionType: "disabled"
   disabledReason: string
 }
 
-export type AgencyActionButtonProps = NavigateAction | InteractiveAction | FutureAction | DisabledAction
+export type AgencyRebuildActionButtonProps =
+  | NavigateAction
+  | ModalAction
+  | ApiAction
+  | FutureAction
+  | DisabledAction
 
-export function AgencyActionButton(props: AgencyActionButtonProps) {
+export function AgencyRebuildActionButton(props: AgencyRebuildActionButtonProps) {
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
-  const labelContent = props.label ?? props.children
 
   const handleClick = async () => {
-    if (isPending || props.disabled) return
+    if (props.disabled || isPending) return
 
     if (props.actionType === "disabled") {
       toast({
@@ -59,7 +69,7 @@ export function AgencyActionButton(props: AgencyActionButtonProps) {
 
     if (props.actionType === "future") {
       toast({
-        title: "Em breve",
+        title: "Em preparacao",
         description: props.futureMessage,
       })
       return
@@ -77,32 +87,27 @@ export function AgencyActionButton(props: AgencyActionButtonProps) {
 
     try {
       setIsPending(true)
-      await props.onClick()
-    } catch (error) {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("[AgencyActionButton] action failed", error)
+      await props.onAction()
+
+      if (props.successMessage) {
+        toast({
+          title: "Acao concluida",
+          description: props.successMessage,
+        })
       }
+    } catch (error) {
       toast({
         title: "Nao foi possivel concluir a acao",
-        description: error instanceof Error ? error.message : "Tente novamente em instantes.",
+        description:
+          props.errorMessage ??
+          (error instanceof Error ? error.message : "Tente novamente em instantes."),
       })
     } finally {
       setIsPending(false)
     }
   }
 
-  const renderIcon = () => {
-    if (!props.icon) return null
-
-    if (isValidElement(props.icon)) {
-      return props.icon
-    }
-
-    const Icon = props.icon as LucideIcon
-    return <Icon className="h-4 w-4" />
-  }
-
-  const isVisuallyDisabled = props.actionType === "disabled"
+  const visualDisabled = props.actionType === "disabled"
 
   return (
     <Button
@@ -112,12 +117,19 @@ export function AgencyActionButton(props: AgencyActionButtonProps) {
       className={props.className}
       onClick={() => void handleClick()}
       disabled={props.disabled || isPending}
-      aria-disabled={isVisuallyDisabled || props.disabled}
-      title={props.actionType === "disabled" ? props.disabledReason : undefined}
-      data-action-type={props.actionType}
+      aria-disabled={visualDisabled || props.disabled}
+      title={
+        props.tooltip ??
+        (props.actionType === "disabled"
+          ? props.disabledReason
+          : props.actionType === "future"
+            ? props.futureMessage
+            : undefined)
+      }
+      data-rebuild-action-type={props.actionType}
     >
-      {renderIcon()}
-      {isPending ? props.loadingLabel ?? "Carregando..." : labelContent}
+      {props.icon}
+      {isPending ? props.loadingLabel ?? "Carregando..." : props.label}
     </Button>
   )
 }

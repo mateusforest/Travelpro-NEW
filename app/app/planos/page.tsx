@@ -1,11 +1,9 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import type { ReactNode } from "react"
 import { CreditCard, HelpCircle, Layers3, ShieldCheck, Sparkles } from "lucide-react"
+import { AgencyActionButton } from "@/components/system/agency-action-button"
 import { PageShell } from "@/components/system/page-shell"
-import { Button } from "@/components/ui/button"
-import { toast } from "@/components/ui/use-toast"
 
 function PlanSection({
   eyebrow,
@@ -63,36 +61,33 @@ function MetricStrip({
 }
 
 export default function AgencyPlansWorkspacePage() {
-  const router = useRouter()
-  const fire = (title: string, description: string) => toast({ title, description })
-
   const plans = [
     {
       name: "Start",
-      price: "R$ 497/mês",
-      limits: "3 usuários • 1.500 créditos",
-      features: ["Catálogo público", "Central operacional", "WhatsApp essencial"],
+      price: "R$ 497/mes",
+      limits: "3 usuarios • 1.500 creditos",
+      features: ["Catalogo publico", "Central operacional", "WhatsApp essencial"],
     },
     {
       name: "Pro",
-      price: "R$ 997/mês",
-      limits: "6 usuários • 3.500 créditos",
+      price: "R$ 997/mes",
+      limits: "6 usuarios • 3.500 creditos",
       features: ["Roteiros premium", "Documentos inteligentes", "Atlas assistido"],
     },
     {
       name: "Scale",
-      price: "R$ 1.490/mês",
-      limits: "8 usuários • 6.000 créditos",
-      features: ["TravelPro Go completo", "Automações premium", "Equipe e financeiro"],
+      price: "R$ 1.490/mes",
+      limits: "8 usuarios • 6.000 creditos",
+      features: ["TravelPro Go completo", "Automacoes premium", "Equipe e financeiro"],
       current: true,
     },
   ]
 
   const extras = [
-    { title: "Créditos IA", description: "+2.000 créditos com ativação imediata", cta: "Solicitar pacote" },
-    { title: "Usuários extras", description: "+2 licenças para comercial ou operação", cta: "Solicitar expansão" },
-    { title: "TravelPro Match e Agent", description: "Mais distribuição, qualificação e jornada comercial assistida.", cta: "Quero ativar" },
-    { title: "WhatsApp / Go", description: "Expansão operacional e de comunicação sem depender de workarounds.", cta: "Liberar módulo" },
+    { title: "Creditos IA", description: "+2.000 creditos com ativacao imediata", cta: "Solicitar pacote" },
+    { title: "Usuarios extras", description: "+2 licencas para comercial ou operacao", cta: "Solicitar expansao" },
+    { title: "TravelPro Match e Agent", description: "Mais distribuicao, qualificacao e jornada comercial assistida.", cta: "Quero ativar" },
+    { title: "WhatsApp / Go", description: "Expansao operacional e de comunicacao sem depender de workarounds.", cta: "Liberar modulo" },
   ]
 
   return (
@@ -102,46 +97,49 @@ export default function AgencyPlansWorkspacePage() {
           <div>
             <p className="text-[11px] uppercase tracking-[0.24em] text-primary/68">Plano e billing</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <h1 className="text-base font-semibold text-foreground">Planos, pacotes e expansões</h1>
+              <h1 className="text-base font-semibold text-foreground">Planos, pacotes e expansoes</h1>
               <span className="text-sm text-muted-foreground">Scale ativo hoje.</span>
             </div>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Leitura clara do plano atual, limites, créditos e caminhos de ativação sem criar cobrança fake.
+              Leitura clara do plano atual, limites, creditos e caminhos de ativacao sem criar cobranca fake.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button
+            <AgencyActionButton
+              actionType="future"
               variant="outline"
               className="rounded-full border-white/10 bg-white/[0.03]"
-              onClick={() =>
-                fire("FAQ em breve", "A central de perguntas frequentes desta área será publicada em uma próxima etapa.")
-              }
+              futureMessage="A central de perguntas frequentes desta area sera publicada em uma proxima etapa."
+              icon={<HelpCircle className="h-4 w-4" />}
             >
-              <HelpCircle className="h-4 w-4" />
               Ver perguntas frequentes
-            </Button>
-            <Button className="rounded-full" onClick={() => router.push("/app/creditos")}>
-              <CreditCard className="h-4 w-4" />
-              Comprar créditos
-            </Button>
+            </AgencyActionButton>
+            <AgencyActionButton
+              actionType="navigate"
+              href="/app/creditos"
+              className="rounded-full"
+              icon={<CreditCard className="h-4 w-4" />}
+            >
+              Comprar creditos
+            </AgencyActionButton>
           </div>
         </div>
       </div>
 
       <MetricStrip
         items={[
-          { label: "Plano atual", value: "Scale", hint: "Cobertura completa para operação, equipe e expansões.", tone: "success" },
-          { label: "Uso atual", value: "68%", hint: "Boa margem para campanhas e operação da semana." },
-          { label: "Créditos", value: "2.140", hint: "Consumo mais alto em Agent e TravelPro Go." },
-          { label: "Renovação", value: "28 mai 2026", hint: "Cobrança automática ainda em preparação.", tone: "warning" },
+          { label: "Plano atual", value: "Scale", hint: "Cobertura completa para operacao, equipe e expansoes.", tone: "success" },
+          { label: "Uso atual", value: "68%", hint: "Boa margem para campanhas e operacao da semana." },
+          { label: "Creditos", value: "2.140", hint: "Consumo mais alto em Agent e TravelPro Go." },
+          { label: "Renovacao", value: "28 mai 2026", hint: "Cobranca automatica ainda em preparacao.", tone: "warning" },
         ]}
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
         <PlanSection
           eyebrow="Comparativo premium"
-          title="Escolha e evolução do plano"
-          description="Uma visão simples do que cada faixa destrava no ecossistema TravelPro."
+          title="Escolha e evolucao do plano"
+          description="Uma visao simples do que cada faixa destrava no ecossistema TravelPro."
         >
           <div className="grid gap-3 lg:grid-cols-3">
             {plans.map((plan) => (
@@ -172,20 +170,18 @@ export default function AgencyPlansWorkspacePage() {
                     </div>
                   ))}
                 </div>
-                <Button
+                <AgencyActionButton
+                  actionType="future"
                   className="mt-4 w-full rounded-full"
                   variant={plan.current ? "outline" : "default"}
-                  onClick={() =>
-                    fire(
-                      plan.current ? "Plano atual ativo" : `Solicitação de ${plan.name}`,
-                      plan.current
-                        ? "Este é o plano hoje vinculado à sua agência."
-                        : "A solicitação de upgrade será tratada pelo time comercial enquanto o billing oficial é conectado."
-                    )
+                  futureMessage={
+                    plan.current
+                      ? "Este e o plano hoje vinculado a sua agencia."
+                      : "A solicitacao de upgrade sera tratada pelo time comercial enquanto o billing oficial e conectado."
                   }
                 >
                   {plan.current ? "Ver detalhes" : "Solicitar upgrade"}
-                </Button>
+                </AgencyActionButton>
               </div>
             ))}
           </div>
@@ -194,14 +190,14 @@ export default function AgencyPlansWorkspacePage() {
         <div className="space-y-4">
           <PlanSection
             eyebrow="Leitura atual"
-            title="Capacidade e expansões"
-            description="Resumo rápido do que já está disponível e do que pode ser ativado a seguir."
+            title="Capacidade e expansoes"
+            description="Resumo rapido do que ja esta disponivel e do que pode ser ativado a seguir."
           >
             <div className="space-y-3">
               {[
-                { icon: ShieldCheck, title: "Plano protegido", body: "Assinatura ativa e saudável para a operação atual." },
-                { icon: Sparkles, title: "Expansões incluídas", body: "TravelPro Go, Agent e automações seguem mapeados por disponibilidade." },
-                { icon: Layers3, title: "Próximas ativações", body: "Billing, WhatsApp oficial e upgrades instantâneos entram na próxima fase." },
+                { icon: ShieldCheck, title: "Plano protegido", body: "Assinatura ativa e saudavel para a operacao atual." },
+                { icon: Sparkles, title: "Expansoes incluidas", body: "TravelPro Go, Agent e automacoes seguem mapeados por disponibilidade." },
+                { icon: Layers3, title: "Proximas ativacoes", body: "Billing, WhatsApp oficial e upgrades instantaneos entram na proxima fase." },
               ].map((item) => (
                 <div key={item.title} className="rounded-[24px] border border-white/8 bg-black/10 px-4 py-3.5">
                   <div className="flex items-start gap-3">
@@ -220,8 +216,8 @@ export default function AgencyPlansWorkspacePage() {
 
           <PlanSection
             eyebrow="Pacotes extras"
-            title="Ativações adicionais"
-            description="Recursos extras para crescimento, distribuição e inteligência operacional."
+            title="Ativacoes adicionais"
+            description="Recursos extras para crescimento, distribuicao e inteligencia operacional."
           >
             <div className="space-y-3">
               {extras.map((item) => (
@@ -231,9 +227,13 @@ export default function AgencyPlansWorkspacePage() {
                       <p className="text-sm font-medium text-foreground">{item.title}</p>
                       <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.description}</p>
                     </div>
-                    <Button className="rounded-full" onClick={() => fire(item.title, "A ativação segura desse extra será tratada pelo suporte enquanto o billing oficial entra na próxima etapa.")}>
+                    <AgencyActionButton
+                      actionType="future"
+                      className="rounded-full"
+                      futureMessage="A ativacao segura desse extra sera tratada pelo suporte enquanto o billing oficial entra na proxima etapa."
+                    >
                       {item.cta}
-                    </Button>
+                    </AgencyActionButton>
                   </div>
                 </div>
               ))}

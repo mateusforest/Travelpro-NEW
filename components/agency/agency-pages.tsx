@@ -3198,12 +3198,12 @@ export function AgencyDashboardPage() {
                 {activeMicroWorkspace === "clients" ? (
                   <div className="space-y-4">
                     <div className="flex flex-wrap gap-2">
-                      <Button type="button" className="rounded-full" onClick={() => openClientCreate()}>
+                      <AgencyActionButton actionType="modal" className="rounded-full" onClick={() => openClientCreate()}>
                         Novo cliente
-                      </Button>
-                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/clientes")}>
+                      </AgencyActionButton>
+                      <AgencyActionButton actionType="navigate" href="/app/clientes" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">
                         Abrir CRM
-                      </Button>
+                      </AgencyActionButton>
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
                       <InfoCard label="Clientes ativos" value={`${dashboard?.counts.clients ?? clientRows.length}`} />
@@ -3220,10 +3220,10 @@ export function AgencyDashboardPage() {
                             <StatusPill label={client.status} />
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <Button type="button" size="sm" className="rounded-full" onClick={() => router.push("/app/clientes")}>Abrir perfil</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Atendimento", "O atendimento guiado do cliente será expandido nas próximas etapas.")}>Iniciar atendimento</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openTripCreate({ clientId: client.id, destination: client.destination === "Destino em definição" ? "" : client.destination })}>Criar viagem</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Cotação", clientId: client.id, title: `Cotação • ${client.name}` }, "Nova cotação")}>Gerar cotação</Button>
+                            <AgencyActionButton actionType="navigate" href="/app/clientes" size="sm" className="rounded-full">Abrir perfil</AgencyActionButton>
+                            <AgencyActionButton actionType="future" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" futureMessage="O atendimento guiado do cliente sera expandido nas proximas etapas.">Iniciar atendimento</AgencyActionButton>
+                            <AgencyActionButton actionType="modal" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openTripCreate({ clientId: client.id, destination: client.destination === "Destino em definição" ? "" : client.destination })}>Criar viagem</AgencyActionButton>
+                            <AgencyActionButton actionType="modal" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Cotação", clientId: client.id, title: `Cotação • ${client.name}` }, "Nova cotação")}>Gerar cotação</AgencyActionButton>
                           </div>
                         </div>
                       )) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Ainda não há clientes recentes para esse micro workspace.</div>}
@@ -3234,8 +3234,8 @@ export function AgencyDashboardPage() {
                 {activeMicroWorkspace === "trips" ? (
                   <div className="space-y-4">
                     <div className="flex flex-wrap gap-2">
-                      <Button type="button" className="rounded-full" onClick={() => openTripCreate()}>Nova viagem</Button>
-                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/viagens")}>Abrir viagens</Button>
+                      <AgencyActionButton actionType="modal" className="rounded-full" onClick={() => openTripCreate()}>Nova viagem</AgencyActionButton>
+                      <AgencyActionButton actionType="navigate" href="/app/viagens" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">Abrir viagens</AgencyActionButton>
                     </div>
                     <div className="space-y-3">
                       {recentTripRows.length > 0 ? recentTripRows.map((trip) => {
@@ -3250,12 +3250,12 @@ export function AgencyDashboardPage() {
                               <StatusPill label={share?.is_active === false ? "Link inativo" : share?.token ? "Link ativo" : "Sem link"} />
                             </div>
                             <div className="mt-3 flex flex-wrap gap-2">
-                              <Button type="button" size="sm" className="rounded-full" onClick={() => handleCopyTripLink(trip.id)}>Copiar link</Button>
-                              <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleOpenTripLink(trip.id)}>Abrir link</Button>
-                              <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleTripStatusUpdate(trip.id, trip.status === "Confirmada" ? "Em andamento" : "Confirmada")}>Alterar status</Button>
-                              <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Roteiro", tripId: trip.id, clientId: trip.client_id ?? "", title: `Roteiro • ${trip.destination}` }, "Novo roteiro")}>Gerar roteiro</Button>
-                              <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Voucher", tripId: trip.id, clientId: trip.client_id ?? "", title: `Voucher • ${trip.destination}` }, "Novo documento")}>Gerar documento</Button>
-                              {share?.token ? <Button type="button" size="sm" variant="ghost" className="rounded-full text-muted-foreground hover:text-foreground" onClick={() => handleDisableTripLink(trip.id)}>Desativar link</Button> : null}
+                              <AgencyActionButton actionType="api" size="sm" className="rounded-full" onClick={() => handleCopyTripLink(trip.id)}>Copiar link</AgencyActionButton>
+                              <AgencyActionButton actionType="api" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleOpenTripLink(trip.id)}>Abrir link</AgencyActionButton>
+                              <AgencyActionButton actionType="api" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleTripStatusUpdate(trip.id, trip.status === "Confirmada" ? "Em andamento" : "Confirmada")}>Alterar status</AgencyActionButton>
+                              <AgencyActionButton actionType="modal" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Roteiro", tripId: trip.id, clientId: trip.client_id ?? "", title: `Roteiro • ${trip.destination}` }, "Novo roteiro")}>Gerar roteiro</AgencyActionButton>
+                              <AgencyActionButton actionType="modal" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Voucher", tripId: trip.id, clientId: trip.client_id ?? "", title: `Voucher • ${trip.destination}` }, "Novo documento")}>Gerar documento</AgencyActionButton>
+                              {share?.token ? <AgencyActionButton actionType="api" size="sm" variant="ghost" className="rounded-full text-muted-foreground hover:text-foreground" onClick={() => handleDisableTripLink(trip.id)}>Desativar link</AgencyActionButton> : null}
                             </div>
                           </div>
                         )
@@ -3267,8 +3267,8 @@ export function AgencyDashboardPage() {
                 {activeMicroWorkspace === "documents" ? (
                   <div className="space-y-4">
                     <div className="flex flex-wrap gap-2">
-                      <Button type="button" className="rounded-full" onClick={() => openDocumentCreate({}, "Novo documento")}>Novo documento</Button>
-                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/documentos")}>Abrir central</Button>
+                      <AgencyActionButton actionType="modal" className="rounded-full" onClick={() => openDocumentCreate({}, "Novo documento")}>Novo documento</AgencyActionButton>
+                      <AgencyActionButton actionType="navigate" href="/app/documentos" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">Abrir central</AgencyActionButton>
                     </div>
                     <div className="space-y-3">
                       {pendingDocumentRecords.length > 0 ? pendingDocumentRecords.map((item) => (
@@ -3281,10 +3281,10 @@ export function AgencyDashboardPage() {
                             <StatusPill label={item.status || "Rascunho"} />
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <Button type="button" size="sm" className="rounded-full" onClick={() => router.push("/app/documentos")}>Visualizar</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Em breve", "A geração de PDF contextual será refinada em uma próxima etapa.")}>Gerar PDF</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleUpdateDocumentStatus(item.id, "Enviado", "O documento foi marcado como enviado.")}>Enviar</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleUpdateDocumentStatus(item.id, "Em revisão", "O documento foi enviado para revisão rápida.")}>Revisar</Button>
+                            <AgencyActionButton actionType="navigate" href="/app/documentos" size="sm" className="rounded-full">Visualizar</AgencyActionButton>
+                            <AgencyActionButton actionType="future" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" futureMessage="A geracao de PDF contextual sera refinada em uma proxima etapa.">Gerar PDF</AgencyActionButton>
+                            <AgencyActionButton actionType="api" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleUpdateDocumentStatus(item.id, "Enviado", "O documento foi marcado como enviado.")}>Enviar</AgencyActionButton>
+                            <AgencyActionButton actionType="api" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleUpdateDocumentStatus(item.id, "Em revisão", "O documento foi enviado para revisão rápida.")}>Revisar</AgencyActionButton>
                           </div>
                         </div>
                       )) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Nenhuma pendência documental crítica agora.</div>}
@@ -3300,8 +3300,8 @@ export function AgencyDashboardPage() {
                       <InfoCard label="Últimas movimentações" value={`${recentFinanceRows.length}`} />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button type="button" className="rounded-full" onClick={() => openFinanceCreate()}>Novo lançamento</Button>
-                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/financeiro")}>Abrir financeiro</Button>
+                      <AgencyActionButton actionType="modal" className="rounded-full" onClick={() => openFinanceCreate()}>Novo lançamento</AgencyActionButton>
+                      <AgencyActionButton actionType="navigate" href="/app/financeiro" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">Abrir financeiro</AgencyActionButton>
                     </div>
                     <div className="space-y-3">
                       {recentFinanceRows.length > 0 ? recentFinanceRows.map((record) => (
@@ -3317,9 +3317,9 @@ export function AgencyDashboardPage() {
                             </div>
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
-                            {normalizeFinanceStatus(record.status) !== "Pago" ? <Button type="button" size="sm" className="rounded-full" onClick={() => handleMarkFinanceAsPaid(record.id)}>Marcar como pago</Button> : null}
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/financeiro")}>Abrir detalhe</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/central-operacional/relatorios/novo?type=Financeiro")}>Gerar relatório</Button>
+                            {normalizeFinanceStatus(record.status) !== "Pago" ? <AgencyActionButton actionType="api" size="sm" className="rounded-full" onClick={() => handleMarkFinanceAsPaid(record.id)}>Marcar como pago</AgencyActionButton> : null}
+                            <AgencyActionButton actionType="navigate" href="/app/financeiro" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">Abrir detalhe</AgencyActionButton>
+                            <AgencyActionButton actionType="navigate" href="/app/central-operacional/relatorios/novo?type=Financeiro" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">Gerar relatório</AgencyActionButton>
                           </div>
                         </div>
                       )) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Sem movimentações recentes para leitura rápida.</div>}
@@ -3335,8 +3335,8 @@ export function AgencyDashboardPage() {
                       <InfoCard label="Qualificados" value={`${dashboard?.counts.leads_by_status.Qualificado ?? 0}`} />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button type="button" className="rounded-full" onClick={() => openLeadCreate()}>Novo lead</Button>
-                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/leads")}>Abrir pipeline</Button>
+                      <AgencyActionButton actionType="modal" className="rounded-full" onClick={() => openLeadCreate()}>Novo lead</AgencyActionButton>
+                      <AgencyActionButton actionType="navigate" href="/app/leads" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">Abrir pipeline</AgencyActionButton>
                     </div>
                     <div className="space-y-3">
                       {recentLeadCards.length > 0 ? recentLeadCards.map((lead) => (
@@ -3349,10 +3349,10 @@ export function AgencyDashboardPage() {
                             <StatusPill label={lead.stage} />
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <Button type="button" size="sm" className="rounded-full" onClick={() => fire("Atendimento", "O atendimento guiado do lead será expandido nas próximas etapas.")}>Iniciar atendimento</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openClientCreate({ name: lead.name, email: lead.email === "E-mail não informado" ? "" : lead.email, phone: lead.phone === "Telefone não informado" ? "" : lead.phone, destination: lead.destination === "Destino em definição" ? "" : lead.destination, origin: lead.origin === "Origem não informada" ? "" : lead.origin, notes: lead.notes === "Sem observações registradas." ? "" : lead.notes })}>Converter cliente</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Cotação", title: `Cotação • ${lead.name}` }, "Nova cotação")}>Criar cotação</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openTripCreate({ destination: lead.destination === "Destino em definição" ? "" : lead.destination })}>Criar viagem</Button>
+                            <AgencyActionButton actionType="future" size="sm" className="rounded-full" futureMessage="O atendimento guiado do lead sera expandido nas proximas etapas.">Iniciar atendimento</AgencyActionButton>
+                            <AgencyActionButton actionType="modal" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openClientCreate({ name: lead.name, email: lead.email === "E-mail não informado" ? "" : lead.email, phone: lead.phone === "Telefone não informado" ? "" : lead.phone, destination: lead.destination === "Destino em definição" ? "" : lead.destination, origin: lead.origin === "Origem não informada" ? "" : lead.origin, notes: lead.notes === "Sem observações registradas." ? "" : lead.notes })}>Converter cliente</AgencyActionButton>
+                            <AgencyActionButton actionType="modal" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Cotação", title: `Cotação • ${lead.name}` }, "Nova cotação")}>Criar cotação</AgencyActionButton>
+                            <AgencyActionButton actionType="modal" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openTripCreate({ destination: lead.destination === "Destino em definição" ? "" : lead.destination })}>Criar viagem</AgencyActionButton>
                           </div>
                         </div>
                       )) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Sem leads recentes para resolver daqui.</div>}
@@ -3363,8 +3363,8 @@ export function AgencyDashboardPage() {
                 {activeMicroWorkspace === "itineraries" ? (
                   <div className="space-y-4">
                     <div className="flex flex-wrap gap-2">
-                      <Button type="button" className="rounded-full" onClick={() => openDocumentCreate({ type: "Roteiro" }, "Novo roteiro")}>Novo roteiro</Button>
-                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/viagens/roteiros")}>Abrir roteiros</Button>
+                      <AgencyActionButton actionType="modal" className="rounded-full" onClick={() => openDocumentCreate({ type: "Roteiro" }, "Novo roteiro")}>Novo roteiro</AgencyActionButton>
+                      <AgencyActionButton actionType="navigate" href="/app/viagens/roteiros" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">Abrir roteiros</AgencyActionButton>
                     </div>
                     <div className="space-y-3">
                       {itineraryRecords.length > 0 ? itineraryRecords.map((item) => (
@@ -3377,10 +3377,10 @@ export function AgencyDashboardPage() {
                             <StatusPill label={item.status || "Pronto"} />
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <Button type="button" size="sm" className="rounded-full" onClick={() => router.push("/app/viagens/roteiros")}>Editar</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Em breve", "A exportação rápida do roteiro ganhará uma experiência dedicada em uma próxima etapa.")}>Gerar PDF</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => fire("Em breve", "O compartilhamento contextual do roteiro será ligado à próxima camada da experiência pública.")}>Compartilhar</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Roteiro", title: `${item.title} • Cópia`, clientId: item.client_id ?? "", tripId: item.trip_id ?? "" }, "Duplicar roteiro")}>Duplicar</Button>
+                            <AgencyActionButton actionType="navigate" href="/app/viagens/roteiros" size="sm" className="rounded-full">Editar</AgencyActionButton>
+                            <AgencyActionButton actionType="future" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" futureMessage="A exportacao rapida do roteiro ganhara uma experiencia dedicada em uma proxima etapa.">Gerar PDF</AgencyActionButton>
+                            <AgencyActionButton actionType="future" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" futureMessage="O compartilhamento contextual do roteiro sera ligado a proxima camada da experiencia publica.">Compartilhar</AgencyActionButton>
+                            <AgencyActionButton actionType="modal" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openDocumentCreate({ type: "Roteiro", title: `${item.title} • Cópia`, clientId: item.client_id ?? "", tripId: item.trip_id ?? "" }, "Duplicar roteiro")}>Duplicar</AgencyActionButton>
                           </div>
                         </div>
                       )) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Ainda não há roteiros recentes para operar daqui.</div>}
@@ -3391,8 +3391,8 @@ export function AgencyDashboardPage() {
                 {activeMicroWorkspace === "quotes" ? (
                   <div className="space-y-4">
                     <div className="flex flex-wrap gap-2">
-                      <Button type="button" className="rounded-full" onClick={() => openDocumentCreate({ type: "Cotação" }, "Nova cotação")}>Nova cotação</Button>
-                      <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/viagens/cotacoes")}>Abrir cotações</Button>
+                      <AgencyActionButton actionType="modal" className="rounded-full" onClick={() => openDocumentCreate({ type: "Cotação" }, "Nova cotação")}>Nova cotação</AgencyActionButton>
+                      <AgencyActionButton actionType="navigate" href="/app/viagens/cotacoes" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">Abrir cotações</AgencyActionButton>
                     </div>
                     <div className="space-y-3">
                       {quoteRecords.length > 0 ? quoteRecords.map((item) => (
@@ -3405,9 +3405,9 @@ export function AgencyDashboardPage() {
                             <StatusPill label={item.status || "Rascunho"} />
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <Button type="button" size="sm" className="rounded-full" onClick={() => router.push("/app/viagens/cotacoes")}>Visualizar</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleUpdateDocumentStatus(item.id, "Aguardando retorno", "A cotação foi marcada para follow-up.")}>Follow-up</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openTripCreate({ clientId: item.client_id ?? "", destination: item.trip === "Sem viagem vinculada" ? "" : item.trip })}>Converter em viagem</Button>
+                            <AgencyActionButton actionType="navigate" href="/app/viagens/cotacoes" size="sm" className="rounded-full">Visualizar</AgencyActionButton>
+                            <AgencyActionButton actionType="api" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => handleUpdateDocumentStatus(item.id, "Aguardando retorno", "A cotação foi marcada para follow-up.")}>Follow-up</AgencyActionButton>
+                            <AgencyActionButton actionType="modal" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => openTripCreate({ clientId: item.client_id ?? "", destination: item.trip === "Sem viagem vinculada" ? "" : item.trip })}>Converter em viagem</AgencyActionButton>
                           </div>
                         </div>
                       )) : <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-muted-foreground">Sem cotações recentes para follow-up rápido.</div>}
@@ -3423,12 +3423,12 @@ export function AgencyDashboardPage() {
                     <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
                       <p className="text-sm font-medium text-foreground">Atalhos sugeridos</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <Button type="button" className="rounded-full" onClick={() => router.push("/app/viagens")}>Como criar uma viagem?</Button>
-                        <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/financeiro")}>Como lançar despesa?</Button>
-                        <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/central-operacional/relatorios")}>Como gerar relatório?</Button>
+                        <AgencyActionButton actionType="navigate" href="/app/viagens" className="rounded-full">Como criar uma viagem?</AgencyActionButton>
+                        <AgencyActionButton actionType="navigate" href="/app/financeiro" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">Como lançar despesa?</AgencyActionButton>
+                        <AgencyActionButton actionType="navigate" href="/app/central-operacional/relatorios" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">Como gerar relatório?</AgencyActionButton>
                       </div>
                     </div>
-                    <Button type="button" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/atlas-advisor")}>Abrir Atlas completo</Button>
+                    <AgencyActionButton actionType="navigate" href="/app/atlas-advisor" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">Abrir Atlas completo</AgencyActionButton>
                   </div>
                 ) : null}
 
@@ -3448,8 +3448,8 @@ export function AgencyDashboardPage() {
                             <StatusPill label={item.value} />
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <Button type="button" size="sm" className="rounded-full" onClick={() => router.push(item.href)}>Abrir prioridade</Button>
-                            <Button type="button" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]" onClick={() => router.push("/app/central-operacional/tarefas/nova")}>Criar tarefa rápida</Button>
+                            <AgencyActionButton actionType="navigate" href={item.href} size="sm" className="rounded-full">Abrir prioridade</AgencyActionButton>
+                            <AgencyActionButton actionType="navigate" href="/app/central-operacional/tarefas/nova" size="sm" variant="outline" className="rounded-full border-white/10 bg-white/[0.03]">Criar tarefa rápida</AgencyActionButton>
                           </div>
                         </div>
                       ))}

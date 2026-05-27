@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
+import { AgencyActionButton } from "@/components/system/agency-action-button"
 import {
   DedicatedActionWorkspace,
   type WorkspaceSectionConfig,
@@ -153,9 +153,9 @@ function TaskWorkspaceInner() {
     return (
       <PageShell>
         <DashboardCard title="Nao foi possivel abrir a tarefa" description={loadError}>
-          <Button className="rounded-full" onClick={() => router.replace("/app/central-operacional/tarefas")}>
+          <AgencyActionButton actionType="navigate" href="/app/central-operacional/tarefas" className="rounded-full">
             Voltar para tarefas
-          </Button>
+          </AgencyActionButton>
         </DashboardCard>
       </PageShell>
     )
