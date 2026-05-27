@@ -15,6 +15,7 @@ import { BaseCardV3 } from "@/components/agency-rebuild/shared/base-card-v3"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip as RebuildTooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
 type SectionKey =
   | "trips"
@@ -53,13 +54,13 @@ const chartSections: ChartSection[] = [
   { key: "itineraries", label: "Roteiros", subtitle: "Roteiros gerados, compartilhados e atualizados pela operacao.", metric: "38 gerados", trend: "+9%", valueLabel: "Roteiros", valueKind: "count", data: [{ label: "Sem 1", value: 8 }, { label: "Sem 2", value: 11 }, { label: "Sem 3", value: 15 }, { label: "Sem 4", value: 18 }, { label: "Sem 5", value: 25 }, { label: "Sem 6", value: 31 }] },
   { key: "leads", label: "Leads", subtitle: "Entradas recentes, qualificados e janelas de resposta.", metric: "64 entradas", trend: "+16%", valueLabel: "Leads", valueKind: "count", data: [{ label: "Sem 1", value: 12 }, { label: "Sem 2", value: 16 }, { label: "Sem 3", value: 14 }, { label: "Sem 4", value: 20 }, { label: "Sem 5", value: 26 }, { label: "Sem 6", value: 30 }] },
   { key: "templates", label: "Templates", subtitle: "Uso da biblioteca, duplicacoes e bases preferidas pela equipe.", metric: "18 usados", trend: "+6%", valueLabel: "Templates", valueKind: "count", data: [{ label: "Sem 1", value: 4 }, { label: "Sem 2", value: 8 }, { label: "Sem 3", value: 9 }, { label: "Sem 4", value: 11 }, { label: "Sem 5", value: 13 }, { label: "Sem 6", value: 18 }] },
-  { key: "quotes", label: "Cotacoes", subtitle: "Propostas emitidas e ritmo de follow-up nas negociacoes.", metric: "27 propostas", trend: "+11%", valueLabel: "Cotacoes", valueKind: "count", data: [{ label: "Sem 1", value: 6 }, { label: "Sem 2", value: 8 }, { label: "Sem 3", value: 10 }, { label: "Sem 4", value: 15 }, { label: "Sem 5", value: 19 }, { label: "Sem 6", value: 27 }] },
+  { key: "quotes", label: "Cotações", subtitle: "Propostas emitidas e ritmo de follow-up nas negociacoes.", metric: "27 propostas", trend: "+11%", valueLabel: "Cotações", valueKind: "count", data: [{ label: "Sem 1", value: 6 }, { label: "Sem 2", value: 8 }, { label: "Sem 3", value: 10 }, { label: "Sem 4", value: 15 }, { label: "Sem 5", value: 19 }, { label: "Sem 6", value: 27 }] },
   { key: "team", label: "Equipe", subtitle: "Capacidade viva, handoffs e carga operacional por frente.", metric: "6 pessoas", trend: "Estavel", valueLabel: "Equipe", valueKind: "count", data: [{ label: "Sem 1", value: 3 }, { label: "Sem 2", value: 4 }, { label: "Sem 3", value: 4 }, { label: "Sem 4", value: 5 }, { label: "Sem 5", value: 5 }, { label: "Sem 6", value: 6 }] },
-  { key: "reports", label: "Relatorios", subtitle: "Snapshots gerados e leituras executivas mais consultadas.", metric: "14 relat.", trend: "+4%", valueLabel: "Relatorios", valueKind: "count", data: [{ label: "Sem 1", value: 3 }, { label: "Sem 2", value: 5 }, { label: "Sem 3", value: 6 }, { label: "Sem 4", value: 9 }, { label: "Sem 5", value: 11 }, { label: "Sem 6", value: 14 }] },
-  { key: "credits", label: "Creditos", subtitle: "Saldo disponivel, ritmo de uso e janela segura para operacao.", metric: "2.140 saldo", trend: "68% uso", valueLabel: "Creditos", valueKind: "credits", data: [{ label: "Sem 1", value: 92 }, { label: "Sem 2", value: 86 }, { label: "Sem 3", value: 83 }, { label: "Sem 4", value: 78 }, { label: "Sem 5", value: 74 }, { label: "Sem 6", value: 68 }] },
-  { key: "catalog", label: "Catalogo", subtitle: "Pacotes vivos, publicados e em janela de ajuste comercial.", metric: "7 publicados", trend: "+2", valueLabel: "Pacotes", valueKind: "count", data: [{ label: "Sem 1", value: 2 }, { label: "Sem 2", value: 3 }, { label: "Sem 3", value: 4 }, { label: "Sem 4", value: 4 }, { label: "Sem 5", value: 6 }, { label: "Sem 6", value: 7 }] },
+  { key: "reports", label: "Relatórios", subtitle: "Snapshots gerados e leituras executivas mais consultadas.", metric: "14 relat.", trend: "+4%", valueLabel: "Relatórios", valueKind: "count", data: [{ label: "Sem 1", value: 3 }, { label: "Sem 2", value: 5 }, { label: "Sem 3", value: 6 }, { label: "Sem 4", value: 9 }, { label: "Sem 5", value: 11 }, { label: "Sem 6", value: 14 }] },
+  { key: "credits", label: "Créditos", subtitle: "Saldo disponivel, ritmo de uso e janela segura para operacao.", metric: "2.140 saldo", trend: "68% uso", valueLabel: "Créditos", valueKind: "credits", data: [{ label: "Sem 1", value: 92 }, { label: "Sem 2", value: 86 }, { label: "Sem 3", value: 83 }, { label: "Sem 4", value: 78 }, { label: "Sem 5", value: 74 }, { label: "Sem 6", value: 68 }] },
+  { key: "catalog", label: "Catálogo", subtitle: "Pacotes vivos, publicados e em janela de ajuste comercial.", metric: "7 publicados", trend: "+2", valueLabel: "Pacotes", valueKind: "count", data: [{ label: "Sem 1", value: 2 }, { label: "Sem 2", value: 3 }, { label: "Sem 3", value: 4 }, { label: "Sem 4", value: 4 }, { label: "Sem 5", value: 6 }, { label: "Sem 6", value: 7 }] },
   { key: "operations", label: "Central Operacional", subtitle: "Prioridades abertas, tarefas e pontos de atencao na jornada diaria.", metric: "4 sinais", trend: "-1", valueLabel: "Alertas", valueKind: "count", data: [{ label: "Sem 1", value: 8 }, { label: "Sem 2", value: 7 }, { label: "Sem 3", value: 6 }, { label: "Sem 4", value: 5 }, { label: "Sem 5", value: 4 }, { label: "Sem 6", value: 4 }] },
-  { key: "expansions", label: "Expansoes", subtitle: "Modulos ativos, interesse da equipe e frentes em preparacao.", metric: "3 ativas", trend: "+1", valueLabel: "Expansoes", valueKind: "count", data: [{ label: "Sem 1", value: 1 }, { label: "Sem 2", value: 1 }, { label: "Sem 3", value: 2 }, { label: "Sem 4", value: 2 }, { label: "Sem 5", value: 3 }, { label: "Sem 6", value: 3 }] },
+  { key: "expansions", label: "Expansões", subtitle: "Modulos ativos, interesse da equipe e frentes em preparacao.", metric: "3 ativas", trend: "+1", valueLabel: "Expansões", valueKind: "count", data: [{ label: "Sem 1", value: 1 }, { label: "Sem 2", value: 1 }, { label: "Sem 3", value: 2 }, { label: "Sem 4", value: 2 }, { label: "Sem 5", value: 3 }, { label: "Sem 6", value: 3 }] },
 ]
 
 const periodOptions: Array<{ key: PeriodKey; label: string; labels: string[]; multiplier: number }> = [
@@ -82,7 +83,7 @@ function formatChartValue(value: number, kind: ChartSection["valueKind"]) {
   }
 
   if (kind === "credits") {
-    return `${new Intl.NumberFormat("pt-BR").format(value)} creditos`
+    return `${new Intl.NumberFormat("pt-BR").format(value)} créditos`
   }
 
   return new Intl.NumberFormat("pt-BR").format(value)
@@ -90,11 +91,29 @@ function formatChartValue(value: number, kind: ChartSection["valueKind"]) {
 
 type AgencyOperationalChartProps = {
   onArmDrag?: () => void
+  defaultSection?: SectionKey
+  defaultPeriod?: PeriodKey
+  compact?: boolean
+  hideFilters?: boolean
+  titleOverride?: string
+  descriptionOverride?: string
+  className?: string
+  showDragHandle?: boolean
 }
 
-export function AgencyOperationalChart({ onArmDrag }: AgencyOperationalChartProps) {
-  const [activeKey, setActiveKey] = useState<SectionKey>("trips")
-  const [periodKey, setPeriodKey] = useState<PeriodKey>("30d")
+export function AgencyOperationalChart({
+  onArmDrag,
+  defaultSection = "trips",
+  defaultPeriod = "30d",
+  compact = false,
+  hideFilters = false,
+  titleOverride,
+  descriptionOverride,
+  className,
+  showDragHandle = true,
+}: AgencyOperationalChartProps) {
+  const [activeKey, setActiveKey] = useState<SectionKey>(defaultSection)
+  const [periodKey, setPeriodKey] = useState<PeriodKey>(defaultPeriod)
 
   const activeSection = useMemo(
     () => chartSections.find((section) => section.key === activeKey) ?? chartSections[0],
@@ -117,10 +136,9 @@ export function AgencyOperationalChart({ onArmDrag }: AgencyOperationalChartProp
 
   return (
     <BaseCardV3
-      eyebrow="Leitura operacional"
-      title={activeSection.label}
-      description={`${activeSection.subtitle} Recorte: ${activePeriod.label.toLowerCase()}.`}
-      className="min-h-[204px] h-full"
+      title={titleOverride ?? activeSection.label}
+      description={descriptionOverride ?? `${activeSection.subtitle} Recorte: ${activePeriod.label.toLowerCase()}.`}
+      className={cn("h-full min-h-[204px]", compact && "min-h-[174px]", className)}
       actions={
         <div className="flex items-center gap-2">
           <Badge
@@ -135,6 +153,7 @@ export function AgencyOperationalChart({ onArmDrag }: AgencyOperationalChartProp
           >
             {activeSection.trend}
           </Badge>
+          {showDragHandle ? (
           <RebuildTooltip>
             <TooltipTrigger asChild>
               <button
@@ -149,10 +168,12 @@ export function AgencyOperationalChart({ onArmDrag }: AgencyOperationalChartProp
             </TooltipTrigger>
             <TooltipContent>Arrastar</TooltipContent>
           </RebuildTooltip>
+          ) : null}
         </div>
       }
     >
       <div className="space-y-3">
+        {!hideFilters ? (
         <div className="grid gap-2 sm:grid-cols-2">
           <Select value={activeKey} onValueChange={(value) => setActiveKey(value as SectionKey)}>
             <SelectTrigger className="h-10 w-full rounded-[18px] border-white/10 bg-white/[0.03]">
@@ -180,14 +201,15 @@ export function AgencyOperationalChart({ onArmDrag }: AgencyOperationalChartProp
             </SelectContent>
           </Select>
         </div>
+        ) : null}
 
-        <div className="rounded-[22px] border border-white/8 bg-black/14 px-3 py-3">
+        <div className={cn("rounded-[22px] border border-white/8 bg-black/14 px-3 py-3", compact && "px-2.5 py-2.5")}>
           <div className="mb-2 flex items-center justify-between gap-3">
             <p className="text-[11px] uppercase tracking-[0.18em] text-primary/72">Pulso recente</p>
             <p className="text-[11px] text-muted-foreground">{activePeriod.label}</p>
           </div>
 
-          <div className="h-[126px] w-full">
+          <div className={cn("w-full", compact ? "h-[112px]" : "h-[126px]")}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 8, right: 4, left: -14, bottom: 0 }}>
                 <defs>

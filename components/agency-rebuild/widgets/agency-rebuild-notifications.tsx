@@ -79,7 +79,7 @@ const notificationSeed: NotificationItem[] = [
   },
   {
     id: "n-6",
-    title: "Creditos em alerta",
+    title: "Créditos em alerta",
     body: "O saldo segue saudavel, mas a camada Atlas consumiu acima do ritmo esperado.",
     type: "credits",
     status: "read",
@@ -110,7 +110,7 @@ const typeFilters: Array<{ key: "all" | NotificationType; label: string }> = [
   { key: "trips", label: "Viagens" },
   { key: "leads", label: "Leads" },
   { key: "tasks", label: "Tarefas" },
-  { key: "credits", label: "Creditos" },
+  { key: "credits", label: "Créditos" },
   { key: "operations", label: "Operacao" },
 ]
 

@@ -4,10 +4,10 @@ import { useMemo, useState } from "react"
 import {
   Bot,
   BrainCircuit,
+  Compass,
   MessageCircleMore,
   MessagesSquare,
   Sparkles,
-  WandSparkles,
 } from "lucide-react"
 import { AgencyRebuildActionButton } from "@/components/agency-rebuild/actions/agency-rebuild-action-button"
 import { BaseModalV3 } from "@/components/agency-rebuild/modals/base-modal-v3"
@@ -22,10 +22,10 @@ type ExpansionTab =
   | "available"
   | "advisor"
   | "marketing"
-  | "automation"
+  | "match"
   | "history"
 
-type ExpansionId = "go" | "agent" | "marketing" | "advisor" | "automations"
+type ExpansionId = "go" | "agent" | "marketing" | "advisor" | "match"
 
 type ExpansionRecord = {
   id: ExpansionId
@@ -49,7 +49,7 @@ type ExpansionRecord = {
 const expansionSeed: ExpansionRecord[] = [
   {
     id: "go",
-    name: "TravelPro Go",
+    name: "Travel GO",
     subtitle: "Assistente interno operacional",
     status: "Disponivel para interesse",
     category: "Operacao conversacional",
@@ -74,7 +74,7 @@ const expansionSeed: ExpansionRecord[] = [
   },
   {
     id: "agent",
-    name: "TravelPro Agent",
+    name: "Travel Agent",
     subtitle: "Atendimento inteligente externo",
     status: "Em preparacao",
     category: "Relacionamento e conversao",
@@ -148,28 +148,28 @@ const expansionSeed: ExpansionRecord[] = [
     active: false,
   },
   {
-    id: "automations",
-    name: "Automacoes Premium",
-    subtitle: "Fluxos e gatilhos de alto valor",
+    id: "match",
+    name: "Travel Match",
+    subtitle: "Marketplace inteligente de pacotes",
     status: "Disponivel para interesse",
-    category: "Automacao avancada",
-    description: "Jornadas, follow-ups, alertas e tarefas recorrentes com processos avancados da operacao.",
-    accent: "from-violet-400/20 via-violet-300/10 to-transparent",
-    icon: WandSparkles,
-    previewTitle: "Fluxos premium automatizados",
-    previewBody: "A central de automacoes prepara jornadas, tarefas automaticas e alertas de alto valor para a rotina da agencia.",
+    category: "Marketplace publico",
+    description: "Vitrine conectada ao ecossistema TravelPro para divulgar pacotes, gerar busca por intencao e atrair leads reais.",
+    accent: "from-cyan-400/20 via-sky-300/10 to-transparent",
+    icon: Compass,
+    previewTitle: "Marketplace e match por intencao",
+    previewBody: "Busca inteligente, categorias vivas, cards com percentual de aderencia e pacotes publicados pela agencia em uma vitrine publica.",
     benefitTitle: "Beneficio operacional",
-    benefitBody: "Tira peso de processos recorrentes e ajuda a padronizar follow-ups e execucao com menos friccao.",
+    benefitBody: "Amplia descoberta organica dos pacotes da agencia e transforma desejo de viagem em lead qualificado para a operacao.",
     benefits: [
-      "Automacao de processos",
-      "Jornadas",
-      "Gatilhos",
-      "Follow-ups automaticos",
-      "Alertas automaticos",
-      "Tarefas recorrentes",
+      "Busca inteligente por desejo de viagem",
+      "Pacotes com match percentual",
+      "Categorias e destinos em destaque",
+      "Agencias selecionadas",
+      "Leads reais para a operacao",
+      "Conexao com catalogo e vitrine publica",
     ],
-    ctaLabel: "Solicitar ativacao",
-    exploreLabel: "Ver fluxo",
+    ctaLabel: "Abrir central",
+    exploreLabel: "Conhecer modulo",
     active: false,
   },
 ]
@@ -251,6 +251,22 @@ function ExpansionPreview({ item }: { item: ExpansionRecord }) {
     )
   }
 
+  if (item.id === "match") {
+    return (
+      <div className="space-y-3">
+        <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4 text-sm text-muted-foreground">
+          Hero vivo com busca por intencao: &quot;Descreva a viagem que voce procura.&quot;
+        </div>
+        <div className="rounded-[22px] border border-white/8 bg-black/18 p-4 text-sm text-muted-foreground">
+          Categorias em destaque: Disney, Premium, Lua de mel, Internacional e Familia.
+        </div>
+        <div className="rounded-[22px] border border-sky-400/16 bg-sky-400/[0.07] p-4 text-sm text-sky-100">
+          Resultado: pacotes com match percentual, motivos de aderencia e lead pronto para a agencia.
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-3">
       {[
@@ -272,9 +288,11 @@ function ExpansionPreview({ item }: { item: ExpansionRecord }) {
 export function AgencyRebuildExpansionsWorkspace({
   open,
   onOpenChange,
+  onOpenTravelMatch,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onOpenTravelMatch?: () => void
 }) {
   const [tab, setTab] = useState<ExpansionTab>("overview")
   const [items, setItems] = useState(expansionSeed)
@@ -317,14 +335,22 @@ export function AgencyRebuildExpansionsWorkspace({
                   actionType="modal"
                   label="Explorar"
                   className="h-8 rounded-full px-3 text-xs"
-                  onAction={() => setDetailId(item.id)}
+                  onAction={() => {
+                    if (item.id === "match") {
+                      onOpenTravelMatch?.()
+                      return
+                    }
+
+                    setDetailId(item.id)
+                  }}
                 />
                 <AgencyRebuildActionButton
-                  actionType="future"
+                  actionType={item.id === "match" ? "modal" : "future"}
                   label={item.ctaLabel}
                   variant="outline"
                   className="h-8 rounded-full border-white/10 bg-white/[0.03] px-3 text-xs"
                   futureMessage={`${item.name} ainda esta em preparacao para ativacao real.`}
+                  onAction={item.id === "match" ? () => onOpenTravelMatch?.() : undefined}
                 />
               </>
             }
@@ -360,7 +386,7 @@ export function AgencyRebuildExpansionsWorkspace({
           <div className="grid gap-4 rounded-[30px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018))] p-5 xl:grid-cols-[1fr_auto] xl:items-start">
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
-                { label: "Expansoes ativas", value: String(activeCount) },
+                { label: "Expansões ativas", value: String(activeCount) },
                 { label: "Disponiveis", value: String(availableCount) },
                 { label: "Em preparacao", value: String(betaCount) },
                 { label: "Ativacao futura", value: String(futureCount) },
@@ -388,24 +414,24 @@ export function AgencyRebuildExpansionsWorkspace({
 
           <Tabs value={tab} onValueChange={(value) => setTab(value as ExpansionTab)} className="space-y-5">
             <TabsList className="flex h-auto flex-wrap gap-2 rounded-[22px] border border-white/8 bg-black/16 p-1">
-              <TabsTrigger value="overview">Visao geral</TabsTrigger>
+              <TabsTrigger value="overview">Visão geral</TabsTrigger>
               <TabsTrigger value="active">Ativas</TabsTrigger>
               <TabsTrigger value="available">Disponiveis</TabsTrigger>
               <TabsTrigger value="advisor">Atlas Advisor</TabsTrigger>
               <TabsTrigger value="marketing">Marketing IA</TabsTrigger>
-              <TabsTrigger value="automation">Automacoes Premium</TabsTrigger>
+              <TabsTrigger value="match">Travel Match</TabsTrigger>
               <TabsTrigger value="history">Historico</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {[
-                  { label: "Expansoes reais", value: "5", note: "Go, Agent, Marketing IA, Atlas Advisor e Automacoes Premium." },
-                  { label: "Camadas premium", value: "3", note: "Advisor, Automacoes Premium e TravelPro Go como frentes de alto valor." },
-                  { label: "Frentes conversacionais", value: "2", note: "Go para operacao interna e Agent para atendimento externo." },
+                  { label: "Expansões reais", value: "5", note: "Travel GO, Travel Agent, Travel Match, Marketing IA e Atlas Advisor." },
+                  { label: "Camadas premium", value: "3", note: "Atlas Advisor, Marketing IA e Travel GO como frentes de alto valor." },
+                  { label: "Frentes conversacionais", value: "2", note: "Travel GO para operacao interna e Travel Agent para atendimento externo." },
                   { label: "Marketing aplicado", value: "1", note: "Calendario vivo, posts e oportunidades para turismo." },
                   { label: "Consultoria premium", value: "1", note: "Atlas Advisor para leitura estrategica e apoio operacional." },
-                  { label: "Atlas suporte", value: "Header", note: "Separado do Advisor, segue como chat de ajuda da V3." },
+                  { label: "Travel Match", value: "Marketplace", note: "Vitrine publica e buscador inteligente conectados ao ecossistema." },
                 ].map((item) => (
                   <BaseCardV3 key={item.label} eyebrow={item.label} title={item.value} description={item.note} className="rounded-[24px] p-4" />
                 ))}
@@ -413,17 +439,18 @@ export function AgencyRebuildExpansionsWorkspace({
 
               <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
                 <BaseCardV3
-                  eyebrow="Expansoes reais do ecossistema"
+                  eyebrow="Expansões reais do ecossistema"
                   title="O que leva a agencia para o proximo nivel"
                   description="Cada frente conversa com operacao, atendimento, marketing ou escala sem perder a identidade premium do TravelPro."
                   className="rounded-[28px]"
                 >
                   <div className="grid gap-3 md:grid-cols-2">
                     {[
-                      "TravelPro Go transforma mensagens em tarefas, contratos, roteiros e cotacoes.",
-                      "TravelPro Agent qualifica e conduz leads e clientes em uma trilha automatizada.",
+                      "Travel GO transforma mensagens em tarefas, contratos, roteiros e cotacoes.",
+                      "Travel Agent qualifica e conduz leads e clientes em uma trilha automatizada.",
                       "Marketing IA conecta calendario promocional, posts e campanhas aplicadas ao turismo.",
                       "Atlas Advisor atua como consultoria estrategica premium, sem confundir com o chat de suporte.",
+                      "Travel Match amplia descoberta publica dos pacotes e gera oportunidades reais para a agencia.",
                     ].map((item) => (
                       <div key={item} className="rounded-[18px] border border-white/8 bg-black/14 px-3 py-3 text-sm text-muted-foreground">
                         {item}
@@ -435,7 +462,7 @@ export function AgencyRebuildExpansionsWorkspace({
                 <BaseCardV3
                   eyebrow="Em destaque"
                   title="Catalogo premium"
-                  description="As cinco expansoes reais ficam prontas para exploracao, interesse local e futura ativacao."
+                    description="As cinco expansoes reais ficam prontas para exploracao, interesse local e futura ativacao."
                   className="rounded-[28px]"
                 >
                   <div className="space-y-2">
@@ -473,17 +500,17 @@ export function AgencyRebuildExpansionsWorkspace({
               {renderGrid(items.filter((item) => item.id === "marketing"))}
             </TabsContent>
 
-            <TabsContent value="automation" className="space-y-4">
-              {renderGrid(items.filter((item) => item.id === "automations"))}
+            <TabsContent value="match" className="space-y-4">
+              {renderGrid(items.filter((item) => item.id === "match"))}
             </TabsContent>
 
             <TabsContent value="history" className="space-y-3">
               {[
-                "TravelPro Go sinalizado como expansao principal para acelerar operacao por mensagem.",
+                "Travel GO sinalizado como expansao principal para acelerar operacao por mensagem.",
                 "Atlas Advisor reposicionado como consultoria premium, separado do Atlas suporte do header.",
                 "Marketing IA preparado como frente de campanhas, calendario promocional e conteudo para turismo.",
-                "TravelPro Agent registrado como camada 24/7 de qualificacao e atendimento externo.",
-                "Automacoes Premium definidas como jornadas, gatilhos e follow-ups de alto valor.",
+                "Travel Agent registrado como camada 24/7 de qualificacao e atendimento externo.",
+                "Travel Match ativado como vitrine/marketplace com busca por intencao e gestao interna dedicada.",
               ].map((item) => (
                 <div key={item} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-muted-foreground">
                   {item}

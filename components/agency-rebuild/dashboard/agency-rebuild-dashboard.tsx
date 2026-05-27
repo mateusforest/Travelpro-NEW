@@ -36,10 +36,11 @@ import { BaseModalV3 } from "@/components/agency-rebuild/modals/base-modal-v3"
 import { AgencyRebuildOperationsWorkspace } from "@/components/agency-rebuild/operations"
 import { AgencyRebuildReportsWorkspace } from "@/components/agency-rebuild/reports"
 import { BaseCardV3 } from "@/components/agency-rebuild/shared/base-card-v3"
-import { subscribeAgencyRebuildNavigation, type AgencyRebuildMenuTarget } from "@/components/agency-rebuild/shared"
+import { subscribeAgencyRebuildNavigation, type AgencyRebuildMenuTarget, useAgencyRebuildView } from "@/components/agency-rebuild/shared"
 import { AgencyRebuildTeamWorkspace } from "@/components/agency-rebuild/team"
 import { AgencyRebuildTemplatesWorkspace } from "@/components/agency-rebuild/templates"
 import { AgencyRebuildTravelBuilderWorkspace } from "@/components/agency-rebuild/travel-builder"
+import { AgencyRebuildTravelMatchWorkspace } from "@/components/agency-rebuild/travel-match"
 import { AgencyRebuildTripsWorkspace } from "@/components/agency-rebuild/trips"
 import { AgencyOperationalChart } from "@/components/agency-rebuild/widgets"
 import { Badge } from "@/components/ui/badge"
@@ -86,6 +87,14 @@ type ModuleCard = {
 }
 
 type DashboardGridKey = ModuleCard["key"] | "operational-chart"
+type TraditionalPriority = "baixa" | "media" | "alta" | "critica"
+type TraditionalTask = {
+  id: string
+  title: string
+  note: string
+  priority: TraditionalPriority
+  target: ModuleCard["key"]
+}
 
 type Intent = {
   key: string
@@ -148,9 +157,9 @@ const intents: Intent[] = [
   { key: "new-task", group: "Operacional", label: "Nova tarefa", description: "Cria um passo operacional com dono e prazo." },
   { key: "new-alert", group: "Operacional", label: "Alerta operacional", description: "Marca urgencia, modulo e proximo passo." },
   { key: "new-automation", group: "Operacional", label: "Criar automacao", description: "Inicia gatilho premium e jornada recorrente." },
-  { key: "publish-package", group: "Catalogo", label: "Publicar pacote", description: "Leva oferta para vitrine e compartilhamento." },
-  { key: "update-package", group: "Catalogo", label: "Atualizar pacote", description: "Ajusta preco, periodo e destaque comercial." },
-  { key: "create-campaign", group: "Catalogo", label: "Criar campanha", description: "Abre campanha promocional ligada ao pacote." },
+  { key: "publish-package", group: "Catálogo", label: "Publicar pacote", description: "Leva oferta para vitrine e compartilhamento." },
+  { key: "update-package", group: "Catálogo", label: "Atualizar pacote", description: "Ajusta preco, periodo e destaque comercial." },
+  { key: "create-campaign", group: "Catálogo", label: "Criar campanha", description: "Abre campanha promocional ligada ao pacote." },
 ]
 
 const modules: ModuleCard[] = [
@@ -192,7 +201,7 @@ const modules: ModuleCard[] = [
     openLabel: "Abrir",
     quickActions: [
       { label: "Marcar como pago", description: "Fechar rapidamente um recebimento ou despesa.", futureMessage: "Integração operacional em andamento para baixas da V3." },
-      { label: "Gerar relatorio", description: "Preparar um recorte financeiro claro para a equipe.", futureMessage: "Relatorios vivos chegam na proxima etapa da V3." },
+      { label: "Gerar relatório", description: "Preparar um recorte financeiro claro para a equipe.", futureMessage: "Relatórios vivos chegam na próxima etapa da V3." },
       { label: "Pendencias", description: "Ler vencimentos e recebimentos mais sensiveis.", futureMessage: "Fluxo inteligente em preparação para pendencias financeiras." },
     ],
     workspaceItems: [
@@ -331,7 +340,7 @@ const modules: ModuleCard[] = [
   },
   {
     key: "quotes",
-    title: "Cotacoes",
+    title: "Cotações",
     eyebrow: "Propostas",
     status: "27 geradas",
     tone: "attention",
@@ -381,7 +390,7 @@ const modules: ModuleCard[] = [
   },
   {
     key: "reports",
-    title: "Relatorios",
+    title: "Relatórios",
     eyebrow: "Leitura executiva",
     status: "14 gerados",
     tone: "default",
@@ -400,13 +409,13 @@ const modules: ModuleCard[] = [
       { title: "Financeiro de maio", subtitle: "Receitas e despesas", status: "Atualizar", meta: "Filtro salvo" },
       { title: "Viagens em andamento", subtitle: "Status operacional", status: "Compartilhar", meta: "2 alertas" },
     ],
-    workspaceDescription: "Relatorios que parecem uma mesa de leitura, nao um modulo frio de exportacao.",
+    workspaceDescription: "Relatórios que parecem uma mesa de leitura, não um módulo frio de exportação.",
     emptyTitle: "Nenhum relatorio neste recorte.",
     emptyBody: "Quando a conexao chegar, a V3 mostrara recortes salvos, recentes e compartilhados aqui.",
   },
   {
     key: "credits",
-    title: "Creditos",
+    title: "Créditos",
     eyebrow: "Uso",
     status: "Saldo saudavel",
     tone: "positive",
@@ -422,7 +431,7 @@ const modules: ModuleCard[] = [
     ],
     workspaceItems: [
       { title: "Atlas", subtitle: "Ajuda guiada", status: "Consumo alto", meta: "38% do total" },
-      { title: "TravelPro Go", subtitle: "Camada assistida", status: "Monitorar", meta: "24% do total" },
+      { title: "Travel GO", subtitle: "Camada assistida", status: "Monitorar", meta: "24% do total" },
       { title: "Reservas de saldo", subtitle: "Janela segura", status: "Saudavel", meta: "2.140 creditos" },
     ],
     workspaceDescription: "Uma leitura mais transparente do saldo, origem e impacto operacional dos creditos.",
@@ -431,7 +440,7 @@ const modules: ModuleCard[] = [
   },
   {
     key: "catalog",
-    title: "Catalogo",
+    title: "Catálogo",
     eyebrow: "Pacotes",
     status: "7 publicados",
     tone: "default",
@@ -473,7 +482,7 @@ const modules: ModuleCard[] = [
     workspaceItems: [
       { title: "Embarque Roma", subtitle: "Documento + financeiro", status: "Urgente", meta: "Hoje • 14h" },
       { title: "Follow-up VIP", subtitle: "Cliente sem retorno", status: "Resolver", meta: "1 dia" },
-      { title: "Recibo pendente", subtitle: "Area financeira", status: "Revisar", meta: "Amanha" },
+      { title: "Recibo pendente", subtitle: "Área financeira", status: "Revisar", meta: "Amanhã" },
     ],
     workspaceDescription: "A mesa viva da operacao: prioridades, contexto e proximo passo no mesmo painel.",
     emptyTitle: "Sem prioridades neste recorte.",
@@ -481,27 +490,27 @@ const modules: ModuleCard[] = [
   },
   {
     key: "expansions",
-    title: "Expansoes",
+    title: "Expansões",
     eyebrow: "Ecossistema",
     status: "3 ativas",
     tone: "future",
     description: "Modulos ativos e em preparo.",
     reading: ["3 ativas", "2 em preparo"],
     icon: Sparkles,
-    primaryLabel: "Ativar expansao",
+    primaryLabel: "Ativar expansão",
     openLabel: "Abrir",
     quickActions: [
-      { label: "TravelPro Go", description: "Camada assistida para operacao viva.", futureMessage: "Fluxo inteligente em preparação para ativacao do TravelPro Go." },
-      { label: "TravelPro Agent", description: "Expansao comercial e operacional guiada.", futureMessage: "Disponivel na proxima etapa da V3." },
-      { label: "Atlas Advisor", description: "Leitura consultiva premium da operacao.", futureMessage: "Integração operacional em andamento para o Atlas Advisor." },
+      { label: "Travel GO", description: "Camada assistida para operação viva.", futureMessage: "Fluxo inteligente em preparação para ativação do Travel GO." },
+      { label: "Travel Agent", description: "Expansão comercial e operacional guiada.", futureMessage: "Disponível na próxima etapa da V3." },
+      { label: "Atlas Advisor", description: "Leitura consultiva premium da operação.", futureMessage: "Integração operacional em andamento para o Atlas Advisor." },
     ],
     workspaceItems: [
-      { title: "TravelPro Go", subtitle: "Expansao assistida", status: "Solicitavel", meta: "Sem IA real ainda" },
-      { title: "TravelPro Agent", subtitle: "Camada comercial", status: "Em preparo", meta: "Backend futuro" },
-      { title: "Atlas Advisor", subtitle: "Leitura consultiva", status: "Em preparo", meta: "Visao premium" },
+      { title: "Travel GO", subtitle: "Expansão assistida", status: "Solicitável", meta: "Sem IA real ainda" },
+      { title: "Travel Agent", subtitle: "Camada comercial", status: "Em preparo", meta: "Backend futuro" },
+      { title: "Atlas Advisor", subtitle: "Leitura consultiva", status: "Em preparo", meta: "Visão premium" },
     ],
-    workspaceDescription: "Expansoes como parte real do ecossistema, sem placeholders vazios nem promessas falsas.",
-    emptyTitle: "Nenhuma expansao aqui ainda.",
+    workspaceDescription: "Expansões como parte real do ecossistema, sem placeholders vazios nem promessas falsas.",
+    emptyTitle: "Nenhuma expansão aqui ainda.",
     emptyBody: "A V3 usara este painel para mostrar modulos futuros com muito mais contexto e clareza.",
   },
 ]
@@ -550,6 +559,13 @@ function StatusTag({ label, tone }: { label: string; tone: Tone }) {
   )
 }
 
+function normalizeTravelFeatureLabel(value: string) {
+  return value
+    .replaceAll("TravelPro Go", "Travel GO")
+    .replaceAll("TravelPro Agent", "Travel Agent")
+    .replaceAll("TravelPro Match", "Travel Match")
+}
+
 function ModuleWorkspaceCard({
   module,
   onPrimary,
@@ -566,7 +582,7 @@ function ModuleWorkspaceCard({
   return (
     <BaseCardV3
       eyebrow={module.eyebrow}
-      title={module.title}
+      title={normalizeTravelFeatureLabel(module.title)}
       className="min-h-[176px]"
       actions={
         <div className="flex items-center gap-2">
@@ -591,7 +607,7 @@ function ModuleWorkspaceCard({
         <>
           <AgencyRebuildActionButton
             actionType="modal"
-            label={module.primaryLabel}
+            label={normalizeTravelFeatureLabel(module.primaryLabel)}
             className="h-8 min-w-0 flex-1 truncate rounded-full px-3 text-[11px]"
             onAction={onPrimary}
           />
@@ -600,7 +616,7 @@ function ModuleWorkspaceCard({
             label="+"
             variant="outline"
             className="h-8 w-8 shrink-0 rounded-full border-white/10 bg-black/20 p-0 text-sm font-medium"
-            tooltip={`Abrir workspace de ${module.title}.`}
+            tooltip={`Abrir workspace de ${normalizeTravelFeatureLabel(module.title)}.`}
             onAction={onOpen}
           />
         </>
@@ -623,7 +639,34 @@ function ModuleWorkspaceCard({
   )
 }
 
+function TraditionalMetricCard({
+  title,
+  value,
+  actionLabel,
+  onAction,
+}: {
+  title: string
+  value: string
+  actionLabel: string
+  onAction: () => void
+}) {
+  return (
+    <BaseCardV3 title={title} className="rounded-[26px] p-4" footer={
+      <AgencyRebuildActionButton
+        actionType="modal"
+        label={actionLabel}
+        className="h-8 rounded-full px-3 text-xs"
+        onAction={onAction}
+      />
+    }>
+      <div className="mb-3 border-t border-white/8" />
+      <p className="text-[28px] font-semibold leading-none text-foreground">{value}</p>
+    </BaseCardV3>
+  )
+}
+
 export function AgencyRebuildDashboard() {
+  const { viewMode, isSwitchingView } = useAgencyRebuildView()
   const [gridOrder, setGridOrder] = useState<DashboardGridKey[]>([
     ...modules.map((module) => module.key),
     "operational-chart",
@@ -689,6 +732,22 @@ export function AgencyRebuildDashboard() {
     })
   }, [selectedModule, workspaceQuery, workspaceTab])
 
+  const tripsModule = modules.find((item) => item.key === "trips")
+  const financeModule = modules.find((item) => item.key === "finance")
+
+  const traditionalAlerts = [
+    { title: "Embarques nas proximas 48h", note: "Roma, Buenos Aires e Recife pedem revisao final.", target: "trips" as const },
+    { title: "Financeiro sensivel hoje", note: "Recebimento da Italia Signature previsto para 14h.", target: "finance" as const },
+    { title: "Follow-ups vencidos", note: "Tres oportunidades quentes sem retorno da equipe.", target: "leads" as const },
+  ]
+  const [traditionalTasks, setTraditionalTasks] = useState<TraditionalTask[]>([
+    { id: "tt-1", title: "Revisar voucher Italia Signature", note: "Operacao premium • Hoje", priority: "alta", target: "documents" },
+    { id: "tt-2", title: "Enviar cotacao Grecia", note: "Comercial • Urgente", priority: "critica", target: "quotes" },
+    { id: "tt-3", title: "Fechar repasse fornecedor", note: "Financeiro • 14h", priority: "media", target: "finance" },
+    { id: "tt-4", title: "Atualizar roteiro Lisboa Weekend", note: "Roteiros • Amanha", priority: "baixa", target: "itineraries" },
+  ])
+  const [draggingTraditionalTaskId, setDraggingTraditionalTaskId] = useState<string | null>(null)
+
   const openComposer = (moduleKey?: string, defaultIntent?: string) => {
     setComposerScopeKey(moduleKey ?? null)
     if (defaultIntent) {
@@ -700,6 +759,12 @@ export function AgencyRebuildDashboard() {
   const openCreationModal = (moduleKey: string) => {
     setCreationModuleKey(moduleKey)
     setCreationOpen(true)
+  }
+
+  const moveTraditionalTask = (taskId: string, priority: TraditionalPriority) => {
+    setTraditionalTasks((current) =>
+      current.map((task) => (task.id === taskId ? { ...task, priority } : task)),
+    )
   }
 
   const reorderGrid = (fromKey: DashboardGridKey, toKey: DashboardGridKey) => {
@@ -731,6 +796,7 @@ export function AgencyRebuildDashboard() {
       "reports",
       "credits",
       "catalog",
+      "travelMatch",
       "operations",
       "expansions",
     ])
@@ -916,6 +982,8 @@ export function AgencyRebuildDashboard() {
 
   return (
     <>
+      {viewMode === "workspace" ? (
+      <>
       <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <BaseCardV3
           eyebrow="Workspace operacional vivo"
@@ -1132,6 +1200,234 @@ export function AgencyRebuildDashboard() {
           )
         })}
       </div>
+      </>
+      ) : (
+        <div className={cn("space-y-5 transition-all duration-500", isSwitchingView && "opacity-70")}>
+          <div className="grid gap-4 xl:grid-cols-6">
+            <TraditionalMetricCard title="Clientes ativos" value="184" actionLabel="Abrir clientes" onAction={() => setWorkspaceKey("clients")} />
+            <TraditionalMetricCard title="Viagens em andamento" value="18" actionLabel="Abrir viagens" onAction={() => setWorkspaceKey("trips")} />
+            <TraditionalMetricCard title="Proximos embarques" value="3" actionLabel="Ver operacao" onAction={() => setWorkspaceKey("operations")} />
+            <TraditionalMetricCard title="Receita do mes" value="R$ 128.400" actionLabel="Abrir financeiro" onAction={() => setWorkspaceKey("finance")} />
+            <TraditionalMetricCard title="Consumo de creditos" value="2.140" actionLabel="Abrir creditos" onAction={() => setWorkspaceKey("credits")} />
+            <TraditionalMetricCard title="Alertas operacionais" value="4" actionLabel="Abrir central" onAction={() => setWorkspaceKey("operations")} />
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr_0.75fr]">
+            <AgencyOperationalChart
+              defaultSection="finance"
+              defaultPeriod="year"
+              showDragHandle={false}
+              titleOverride="Receitas, embarques e operacao"
+              descriptionOverride="Grafico principal da visao tradicional com leitura executiva do periodo."
+              className="rounded-[30px]"
+            />
+            <AgencyOperationalChart
+              defaultSection="leads"
+              defaultPeriod="30d"
+              compact
+              hideFilters
+              showDragHandle={false}
+              titleOverride="Pipeline comercial"
+              descriptionOverride="Leads, qualificacao e calor do pipeline."
+              className="rounded-[30px]"
+            />
+            <AgencyOperationalChart
+              defaultSection="credits"
+              defaultPeriod="quarter"
+              compact
+              hideFilters
+              showDragHandle={false}
+              titleOverride="Consumo e IA"
+              descriptionOverride="Créditos, uso assistido e performance do ecossistema."
+              className="rounded-[30px]"
+            />
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+            <BaseCardV3
+              eyebrow="Central operacional compacta"
+              title="Prioridades vivas da agencia"
+              description="Arraste tarefas entre niveis de prioridade, conclua ou abra o workspace relacionado."
+              className="rounded-[30px]"
+            >
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {[
+                  { key: "baixa" as const, label: "Baixa", tone: "border-sky-400/16 bg-sky-400/[0.08] text-sky-100" },
+                  { key: "media" as const, label: "Media", tone: "border-emerald-400/16 bg-emerald-400/[0.08] text-emerald-100" },
+                  { key: "alta" as const, label: "Alta", tone: "border-amber-400/16 bg-amber-400/[0.08] text-amber-100" },
+                  { key: "critica" as const, label: "Critica", tone: "border-red-400/16 bg-red-400/[0.08] text-red-100" },
+                ].map((column) => (
+                  <div
+                    key={column.key}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => {
+                      if (draggingTraditionalTaskId) {
+                        moveTraditionalTask(draggingTraditionalTaskId, column.key)
+                        setDraggingTraditionalTaskId(null)
+                      }
+                    }}
+                    className="rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.016))] p-3"
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <Badge className={cn("rounded-full border px-2.5 py-1 text-[10px] tracking-[0.18em]", column.tone)} variant="outline">
+                        {column.label}
+                      </Badge>
+                      <span className="text-[11px] text-muted-foreground">
+                        {traditionalTasks.filter((task) => task.priority === column.key).length}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {traditionalTasks
+                        .filter((task) => task.priority === column.key)
+                        .map((task) => (
+                          <div
+                            key={task.id}
+                            draggable
+                            onDragStart={() => setDraggingTraditionalTaskId(task.id)}
+                            onDragEnd={() => setDraggingTraditionalTaskId(null)}
+                            className={cn(
+                              "rounded-[18px] border border-white/8 bg-black/18 p-3 transition-all",
+                              draggingTraditionalTaskId === task.id && "scale-[0.98] opacity-75",
+                            )}
+                          >
+                            <p className="text-[13px] font-medium text-foreground">{task.title}</p>
+                            <p className="mt-1 text-[11px] leading-5 text-muted-foreground">{task.note}</p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <AgencyRebuildActionButton
+                                actionType="modal"
+                                label="Abrir"
+                                className="h-7 rounded-full px-3 text-[11px]"
+                                onAction={() => setWorkspaceKey(task.target)}
+                              />
+                              <AgencyRebuildActionButton
+                                actionType="future"
+                                label="Concluir"
+                                variant="outline"
+                                className="h-7 rounded-full border-white/10 bg-white/[0.03] px-3 text-[11px]"
+                                futureMessage="A conclusao real sera sincronizada com a central operacional depois."
+                              />
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </BaseCardV3>
+
+            <BaseCardV3
+              eyebrow="Insights discretos de IA"
+              title="Assistencia integrada"
+              description="A IA aparece de forma consultiva, sem dominar a visao tradicional."
+              className="rounded-[30px]"
+            >
+              <div className="space-y-3">
+                {[
+                  "Atlas sugere follow-up em 2h para o casal Europa 2026.",
+                  "Financeiro detectou recorrencia em lancamentos operacionais.",
+                  "Lead quente aguardando retorno da equipe comercial.",
+                  "Documentos pendentes de envio antes do embarque de Roma.",
+                ].map((insight) => (
+                  <div key={insight} className="rounded-[18px] border border-white/8 bg-white/[0.03] px-3.5 py-3 text-[13px] leading-6 text-foreground">
+                    {insight}
+                  </div>
+                ))}
+              </div>
+            </BaseCardV3>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+            <BaseCardV3
+              eyebrow="Ultimas viagens e documentos"
+              title="Mesa operacional"
+              description="Tabela classica para acompanhar jornadas, status e entregas recentes."
+              className="rounded-[30px]"
+            >
+              <div className="overflow-hidden rounded-[22px] border border-white/8">
+                <div className="grid grid-cols-[1.1fr_1fr_0.75fr_0.75fr_0.6fr] gap-3 border-b border-white/8 bg-white/[0.03] px-4 py-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  <span>Cliente</span>
+                  <span>Destino / etapa</span>
+                  <span>Status</span>
+                  <span>Modulo</span>
+                  <span className="text-right">Abrir</span>
+                </div>
+                {[
+                  ...(tripsModule?.workspaceItems ?? []).map((item) => ({ ...item, area: "Viagens", target: "trips" as const })),
+                  ...((modules.find((item) => item.key === "documents")?.workspaceItems ?? []).slice(0, 2).map((item) => ({ ...item, area: "Documentos", target: "documents" as const }))),
+                ].map((item) => (
+                  <div key={`${item.area}-${item.title}`} className="grid grid-cols-[1.1fr_1fr_0.75fr_0.75fr_0.6fr] gap-3 border-b border-white/6 px-4 py-3 last:border-b-0 hover:bg-white/[0.02]">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{normalizeTravelFeatureLabel(item.title)}</p>
+                      <p className="text-[12px] text-muted-foreground">{normalizeTravelFeatureLabel(item.subtitle)}</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{item.meta}</p>
+                    <p className="text-sm text-foreground">{item.status}</p>
+                    <p className="text-sm text-muted-foreground">{item.area}</p>
+                    <div className="flex justify-end">
+                      <AgencyRebuildActionButton
+                        actionType="modal"
+                        label="+"
+                        className="h-8 w-8 rounded-full p-0 text-sm"
+                        onAction={() => setWorkspaceKey(item.target)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </BaseCardV3>
+
+            <div className="space-y-4">
+              <BaseCardV3
+                eyebrow="Financeiro recente"
+                title="Movimentacoes e alertas"
+                description="Entradas, repasses e sensibilidade do caixa em leitura empresarial."
+                className="rounded-[30px]"
+              >
+                <div className="space-y-3">
+                  {(financeModule?.workspaceItems ?? []).map((item) => (
+                    <button
+                      key={item.title}
+                      type="button"
+                      onClick={() => setWorkspaceKey("finance")}
+                      className="flex w-full items-center justify-between rounded-[18px] border border-white/8 bg-white/[0.03] px-3.5 py-3 text-left transition hover:border-white/12 hover:bg-white/[0.05]"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{normalizeTravelFeatureLabel(item.title)}</p>
+                        <p className="mt-1 text-[12px] text-muted-foreground">{normalizeTravelFeatureLabel(item.subtitle)}</p>
+                      </div>
+                      <span className="text-[12px] text-primary">{item.meta}</span>
+                    </button>
+                  ))}
+                </div>
+              </BaseCardV3>
+
+              <BaseCardV3
+                eyebrow="Alertas operacionais"
+                title="Acompanhamento rapido"
+                description="Sinais criticos, follow-ups e acoes recomendadas na mesma mesa."
+                className="rounded-[30px]"
+              >
+                <div className="space-y-3">
+                  {traditionalAlerts.map((alert) => (
+                    <div key={alert.title} className="flex items-center justify-between gap-3 rounded-[18px] border border-white/8 bg-white/[0.03] px-3.5 py-3">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{alert.title}</p>
+                        <p className="mt-1 text-[12px] leading-5 text-muted-foreground">{alert.note}</p>
+                      </div>
+                      <AgencyRebuildActionButton
+                        actionType="modal"
+                        label="Ver"
+                        className="h-8 rounded-full px-3 text-xs"
+                        onAction={() => setWorkspaceKey(alert.target)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </BaseCardV3>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BaseModalV3
         open={creationOpen}
@@ -1482,8 +1778,8 @@ export function AgencyRebuildDashboard() {
                         filteredWorkspaceItems.map((item) => (
                           <BaseCardV3
                             key={`${tab}-${item.title}`}
-                            title={item.title}
-                            description={item.subtitle}
+                            title={normalizeTravelFeatureLabel(item.title)}
+                            description={normalizeTravelFeatureLabel(item.subtitle)}
                             className="rounded-[24px] p-3.5"
                             actions={<StatusTag label={item.status} tone={selectedModule.tone} />}
                             footer={
@@ -1499,7 +1795,7 @@ export function AgencyRebuildDashboard() {
                                   label="Resolver"
                                   variant="outline"
                                   className="h-8 rounded-full border-white/10 bg-white/[0.03] px-3 text-xs"
-                                  futureMessage={`Fluxo inteligente em preparação para ${item.title.toLowerCase()}.`}
+                                  futureMessage={`Fluxo inteligente em preparação para ${normalizeTravelFeatureLabel(item.title).toLowerCase()}.`}
                                 />
                               </>
                             }
@@ -1533,7 +1829,7 @@ export function AgencyRebuildDashboard() {
                           <>
                             <AgencyRebuildActionButton
                               actionType="modal"
-                              label={selectedModule.primaryLabel}
+                              label={normalizeTravelFeatureLabel(selectedModule.primaryLabel)}
                               className="h-8 rounded-full px-3 text-xs"
                               onAction={() => {
                                 setWorkspaceKey(null)
@@ -1546,11 +1842,11 @@ export function AgencyRebuildDashboard() {
                         <div className="space-y-2">
                           {selectedModule.reading.map((reading) => (
                             <div
-                              key={reading}
-                              className="rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-2 text-[12px] leading-5 text-muted-foreground"
-                            >
-                              {reading}
-                            </div>
+                            key={reading}
+                            className="rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-2 text-[12px] leading-5 text-muted-foreground"
+                          >
+                              {normalizeTravelFeatureLabel(reading)}
+                          </div>
                           ))}
                         </div>
                       </BaseCardV3>
@@ -1658,6 +1954,13 @@ export function AgencyRebuildDashboard() {
         }}
       />
 
+      <AgencyRebuildTravelMatchWorkspace
+        open={workspaceKey === "travelMatch"}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setWorkspaceKey(null)
+        }}
+      />
+
       <AgencyRebuildTeamWorkspace
         open={workspaceKey === "team"}
         onOpenChange={(nextOpen) => {
@@ -1683,6 +1986,9 @@ export function AgencyRebuildDashboard() {
         open={workspaceKey === "expansions"}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) setWorkspaceKey(null)
+        }}
+        onOpenTravelMatch={() => {
+          setWorkspaceKey("travelMatch")
         }}
       />
     </>

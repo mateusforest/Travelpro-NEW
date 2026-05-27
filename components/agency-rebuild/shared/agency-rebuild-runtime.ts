@@ -9,6 +9,7 @@ export type AgencyRebuildMenuTarget =
   | "finance"
   | "credits"
   | "catalog"
+  | "travelMatch"
   | "plans"
   | "billing"
   | "settings"

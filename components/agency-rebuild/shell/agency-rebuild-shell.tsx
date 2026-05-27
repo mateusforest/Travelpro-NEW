@@ -1,22 +1,27 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import {
+  BadgeDollarSign,
   BadgeCheck,
   Bot,
   Box,
   BriefcaseBusiness,
   ChartNoAxesCombined,
+  ChevronDown,
   CreditCard,
   FileText,
   HandCoins,
   LayoutGrid,
   LogOut,
+  Plane,
   Package2,
   ReceiptText,
   Rocket,
+  Rows3,
   Settings,
   ShieldCheck,
+  Sparkles,
   UserRound,
   Users,
   Waypoints,
@@ -26,7 +31,12 @@ import { AgencyRebuildAtlas } from "@/components/agency-rebuild/atlas"
 import { BaseDrawerV3 } from "@/components/agency-rebuild/drawers/base-drawer-v3"
 import { BaseModalV3 } from "@/components/agency-rebuild/modals/base-modal-v3"
 import { BaseCardV3 } from "@/components/agency-rebuild/shared/base-card-v3"
-import { dispatchAgencyRebuildNavigation, type AgencyRebuildMenuTarget } from "@/components/agency-rebuild/shared"
+import {
+  AgencyRebuildViewProvider,
+  dispatchAgencyRebuildNavigation,
+  type AgencyRebuildMenuTarget,
+  type AgencyRebuildViewMode,
+} from "@/components/agency-rebuild/shared"
 import { AgencyRebuildNotifications } from "@/components/agency-rebuild/widgets"
 import { TravelProLogo } from "@/components/branding/travelpro-logo"
 import { Input } from "@/components/ui/input"
@@ -38,6 +48,14 @@ type RebuildNavItem = {
   label: string
   hint: string
   icon: ReactNode
+}
+
+type TraditionalMenuGroup = {
+  key: string
+  label: string
+  icon: ReactNode
+  target?: AgencyRebuildMenuTarget
+  children?: Array<{ key: string; label: string; target: AgencyRebuildMenuTarget }>
 }
 
 type ProfileSection =
@@ -56,35 +74,98 @@ type AgencyRebuildShellProps = {
 }
 
 const navItems: RebuildNavItem[] = [
-  { key: "dashboard", label: "Dashboard", hint: "Visao viva", icon: <LayoutGrid className="h-4 w-4" /> },
+  { key: "dashboard", label: "Dashboard", hint: "Visão viva", icon: <LayoutGrid className="h-4 w-4" /> },
   { key: "clients", label: "Clientes", hint: "Relacionamento", icon: <Users className="h-4 w-4" /> },
   { key: "leads", label: "Leads", hint: "Pipeline", icon: <Waypoints className="h-4 w-4" /> },
   { key: "trips", label: "Viagens", hint: "Jornadas", icon: <BriefcaseBusiness className="h-4 w-4" /> },
   { key: "documents", label: "Documentos", hint: "Hub premium", icon: <FileText className="h-4 w-4" /> },
   { key: "finance", label: "Financeiro", hint: "Caixa e margem", icon: <HandCoins className="h-4 w-4" /> },
-  { key: "credits", label: "Creditos", hint: "Uso e saldo", icon: <CreditCard className="h-4 w-4" /> },
-  { key: "catalog", label: "Catalogo", hint: "Pacotes vivos", icon: <Rocket className="h-4 w-4" /> },
+  { key: "credits", label: "Créditos", hint: "Uso e saldo", icon: <CreditCard className="h-4 w-4" /> },
+  { key: "catalog", label: "Catálogo", hint: "Pacotes vivos", icon: <Rocket className="h-4 w-4" /> },
   { key: "itineraries", label: "Roteiros", hint: "Entregas", icon: <FileText className="h-4 w-4" /> },
-  { key: "quotes", label: "Cotacoes", hint: "Travel Builder", icon: <Box className="h-4 w-4" /> },
+  { key: "quotes", label: "Cotações", hint: "Travel Builder", icon: <Box className="h-4 w-4" /> },
   { key: "operations", label: "Central Operacional", hint: "Comando vivo", icon: <HandCoins className="h-4 w-4" /> },
   { key: "plans", label: "Planos", hint: "Pacotes e limites", icon: <Box className="h-4 w-4" /> },
-  { key: "billing", label: "Cobranca", hint: "Assinatura e recibos", icon: <ReceiptText className="h-4 w-4" /> },
-  { key: "settings", label: "Configuracoes", hint: "Identidade", icon: <Settings className="h-4 w-4" /> },
-  { key: "reports", label: "Relatorios", hint: "Leitura executiva", icon: <ChartNoAxesCombined className="h-4 w-4" /> },
+  { key: "billing", label: "Cobrança", hint: "Assinatura e recibos", icon: <ReceiptText className="h-4 w-4" /> },
+  { key: "settings", label: "Configurações", hint: "Identidade", icon: <Settings className="h-4 w-4" /> },
+  { key: "reports", label: "Relatórios", hint: "Leitura executiva", icon: <ChartNoAxesCombined className="h-4 w-4" /> },
   { key: "team", label: "Equipe", hint: "Pessoas e foco", icon: <Users className="h-4 w-4" /> },
-  { key: "expansions", label: "Expansoes", hint: "Ecossistema premium", icon: <Bot className="h-4 w-4" /> },
+  { key: "expansions", label: "Expansões", hint: "Ecossistema premium", icon: <Bot className="h-4 w-4" /> },
   { key: "atlas", label: "Atlas", hint: "Pergunte", icon: <Bot className="h-4 w-4" /> },
   { key: "signout", label: "Sair", hint: "Estado honesto", icon: <LogOut className="h-4 w-4" /> },
 ]
 
+const traditionalMenu: TraditionalMenuGroup[] = [
+  { key: "dashboard", label: "Dashboard", icon: <LayoutGrid className="h-4 w-4" />, target: "dashboard" },
+  { key: "clients", label: "Clientes", icon: <Users className="h-4 w-4" />, target: "clients" },
+  { key: "leads", label: "Leads", icon: <Waypoints className="h-4 w-4" />, target: "leads" },
+  {
+    key: "trips",
+    label: "Viagens",
+    icon: <BriefcaseBusiness className="h-4 w-4" />,
+    children: [
+      { key: "trips-all", label: "Todas as viagens", target: "trips" },
+      { key: "trips-itineraries", label: "Roteiros", target: "itineraries" },
+      { key: "trips-quotes", label: "Cotações", target: "quotes" },
+    ],
+  },
+  {
+    key: "documents",
+    label: "Documentos",
+    icon: <FileText className="h-4 w-4" />,
+    children: [
+      { key: "documents-all", label: "Todos os documentos", target: "documents" },
+      { key: "documents-contracts", label: "Contratos", target: "documents" },
+      { key: "documents-vouchers", label: "Vouchers", target: "documents" },
+      { key: "documents-receipts", label: "Recibos", target: "documents" },
+      { key: "documents-flights", label: "Passagens", target: "documents" },
+      { key: "documents-templates", label: "Templates", target: "templates" },
+    ],
+  },
+  {
+    key: "catalog",
+    label: "Catálogo",
+    icon: <Rocket className="h-4 w-4" />,
+    children: [
+      { key: "catalog-main", label: "Catálogo da agência", target: "catalog" },
+      { key: "catalog-match", label: "Travel Match", target: "travelMatch" },
+    ],
+  },
+  { key: "go", label: "Travel GO", icon: <Bot className="h-4 w-4" />, target: "expansions" },
+  {
+    key: "expansions",
+    label: "Expansões",
+    icon: <Sparkles className="h-4 w-4" />,
+    children: [
+      { key: "exp-agent", label: "Travel Agent", target: "expansions" },
+      { key: "exp-marketing", label: "Marketing IA", target: "expansions" },
+      { key: "exp-advisor", label: "Atlas Advisor", target: "expansions" },
+    ],
+  },
+  {
+    key: "operations",
+    label: "Central Operacional",
+    icon: <HandCoins className="h-4 w-4" />,
+    children: [
+      { key: "ops-overview", label: "Visão geral", target: "operations" },
+      { key: "ops-insights", label: "Insights", target: "operations" },
+      { key: "ops-credits", label: "Créditos e consumo", target: "credits" },
+      { key: "ops-tasks", label: "Tarefas", target: "operations" },
+      { key: "ops-reports", label: "Relatórios", target: "reports" },
+    ],
+  },
+  { key: "finance", label: "Financeiro", icon: <BadgeDollarSign className="h-4 w-4" />, target: "finance" },
+  { key: "team", label: "Equipe", icon: <Users className="h-4 w-4" />, target: "team" },
+]
+
 const profileRoutes: Array<{ key: ProfileSection; label: string; icon: ReactNode; description: string }> = [
-  { key: "account", label: "Minha conta", icon: <UserRound className="h-4 w-4" />, description: "Dados pessoais e da agencia" },
-  { key: "security", label: "Seguranca", icon: <ShieldCheck className="h-4 w-4" />, description: "Senha, sessoes e acesso" },
-  { key: "plans", label: "Planos", icon: <BadgeCheck className="h-4 w-4" />, description: "Plano atual, limites e comparacao" },
+  { key: "account", label: "Minha conta", icon: <UserRound className="h-4 w-4" />, description: "Dados pessoais e da agência" },
+  { key: "security", label: "Segurança", icon: <ShieldCheck className="h-4 w-4" />, description: "Senha, sessões e acesso" },
+  { key: "plans", label: "Planos", icon: <BadgeCheck className="h-4 w-4" />, description: "Plano atual, limites e comparação" },
   { key: "packages", label: "Pacotes", icon: <Package2 className="h-4 w-4" />, description: "Pacotes ativos e uso recente" },
-  { key: "billing", label: "Cobranca", icon: <ReceiptText className="h-4 w-4" />, description: "Assinatura, faturas e cobranca" },
-  { key: "settings", label: "Configuracao", icon: <Settings className="h-4 w-4" />, description: "Branding, WhatsApp e preferencias" },
-  { key: "signout", label: "Sair", icon: <LogOut className="h-4 w-4" />, description: "Confirmacao de saida da conta" },
+  { key: "billing", label: "Cobrança", icon: <ReceiptText className="h-4 w-4" />, description: "Assinatura, faturas e cobrança" },
+  { key: "settings", label: "Configuração", icon: <Settings className="h-4 w-4" />, description: "Branding, WhatsApp e preferências" },
+  { key: "signout", label: "Sair", icon: <LogOut className="h-4 w-4" />, description: "Confirmação de saída da conta" },
 ]
 
 const profileRouteGroups: ProfileSection[][] = [
@@ -98,51 +179,54 @@ function profileModalMeta(section: ProfileSection) {
     case "account":
       return {
         title: "Minha conta",
-        description: "Dados pessoais, agencia, preferencias basicas e contexto da conta na V3.",
+        description: "Dados pessoais, agência, preferências básicas e contexto da conta na V3.",
       }
     case "security":
       return {
-        title: "Seguranca",
-        description: "Troca de senha, sessoes visuais e autenticacao futura em uma central premium.",
+        title: "Segurança",
+        description: "Troca de senha, sessões visuais e autenticação futura em uma central premium.",
       }
     case "plans":
       return {
         title: "Planos",
-        description: "Plano atual, limites, comparacao e historico visual da conta.",
+        description: "Plano atual, limites, comparação e histórico visual da conta.",
       }
     case "packages":
       return {
         title: "Pacotes",
-        description: "Pacotes ativos, creditos incluidos, uso recente e capacidade adicional.",
+        description: "Pacotes ativos, créditos incluídos, uso recente e capacidade adicional.",
       }
     case "billing":
       return {
-        title: "Cobranca",
-        description: "Assinatura, faturas, cobrancas recentes e billing em preparacao.",
+        title: "Cobrança",
+        description: "Assinatura, faturas, cobranças recentes e billing em preparação.",
       }
     case "settings":
       return {
-        title: "Configuracao",
-        description: "Dados da agencia, branding, WhatsApp, notificacoes e preferencias operacionais.",
+        title: "Configuração",
+        description: "Dados da agência, branding, WhatsApp, notificações e preferências operacionais.",
       }
     case "signout":
       return {
         title: "Sair da conta",
-        description: "Confirmacao premium e estado honesto para futura integracao com autenticacao real.",
+        description: "Confirmação premium e estado honesto para futura integração com autenticação real.",
       }
   }
 }
 
 export function AgencyRebuildShell({
   title = "Ola, Marina.",
-  subtitle = "Preview isolado da nova camada operacional.",
+  subtitle,
   children,
 }: AgencyRebuildShellProps) {
+  const [viewMode, setViewModeState] = useState<AgencyRebuildViewMode>("workspace")
+  const [isSwitchingView, setIsSwitchingView] = useState(false)
   const [navigationOpen, setNavigationOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [profileModalOpen, setProfileModalOpen] = useState(false)
   const [atlasOpen, setAtlasOpen] = useState(false)
   const [activeKey, setActiveKey] = useState("dashboard")
+  const [expandedTraditionalMenus, setExpandedTraditionalMenus] = useState<string[]>(["trips", "documents"])
   const [activeProfileSection, setActiveProfileSection] = useState<ProfileSection>("account")
   const [accountForm, setAccountForm] = useState({
     name: "Marina Alves",
@@ -219,7 +303,7 @@ export function AgencyRebuildShell({
         return (
           <div className="space-y-5">
             <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-              <BaseCardV3 eyebrow="Alterar senha" title="Seguranca da conta" className="rounded-[28px]">
+              <BaseCardV3 eyebrow="Alterar senha" title="Segurança da conta" className="rounded-[28px]">
                 <div className="grid gap-3">
                   <Input type="password" value={securityForm.currentPassword} onChange={(event) => setSecurityForm((current) => ({ ...current, currentPassword: event.target.value }))} className="h-11 rounded-[18px] border-white/10 bg-white/[0.03]" placeholder="Senha atual" />
                   <Input type="password" value={securityForm.newPassword} onChange={(event) => setSecurityForm((current) => ({ ...current, newPassword: event.target.value }))} className="h-11 rounded-[18px] border-white/10 bg-white/[0.03]" placeholder="Nova senha" />
@@ -328,7 +412,7 @@ export function AgencyRebuildShell({
                 <div className="grid gap-3">
                   <Input value={settingsForm.notifications} onChange={(event) => setSettingsForm((current) => ({ ...current, notifications: event.target.value }))} className="h-11 rounded-[18px] border-white/10 bg-white/[0.03]" placeholder="Notificacoes" />
                   <Input value={settingsForm.preferences} onChange={(event) => setSettingsForm((current) => ({ ...current, preferences: event.target.value }))} className="h-11 rounded-[18px] border-white/10 bg-white/[0.03]" placeholder="Preferencias operacionais" />
-                  <Input value={settingsForm.security} onChange={(event) => setSettingsForm((current) => ({ ...current, security: event.target.value }))} className="h-11 rounded-[18px] border-white/10 bg-white/[0.03]" placeholder="Seguranca visual" />
+                  <Input value={settingsForm.security} onChange={(event) => setSettingsForm((current) => ({ ...current, security: event.target.value }))} className="h-11 rounded-[18px] border-white/10 bg-white/[0.03]" placeholder="Segurança visual" />
                 </div>
               </BaseCardV3>
             </div>
@@ -338,7 +422,7 @@ export function AgencyRebuildShell({
               className="rounded-full"
               onAction={() =>
                 toast({
-                  title: "Configuracoes salvas",
+                  title: "Configurações salvas",
                   description: "As preferencias da central V3 foram atualizadas localmente.",
                 })
               }
@@ -365,7 +449,148 @@ export function AgencyRebuildShell({
 
   const modalMeta = profileModalMeta(activeProfileSection)
 
+  useEffect(() => {
+    const stored = window.localStorage.getItem("travelpro:v3-view-mode")
+    if (stored === "workspace" || stored === "traditional") {
+      setViewModeState(stored)
+    }
+  }, [])
+
+  const setViewMode = (mode: AgencyRebuildViewMode) => {
+    if (mode === viewMode) return
+    setIsSwitchingView(true)
+    window.setTimeout(() => {
+      setViewModeState(mode)
+      window.localStorage.setItem("travelpro:v3-view-mode", mode)
+    }, 260)
+    window.setTimeout(() => {
+      setIsSwitchingView(false)
+    }, 620)
+  }
+
+  const toggleTraditionalMenu = (menuKey: string) => {
+    setExpandedTraditionalMenus((current) =>
+      current.includes(menuKey) ? current.filter((item) => item !== menuKey) : [...current, menuKey],
+    )
+  }
+
+  const handleMenuNavigation = (target: AgencyRebuildMenuTarget, key: string) => {
+    setActiveKey(key)
+
+    if (target === "signout") {
+      setActiveProfileSection("signout")
+      setProfileModalOpen(true)
+      return
+    }
+
+    if (target === "atlas") {
+      setAtlasOpen(true)
+      return
+    }
+
+    if (target === "plans") {
+      setActiveProfileSection("plans")
+      setProfileModalOpen(true)
+      return
+    }
+
+    if (target === "billing") {
+      setActiveProfileSection("billing")
+      setProfileModalOpen(true)
+      return
+    }
+
+    if (target === "settings") {
+      setActiveProfileSection("settings")
+      setProfileModalOpen(true)
+      return
+    }
+
+    dispatchAgencyRebuildNavigation(target)
+  }
+
+  const traditionalSidebar = useMemo(
+    () => (
+      <aside
+        className={cn(
+          "hidden xl:block xl:w-[280px]",
+          viewMode === "traditional" ? "xl:opacity-100" : "xl:pointer-events-none xl:opacity-0",
+        )}
+      >
+        <div className="sticky top-[92px] rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(17,13,14,0.94),rgba(10,8,9,0.92))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
+          <div className="space-y-1.5">
+            {traditionalMenu.map((item) => {
+              const isExpanded = expandedTraditionalMenus.includes(item.key)
+              const isDirectActive = item.target ? activeKey === item.target : item.children?.some((child) => activeKey === child.target)
+
+              return (
+                <div key={item.key} className="rounded-[22px]">
+                  {item.children ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => toggleTraditionalMenu(item.key)}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-[16px] border px-3 py-2.5 text-left transition-all",
+                          isDirectActive
+                            ? "border-primary/20 bg-primary/[0.1]"
+                            : "border-white/6 bg-white/[0.025] hover:border-white/10 hover:bg-white/[0.04]",
+                        )}
+                      >
+                        <div className="rounded-[12px] border border-white/8 bg-black/18 p-1.5 text-primary">{item.icon}</div>
+                        <span className="flex-1 text-[13px] font-medium text-foreground">{item.label}</span>
+                        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
+                      </button>
+
+                      <div className={cn("grid overflow-hidden transition-all duration-300", isExpanded ? "grid-rows-[1fr] pt-1.5" : "grid-rows-[0fr]")}>
+                        <div className="min-h-0">
+                          <div className="ml-5 space-y-1 border-l border-white/8 pl-3">
+                            {item.children.map((child) => (
+                              <button
+                                key={child.key}
+                                type="button"
+                                onClick={() => handleMenuNavigation(child.target, child.target)}
+                                className={cn(
+                                  "flex w-full items-center rounded-[12px] px-3 py-2 text-left text-[12px] transition-all",
+                                  activeKey === child.target
+                                    ? "bg-orange-500/[0.12] text-orange-100 shadow-[inset_0_0_0_1px_rgba(251,146,60,0.12)]"
+                                    : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+                                )}
+                              >
+                                {child.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => item.target && handleMenuNavigation(item.target, item.target)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-[16px] border px-3 py-2.5 text-left transition-all",
+                        isDirectActive
+                          ? "border-primary/20 bg-primary/[0.1]"
+                          : "border-white/6 bg-white/[0.025] hover:border-white/10 hover:bg-white/[0.04]",
+                      )}
+                    >
+                      <div className="rounded-[12px] border border-white/8 bg-black/18 p-1.5 text-primary">{item.icon}</div>
+                      <span className="text-[13px] font-medium text-foreground">{item.label}</span>
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </aside>
+    ),
+    [activeKey, expandedTraditionalMenus, viewMode],
+  )
+
   return (
+    <AgencyRebuildViewProvider value={{ viewMode, isSwitchingView, setViewMode }}>
     <div className="min-h-screen overflow-x-clip bg-[#080607] text-foreground">
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(251,146,60,0.12),transparent_30%),radial-gradient(circle_at_86%_16%,rgba(249,115,22,0.08),transparent_24%),linear-gradient(180deg,rgba(8,6,7,0.96),rgba(8,6,7,1))]" />
@@ -378,7 +603,10 @@ export function AgencyRebuildShell({
           <AgencyRebuildActionButton
             actionType="modal"
             label={<LayoutGrid className="h-4 w-4 text-primary" />}
-            className="h-10 w-10 rounded-[16px] border border-white/8 bg-white/[0.04] p-0 shadow-[0_12px_32px_rgba(0,0,0,0.2)]"
+            className={cn(
+              "h-10 w-10 rounded-[16px] border border-white/8 bg-white/[0.04] p-0 shadow-[0_12px_32px_rgba(0,0,0,0.2)] xl:hidden",
+              viewMode === "workspace" && "xl:flex",
+            )}
             variant="outline"
             tooltip="Abrir mapa de modulos da V3."
             onAction={() => setNavigationOpen(true)}
@@ -389,7 +617,45 @@ export function AgencyRebuildShell({
 
           <div className="min-w-0 flex-1 pl-1">
             <h1 className="truncate text-sm font-semibold text-foreground sm:text-[15px]">{title}</h1>
-            <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+            {subtitle ? <p className="truncate text-xs text-muted-foreground">{subtitle}</p> : null}
+          </div>
+
+          <div className="hidden lg:flex">
+            <div className="relative flex overflow-visible rounded-full border border-white/8 bg-white/[0.035] p-1 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
+              <div
+                className={cn(
+                  "pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-primary/[0.12] shadow-[0_0_22px_rgba(251,146,60,0.18)] transition-transform duration-500",
+                  viewMode === "workspace" ? "translate-x-0" : "translate-x-full",
+                )}
+              />
+              <div
+                className={cn(
+                  "pointer-events-none absolute top-1/2 z-30 -translate-y-1/2 text-primary transition-all duration-500",
+                  viewMode === "workspace" ? "left-[calc(25%-10px)]" : "left-[calc(75%-10px)] rotate-[10deg]",
+                  isSwitchingView ? "scale-110 opacity-100 drop-shadow-[0_0_14px_rgba(251,146,60,0.8)]" : "opacity-90",
+                )}
+              >
+                <div className={cn("absolute inset-0 rounded-full bg-primary/20 blur-md", isSwitchingView ? "opacity-100" : "opacity-0")} />
+                <Plane className={cn("relative h-4 w-4", isSwitchingView && "animate-pulse")} />
+              </div>
+              {[
+                { key: "workspace" as const, label: "Visão Workspace", icon: <LayoutGrid className="h-3.5 w-3.5" /> },
+                { key: "traditional" as const, label: "Visão Tradicional", icon: <Rows3 className="h-3.5 w-3.5" /> },
+              ].map((mode) => (
+                <button
+                  key={mode.key}
+                  type="button"
+                  onClick={() => setViewMode(mode.key)}
+                  className={cn(
+                    "relative z-20 flex h-10 items-center gap-2 rounded-full px-4 text-[12px] font-medium transition-colors",
+                    viewMode === mode.key ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {mode.icon}
+                  {mode.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="ml-auto flex items-center gap-2.5">
@@ -477,38 +743,7 @@ export function AgencyRebuildShell({
                 onAction={() => {
                   const target = item.key as AgencyRebuildMenuTarget
                   setNavigationOpen(false)
-                  setActiveKey(item.key)
-
-                  if (target === "signout") {
-                    setActiveProfileSection("signout")
-                    setProfileModalOpen(true)
-                    return
-                  }
-
-                  if (target === "atlas") {
-                    setAtlasOpen(true)
-                    return
-                  }
-
-                  if (target === "plans") {
-                    setActiveProfileSection("plans")
-                    setProfileModalOpen(true)
-                    return
-                  }
-
-                  if (target === "billing") {
-                    setActiveProfileSection("billing")
-                    setProfileModalOpen(true)
-                    return
-                  }
-
-                  if (target === "settings") {
-                    setActiveProfileSection("settings")
-                    setProfileModalOpen(true)
-                    return
-                  }
-
-                  dispatchAgencyRebuildNavigation(target)
+                  handleMenuNavigation(target, item.key)
                 }}
               />
             )
@@ -517,7 +752,16 @@ export function AgencyRebuildShell({
       </BaseDrawerV3>
 
       <main className="mx-auto w-full max-w-[1680px] px-4 py-5 pb-12 sm:px-5 lg:px-6">
-        {children}
+        <div className={cn("transition-all duration-500", isSwitchingView && "opacity-80 blur-[1px]")}>
+          {viewMode === "traditional" ? (
+            <div className="flex gap-5">
+              {traditionalSidebar}
+              <div className="min-w-0 flex-1">{children}</div>
+            </div>
+          ) : (
+            children
+          )}
+        </div>
       </main>
 
       <BaseDrawerV3
@@ -593,5 +837,6 @@ export function AgencyRebuildShell({
 
       <AgencyRebuildAtlas open={atlasOpen} onOpenChange={setAtlasOpen} />
     </div>
+    </AgencyRebuildViewProvider>
   )
 }
